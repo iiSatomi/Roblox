@@ -1,114 +1,90 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TeleportService = game:GetService("TeleportService")
+local remoteFunction = ReplicatedStorage:WaitForChild("RemoteFunction")
 local player = game.Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "BlackCatHubGUI"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = playerGui
 
-local label = Instance.new("TextLabel")
-label.Size = UDim2.new(0,300,0,80)
-label.Position = UDim2.new(0.5,-150,0.5,-40)
-label.BackgroundTransparency = 1
-label.Text = "BlackCat Hub"
-label.TextColor3 = Color3.fromRGB(0,0,0)
-label.Font = Enum.Font.GothamBold
-label.TextSize = 36
-label.TextStrokeTransparency = 0
-label.Parent = screenGui
+if workspace:FindFirstChild("Elevators") then
+    local args = {
+        [1] = "Multiplayer",
+        [2] = "v2:start",
+        [3] = {
+            ["count"] = 1,
+            ["mode"] = "halloween"
+        }
+    }
+    remoteFunction:InvokeServer(unpack(args))
+else
+    remoteFunction:InvokeServer("Voting", "Skip")
+    task.wait(1)
+end
 
-local countdownLabel = Instance.new("TextLabel")
-countdownLabel.Size = UDim2.new(0,200,0,30)
-countdownLabel.Position = UDim2.new(0.5,-100,0.5,50)
-countdownLabel.BackgroundTransparency = 1
-countdownLabel.TextColor3 = Color3.fromRGB(255,255,0)
-countdownLabel.Font = Enum.Font.GothamBold
-countdownLabel.TextSize = 24
-countdownLabel.Text = ""
-countdownLabel.Parent = screenGui
+local guiPath = player:WaitForChild("PlayerGui")
+    :WaitForChild("ReactUniversalHotbar")
+    :WaitForChild("Frame")
+    :WaitForChild("values")
+    :WaitForChild("cash")
+    :WaitForChild("amount")
 
-local runningHub=true
-local hubTask
-local function runBlackCatHub(expireTime)
-    runningHub=true
-    label.Text="BlackCat Hub - Active"
-    task.spawn(function()
-        while os.time()<expireTime do
-            local remain=expireTime-os.time()
-            countdownLabel.Text=string.format("Time Left: %02d:%02d:%02d",math.floor(remain/3600),math.floor((remain%3600)/60),remain%60)
-            task.wait(1)
-        end
-        countdownLabel.Text="Get New Key!"
-        label.Text="BlackCat Hub - Get New Key"
-        runningHub=false
-    end)
+local function getCash()
+    local rawText = guiPath.Text or ""
+    local cleaned = rawText:gsub("[^%d%-]", "")
+    return tonumber(cleaned) or 0
+end
 
-    local ReplicatedStorage=game:GetService("ReplicatedStorage")
-    local TeleportService=game:GetService("TeleportService")
-    local remoteFunction=ReplicatedStorage:WaitForChild("RemoteFunction")
-    if workspace:FindFirstChild("Elevators") then
-        remoteFunction:InvokeServer("Multiplayer","v2:start",{["count"]=1,["mode"]="halloween"})
-    else
-        remoteFunction:InvokeServer("Voting","Skip")
+local function waitForCash(minAmount)
+    while getCash() < minAmount do
         task.wait(1)
     end
+end
 
-    local guiPath=player:WaitForChild("PlayerGui"):WaitForChild("ReactUniversalHotbar"):WaitForChild("Frame"):WaitForChild("values"):WaitForChild("cash"):WaitForChild("amount")
-    local function getCash()
-        local rawText=guiPath.Text or ""
-        local cleaned=rawText:gsub("[^%d%-]","")
-        return tonumber(cleaned) or 0
-    end
-    local function waitForCash(minAmount)
-        while getCash()<minAmount and runningHub do
-            task.wait(1)
-        end
-    end
-    local function safeInvoke(args,cost)
-        waitForCash(cost)
-        if not runningHub then return end
+local function safeInvoke(args, cost)
+    waitForCash(cost)
+    local success, err = pcall(function()
+        remoteFunction:InvokeServer(unpack(args))
+    end)
+    task.wait(1)
+end
+
+local sequence = {
+    { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(4.668, 2.349, -37.184) }, "Shotgunner" }, cost = 300 },
+    { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(-1.643, 2.349, -36.870) }, "Shotgunner" }, cost = 300 },
+    { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(4.487, 2.386, -34.154) }, "Shotgunner" }, cost = 300 },
+    { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(-1.185, 2.386, -33.905) }, "Shotgunner" }, cost = 300 },
+    { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(-0.616, 2.386, -30.504) }, "Shotgunner" }, cost = 300 },
+
+    { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(7.143, 2.350, -39.064) }, "Trapper" }, cost = 500 },
+    { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(7.671, 2.386, -35.299) }, "Trapper" }, cost = 500 },
+    { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(-4.269, 2.349, -38.972) }, "Trapper" }, cost = 500 },
+    { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(4.907, 2.386, -31.026) }, "Trapper" }, cost = 500 },
+    { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(7.948, 2.386, -30.539) }, "Trapper" }, cost = 500 },
+    { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(0.052, 2.386, -27.333) }, "Trapper" }, cost = 500 },
+    { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(3.450, 2.386, -25.265) }, "Trapper" }, cost = 500 },
+}
+
+for _, step in ipairs(sequence) do
+    safeInvoke(step.args, step.cost)
+end
+
+local timerThread = task.delay(260, function()
+    TeleportService:Teleport(3260590327,player)
+end)
+
+local towerFolder = workspace:WaitForChild("Towers")
+while true do
+    local towers = towerFolder:GetChildren()
+    for i, tower in ipairs(towers) do
+        local args = {
+            "Troops",
+            "Upgrade",
+            "Set",
+            {
+                Troop = tower,
+                Path = 1
+            }
+        }
         pcall(function()
             remoteFunction:InvokeServer(unpack(args))
         end)
-        task.wait(1)
     end
-
-    local sequence={
-        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(4.668,2.349,-37.184)},"Shotgunner"},cost=300},
-        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(-1.643,2.349,-36.870)},"Shotgunner"},cost=300},
-        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(4.487,2.386,-34.154)},"Shotgunner"},cost=300},
-        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(-1.185,2.386,-33.905)},"Shotgunner"},cost=300},
-        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(-0.616,2.386,-30.504)},"Shotgunner"},cost=300},
-        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(7.143,2.350,-39.064)},"Trapper"},cost=500},
-        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(7.671,2.386,-35.299)},"Trapper"},cost=500},
-        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(-4.269,2.349,-38.972)},"Trapper"},cost=500},
-        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(4.907,2.386,-31.026)},"Trapper"},cost=500},
-        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(7.948,2.386,-30.539)},"Trapper"},cost=500},
-        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(0.052,2.386,-27.333)},"Trapper"},cost=500},
-        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(3.450,2.386,-25.265)},"Trapper"},cost=500},
-    }
-
-    for _,step in ipairs(sequence) do
-        if not runningHub then return end
-        safeInvoke(step.args,step.cost)
-    end
-
-    hubTask=task.spawn(function()
-        local towerFolder=workspace:WaitForChild("Towers")
-        while runningHub do
-            for _,tower in ipairs(towerFolder:GetChildren()) do
-                local args={"Troops","Upgrade","Set",{Troop=tower,Path=1}}
-                if not runningHub then break end
-                pcall(function()
-                    remoteFunction:InvokeServer(unpack(args))
-                end)
-            end
-            task.wait(1)
-        end
-    end)
-
-    task.delay(250,function() if runningHub then TeleportService:Teleport(3260590327) end end)
-    task.delay(270,function() if runningHub then TeleportService:Teleport(3260590327) end end)
+    task.wait(1)
 end
-
-
-runBlackCatHub(math.huge)
