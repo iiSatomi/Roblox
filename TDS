@@ -28,7 +28,7 @@ countdownLabel.Parent = screenGui
 
 local runningHub=true
 local hubTask
-local function runBlackCatHub(math.huge)
+local function runBlackCatHub(expireTime)
     runningHub=true
     label.Text="BlackCat Hub - Active"
     task.spawn(function()
