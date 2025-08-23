@@ -67,7 +67,7 @@ local function isKeyValid()
     local encoded, expire = readKeyFromFile()
     if not encoded or not expire then return false end
     if os.time() > expire then return false end
-    local valid = false
+    local valid = true
     for _, key in pairs(KEYS) do
         if key == encoded then
             valid = true
