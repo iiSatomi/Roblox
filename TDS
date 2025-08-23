@@ -1,1 +1,231 @@
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BlackCatHubGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
 
+local label = Instance.new("TextLabel")
+label.Size = UDim2.new(0,300,0,80)
+label.Position = UDim2.new(0.5,-150,0.5,-40)
+label.BackgroundTransparency = 1
+label.Text = "BlackCat Hub"
+label.TextColor3 = Color3.fromRGB(0,0,0)
+label.Font = Enum.Font.GothamBold
+label.TextSize = 36
+label.TextStrokeTransparency = 0
+label.Parent = screenGui
+
+local countdownLabel = Instance.new("TextLabel")
+countdownLabel.Size = UDim2.new(0,200,0,30)
+countdownLabel.Position = UDim2.new(0.5,-100,0.5,50)
+countdownLabel.BackgroundTransparency = 1
+countdownLabel.TextColor3 = Color3.fromRGB(255,255,0)
+countdownLabel.Font = Enum.Font.GothamBold
+countdownLabel.TextSize = 24
+countdownLabel.Text = ""
+countdownLabel.Parent = screenGui
+
+local KEYS = {["24h"]="WVFJU0I=",["2P"]="QldKRk4="}
+local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+local function decodeBase64(data)
+    data = string.gsub(data,'[^'..b..'=]','')
+    return (data:gsub('.',function(x)
+        if x=='=' then return '' end
+        local f=b:find(x)-1
+        local bin=''
+        for i=6,1,-1 do
+            bin=bin..(math.floor(f/2^(i-1))%2)
+        end
+        return bin
+    end):gsub('%d%d%d%d%d%d%d%d',function(x)
+        local c=0
+        for i=1,8 do
+            c=c+(x:sub(i,i)=='1' and 2^(8-i) or 0)
+        end
+        return string.char(c)
+    end))
+end
+
+local KEY_FILE_PATH="BlackCatKey.txt"
+local function saveKeyToFile(encodedKey,expireTime)
+    if writefile then
+        writefile(KEY_FILE_PATH,encodedKey..":"..tostring(expireTime))
+    end
+end
+
+local function readKeyFromFile()
+    if isfile and readfile and isfile(KEY_FILE_PATH) then
+        local content = readfile(KEY_FILE_PATH)
+        local encoded, expire = content:match("^(.-):(.-)$")
+        return encoded, tonumber(expire)
+    end
+    return nil,nil
+end
+
+local function isKeyValid()
+    local encoded, expire = readKeyFromFile()
+    if not encoded or not expire then return false end
+    if os.time() > expire then return false end
+    local valid = false
+    for _, key in pairs(KEYS) do
+        if key == encoded then
+            valid = true
+            break
+        end
+    end
+    if not valid then return false end
+    return encoded, expire
+end
+
+local keyFrame = Instance.new("Frame")
+keyFrame.Size = UDim2.new(0,300,0,250)
+keyFrame.Position = UDim2.new(0.5,-150,0.5,-125)
+keyFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+keyFrame.BorderSizePixel = 0
+keyFrame.Parent = screenGui
+
+local keyBox = Instance.new("TextBox")
+keyBox.Size = UDim2.new(0,280,0,50)
+keyBox.Position = UDim2.new(0,10,0,30)
+keyBox.PlaceholderText = "Put Your Key Here!"
+keyBox.ClearTextOnFocus = false
+keyBox.Text = ""
+keyBox.TextSize = 24
+keyBox.Parent = keyFrame
+
+local submitButton = Instance.new("TextButton")
+submitButton.Size = UDim2.new(0,280,0,50)
+submitButton.Position = UDim2.new(0,10,0,90)
+submitButton.Text = "CheckKey"
+submitButton.TextSize = 24
+submitButton.BackgroundColor3 = Color3.fromRGB(0,150,0)
+submitButton.TextColor3 = Color3.fromRGB(255,255,255)
+submitButton.Parent = keyFrame
+
+local checkButton = Instance.new("TextButton")
+checkButton.Size = UDim2.new(0,280,0,50)
+checkButton.Position = UDim2.new(0,10,0,150)
+checkButton.Text = "Check Key"
+checkButton.TextSize = 24
+checkButton.BackgroundColor3 = Color3.fromRGB(50,50,200)
+checkButton.TextColor3 = Color3.fromRGB(255,255,255)
+checkButton.Parent = keyFrame
+
+checkButton.MouseButton1Click:Connect(function()
+    if setclipboard then
+        setclipboard("https://discord.gg/VM64DUkN")
+    end
+end)
+
+local runningHub=false
+local hubTask
+local function runBlackCatHub(expireTime)
+    runningHub=true
+    label.Text="BlackCat Hub - Active"
+    task.spawn(function()
+        while os.time()<expireTime do
+            local remain=expireTime-os.time()
+            countdownLabel.Text=string.format("Time Left: %02d:%02d:%02d",math.floor(remain/3600),math.floor((remain%3600)/60),remain%60)
+            task.wait(1)
+        end
+        countdownLabel.Text="Get New Key!"
+        label.Text="BlackCat Hub - Get New Key"
+        runningHub=false
+    end)
+
+    local ReplicatedStorage=game:GetService("ReplicatedStorage")
+    local TeleportService=game:GetService("TeleportService")
+    local remoteFunction=ReplicatedStorage:WaitForChild("RemoteFunction")
+    if workspace:FindFirstChild("Elevators") then
+        remoteFunction:InvokeServer("Multiplayer","v2:start",{["count"]=1,["mode"]="halloween"})
+    else
+        remoteFunction:InvokeServer("Voting","Skip")
+        task.wait(1)
+    end
+
+    local guiPath=player:WaitForChild("PlayerGui"):WaitForChild("ReactUniversalHotbar"):WaitForChild("Frame"):WaitForChild("values"):WaitForChild("cash"):WaitForChild("amount")
+    local function getCash()
+        local rawText=guiPath.Text or ""
+        local cleaned=rawText:gsub("[^%d%-]","")
+        return tonumber(cleaned) or 0
+    end
+    local function waitForCash(minAmount)
+        while getCash()<minAmount and runningHub do
+            task.wait(1)
+        end
+    end
+    local function safeInvoke(args,cost)
+        waitForCash(cost)
+        if not runningHub then return end
+        pcall(function()
+            remoteFunction:InvokeServer(unpack(args))
+        end)
+        task.wait(1)
+    end
+
+    local sequence={
+        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(4.668,2.349,-37.184)},"Shotgunner"},cost=300},
+        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(-1.643,2.349,-36.870)},"Shotgunner"},cost=300},
+        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(4.487,2.386,-34.154)},"Shotgunner"},cost=300},
+        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(-1.185,2.386,-33.905)},"Shotgunner"},cost=300},
+        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(-0.616,2.386,-30.504)},"Shotgunner"},cost=300},
+        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(7.143,2.350,-39.064)},"Trapper"},cost=500},
+        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(7.671,2.386,-35.299)},"Trapper"},cost=500},
+        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(-4.269,2.349,-38.972)},"Trapper"},cost=500},
+        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(4.907,2.386,-31.026)},"Trapper"},cost=500},
+        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(7.948,2.386,-30.539)},"Trapper"},cost=500},
+        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(0.052,2.386,-27.333)},"Trapper"},cost=500},
+        {args={"Troops","Place",{Rotation=CFrame.new(),Position=Vector3.new(3.450,2.386,-25.265)},"Trapper"},cost=500},
+    }
+
+    for _,step in ipairs(sequence) do
+        if not runningHub then return end
+        safeInvoke(step.args,step.cost)
+    end
+
+    hubTask=task.spawn(function()
+        local towerFolder=workspace:WaitForChild("Towers")
+        while runningHub do
+            for _,tower in ipairs(towerFolder:GetChildren()) do
+                local args={"Troops","Upgrade","Set",{Troop=tower,Path=1}}
+                if not runningHub then break end
+                pcall(function()
+                    remoteFunction:InvokeServer(unpack(args))
+                end)
+            end
+            task.wait(1)
+        end
+    end)
+
+    task.delay(250,function() if runningHub then TeleportService:Teleport(3260590327) end end)
+    task.delay(270,function() if runningHub then TeleportService:Teleport(3260590327) end end)
+end
+
+local encoded,expireTime=isKeyValid()
+if encoded then
+    keyFrame:Destroy()
+    runBlackCatHub(expireTime)
+end
+
+submitButton.MouseButton1Click:Connect(function()
+    local input=keyBox.Text
+    local now=os.time()
+    local duration=nil
+    for _,encodedKey in pairs(KEYS) do
+        if decodeBase64(encodedKey)==input then
+            if encodedKey==KEYS["24h"] then duration=24*60*60
+            elseif encodedKey==KEYS["2P"] then duration=2*60
+            end
+            if duration then
+                saveKeyToFile(encodedKey,now+duration)
+                keyFrame:Destroy()
+                runBlackCatHub(now+duration)
+            end
+        end
+    end
+    if not duration then
+        keyBox.Text=""
+        keyBox.PlaceholderText="Key không hợp lệ!"
+    end
+end)
