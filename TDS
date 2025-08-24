@@ -8,8 +8,9 @@ if workspace:FindFirstChild("Elevators") then
         [1] = "Multiplayer",
         [2] = "v2:start",
         [3] = {
-            ["count"] = 1,
-            ["mode"] = "halloween"
+            ["difficulty"] = "Easy", -- UPDATED to Easy
+            ["mode"] = "survival",
+            ["count"] = 1
         }
     }
     remoteFunction:InvokeServer(unpack(args))
