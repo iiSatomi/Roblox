@@ -1,4 +1,4 @@
--- Idle Mafia Fluent Hub v0.48.17 | External Fluent release v1.0.8
+-- Idle Mafia Fluent Hub v0.48.25 | External Fluent release v1.0.8
 -- Built locally; named configs can restore enabled automation. See docs/IdleMafia-Hub.md.
 local function idleMafiaPlaceReady()
 local ok,loaded=pcall(function() return game:IsLoaded() end)
@@ -176,6 +176,9 @@ bossMode='Smart',bossMinLevel=1,bossMaxLevel=10000,bossMaxHits=100,bossMaxStamin
 skill='energy', skillCap=25, interval=1, timeout=15, readTimeout=8, combatConfirmGrace=1, antiAfk=false, acrylic=false, transparent=false, theme='DuoTone Dark Earth',
 collectionObjective='Balanced',crewGearObjective='Balanced',crewGearStrategy='Safe swaps',
 briefcaseUseKeys=false,briefcaseKeyLimit=10,
+consumableHealthBelow=25,consumableStaminaBelow=25,consumableEnergyBelow=25,
+consumableHealthMode='Balanced',consumableEnergyMode='Balanced',consumableStaminaMode='Balanced',
+consumableUseTradable=false,
 crewTrainMinRarity='Legendary',crewTrainTargetLevel=3,crewTrainMaxCost=100000000,crewTrainConcurrent=1,
 chestLimit=1,chestLimitEnabled=false,shopKind='All allowed',shopRule='Buy all allowed',shopCashMax=100000,
 shopOwnedCap=0,shopMinRarity=1,shopCosmetics=false,shopCrates=false,
@@ -200,13 +203,16 @@ contractHireTier='Street',contractHireMaxCost=10000,skipConfirmation=false,
 familyCashAmount=1000000,familyCashMaxPerLoad=1000000,
 familyGoldAmount=1,familyGoldReserve=0,familyGoldMaxPerLoad=0,
 familyStaminaAmount=1,familyStaminaReserve=0,familyStaminaMaxPerLoad=25,
-familyPerk='runners',familyPerks={runners=true},familyHospitalOnly=false,
+familyPerk='runners',familyPerks={runners=true},familyHospitalOnly=false,familyStaminaOnlyStationed=false,
 familyBossHealthFloor=50,familyBossStaminaReserve=1,familyBossStrategy='Steady',
 residencyKind='landlord',residencyMaxRent=0,residencyMinImprovement=0,residencyDistricts={},
-stationMinHome=2,stationMaxStationed=8,
+stationMinHome=2,stationMaxStationed=8,stationSignificantHpPercent=50,
+stationMove=false,stationTrainRotation=false,stationMoveMinDeficit=3,
+stationMinSourceDefenders=2,stationMoveCooldownMinutes=30,
 permissions={jobs=true,bank=true,withdraw=true,properties=true,operations=true,
 collect=true,bosses=true,skills=true,contracts=true,bonuses=true,crew=true,crewGear=false,cosmetics=false,chests=false,collectionDonate=false,shop=true,trophies=true,
 heists=true,heistCollect=true,favors=false,safehouse=true,playtime=true,groupBonus=true,combat=false,warCombat=false,crewRoll=false,
+restoratives=false,
 briefcases=false,crewTrain=false,
 familyBossClaims=false,familyBossAttacks=false,territoryWatch=false,residency=false,marketWatch=false}}
 end
@@ -226,6 +232,7 @@ operationMinCrateRarity={0,8},healthFloor={1,100},staminaReserve={0,1e12},
 bossMinLevel={1,10000},bossMaxLevel={1,10000},bossMaxHits={1,100000},bossMaxStamina={1,100000},bossHitDelay={5,120},skillCap={0,100000},
 interval={1,120},timeout={5,120},readTimeout={2,60},combatConfirmGrace={0,10},shopOwnedCap={0,100},shopMinRarity={1,10},shopCashMax={0,1e15},
 chestLimit={1,1000},shopGoldMax={0,1e12},shopGoldReserve={0,1e12},
+consumableHealthBelow={0,100},consumableStaminaBelow={0,100},consumableEnergyBelow={0,100},
 marketFlipMaxBuy={0,9999999},marketFlipGoldReserve={0,1e12},
 marketFlipSessionBudget={0,1e12},marketFlipMinMargin={1,9999999},marketFlipMinSales={3,1000000},
 heistMaxHelps={0,100},heistMaxHours={0.1,24},heistPoll={15,120},heistMinLevel={1,10000},heistMaxLevel={1,10000},
@@ -246,7 +253,8 @@ familyGoldAmount={1,100000},familyGoldReserve={0,100000},familyGoldMaxPerLoad={0
 familyStaminaAmount={1,5},familyStaminaReserve={0,100000},familyStaminaMaxPerLoad={0,100000},
 familyBossHealthFloor={1,100},familyBossStaminaReserve={0,100000},
 residencyMaxRent={0,10},residencyMinImprovement={0,100},
-stationMinHome={1,20},stationMaxStationed={0,20}}
+stationMinHome={1,20},stationMaxStationed={0,20},stationSignificantHpPercent={1,100},
+stationMoveMinDeficit={1,200},stationMinSourceDefenders={1,200},stationMoveCooldownMinutes={1,1440}}
 for k,r in pairs(ranges) do c[k]=math.max(r[1],math.min(r[2],num(saved[k],c[k]))) end
 if savedVersion<11 and (num(saved.interval,5)==5
     or (savedVersion<8 and math.abs(num(saved.interval,1.2)-1.2)<0.000001)) then c.interval=2 end
@@ -267,6 +275,9 @@ elseif objective=='Highest income' then objective='Earn Money' end
 local choices={theme={'DuoTone Dark Earth','DuoTone Dark Forest','Amethyst Dark','GitHub Dark','GitHub Light','GitHub Dark High Contrast'},
 collectionObjective={'Balanced','Attack','Defense'},crewGearObjective={'Balanced','Attack','Defense'},
 crewGearStrategy={'Safe swaps','Build complete sets'},objective={'Balanced','Earn XP','Earn Money'},
+consumableHealthMode={'Balanced','Small first','Large first'},
+consumableEnergyMode={'Balanced','Small first','Large first'},
+consumableStaminaMode={'Balanced','Small first','Large first'},
 jobMode={'Balanced','Highest tier','XP / energy','Cash / energy','Job count','Mastery','Selected job'},
 propertyMode={'ROI','Income','Highest tier'},operationMode={'Best chest','Balanced','Highest tier','Profit / hour','XP / hour'},
 skill={'energy','stamina','health','attack','defense','property'},
@@ -309,6 +320,7 @@ c.acrylic=saved.acrylic==true; c.transparent=saved.transparent==true
 c.skipConfirmation=saved.skipConfirmation==true
 c.replaceCrew=saved.replaceCrew==true
 c.briefcaseUseKeys=saved.briefcaseUseKeys==true
+c.consumableUseTradable=saved.consumableUseTradable==true
 c.propertyReplace=saved.propertyReplace==true
 if savedVersion<9 and not c.replaceCrew and type(saved.permissions)=='table' then
 c.replaceCrew=saved.permissions.replaceCrew==true
@@ -338,6 +350,9 @@ c.autoContracts=saved.autoContracts==true
 c.trophyFocus=saved.trophyFocus==true
 c.sabotageEnabled=saved.sabotageEnabled==true
 c.familyHospitalOnly=saved.familyHospitalOnly==true
+c.familyStaminaOnlyStationed=saved.familyStaminaOnlyStationed==true
+c.stationMove=saved.stationMove==true
+c.stationTrainRotation=saved.stationTrainRotation==true
 if type(saved.residencyKind)=='string' and #saved.residencyKind<=40 then c.residencyKind=saved.residencyKind end
 if type(saved.residencyDistricts)=='table' then
 c.residencyDistricts={};local count=0
@@ -1515,7 +1530,8 @@ for slot=2,#s.crew do
 local member=tab(s.crew[slot])
 if type(member.training)=='table' then active=active+1 end
 if num(member.rarity)>0 and not member.rolling and not member.duty
-and type(member.training)~='table' and num(member.injuredUntil)<=now then
+and member.recalling~=true and type(member.training)~='table'
+and num(member.injuredUntil)<=now and num(member.recalledUntil)<=now then
 available=available+1
 local level=math.max(0,math.floor(num(member.train)))
 local nextLevel=level+1
@@ -1539,6 +1555,25 @@ a.argCount=2;a.crewTrainSlot=best.slot;a.crewTrainFrom=best.level;a.crewTrainTo=
 a.crewTrainRarity=best.member.rarity;a.crewTrainName=best.member.name
 a.crewTrainSeconds=best.seconds
 return a
+end
+function Core.crewTrainRotationCandidate(s,cfg,c)
+if type(s)~='table' or type(s.crew)~='table' or Core.crewTrain(s,cfg,c) then return nil end
+for slot=2,#s.crew do
+local member=tab(s.crew[slot])
+if type(member.duty)=='string' and member.duty~='' then
+local simulated={}
+for key,value in pairs(s) do simulated[key]=value end
+simulated.crew={}
+for index,value in ipairs(s.crew) do simulated.crew[index]=value end
+local atHome={}
+for key,value in pairs(member) do atHome[key]=value end
+atHome.duty=nil
+simulated.crew[slot]=atHome
+local train=Core.crewTrain(simulated,cfg,c)
+if train and train.crewTrainSlot==slot then return slot end
+end
+end
+return nil
 end
 function Core.crewRollQuote(s,data,cfg,c)
 if type(s.crew)~='table' or #s.crew<2 then return nil,'Waiting for crew slots' end
@@ -2151,6 +2186,57 @@ if c.chestLimitEnabled then count=math.min(count,math.floor(num(c.chestLimit,1)-
 local a=action('chests','OpenCrate',{id,false,count,luck},0,'Open '..count..' '..id)
 a.argCount=4;return a
 end
+function Core.restoratives(s,data,c,serverTime)
+if type(s)~='table' or type(s.pools)~='table' then return nil,'Waiting for resource state' end
+if math.max(num(s.consumableReadyAt),num(c.consumableReadyAt))>num(serverTime,s.serverNow) then
+return nil,'Consumables cooling down' end
+local rows={
+{pool='health',limit='consumableHealthBelow',id='con_bandages',percent=25},
+{pool='health',limit='consumableHealthBelow',id='con_medkit_small',percent=50},
+{pool='health',limit='consumableHealthBelow',id='con_medkit_large',percent=100},
+{pool='energy',limit='consumableEnergyBelow',id='con_energy_small',percent=25},
+{pool='energy',limit='consumableEnergyBelow',id='con_energy',percent=50},
+{pool='energy',limit='consumableEnergyBelow',id='con_energy_pack',percent=100},
+{pool='stamina',limit='consumableStaminaBelow',id='con_peanuts',percent=25},
+{pool='stamina',limit='consumableStaminaBelow',id='con_sandwich',percent=50},
+{pool='stamina',limit='consumableStaminaBelow',id='con_lunchbox',percent=100}}
+local chosen,chosenWaste,chosenPercent,chosenRank,chosenSourceRank,chosenBound
+for _,row in ipairs(rows) do
+local item=tab(tab(data).ITEMS_BY_ID)[row.id]
+local restore=tab(tab(item).restore)
+local maximum=row.pool=='energy' and num(tab(s.derived).effMaxEnergy,num(tab(s.stats).maxEnergy))
+or num(tab(s.stats)[row.pool=='health' and 'maxHealth' or 'maxStamina'])
+local current=num(s.pools[row.pool],-1)
+local threshold=num(c[row.limit])
+local bound=num(tab(s.inventoryBound)[row.id])>=1
+local sourceRank=bound and 1 or 2
+if threshold>0 and maximum>0 and current>=0 and current<maximum
+and current/maximum*100<=threshold
+and (bound or (c.consumableUseTradable==true and num(tab(s.inventory)[row.id])>=1))
+and item.kind=='consumable' and restore.pool==row.pool and num(restore.percent)==row.percent then
+local gain=math.max(1,math.floor(maximum*row.percent/100))
+local waste=math.max(0,gain-(maximum-current))
+local poolRank=row.pool=='health' and 1 or (row.pool=='energy' and 2 or 3)
+local mode=c['consumable'..(row.pool=='health' and 'Health' or (row.pool=='energy' and 'Energy' or 'Stamina'))..'Mode']
+local better=chosen and (mode=='Small first' and row.percent<chosenPercent
+or mode=='Large first' and row.percent>chosenPercent
+or (mode~='Small first' and mode~='Large first'
+and (waste<chosenWaste or (waste==chosenWaste and row.percent>chosenPercent))))
+if not chosen or poolRank<chosenRank
+or (poolRank==chosenRank and (sourceRank<chosenSourceRank
+or (sourceRank==chosenSourceRank and better))) then
+chosen=row;chosenWaste=waste;chosenPercent=row.percent;chosenRank=poolRank
+chosenSourceRank=sourceRank;chosenBound=bound
+end
+end
+end
+if not chosen then return nil,'Waiting for a low resource and an allowed restorative' end
+local sequence=math.max(num(s.consumableUseSequence),num(c.consumableUseSequence))
+local a=action('restoratives','UseConsumable',{chosen.id,chosenBound,sequence},0,
+'Use '..tostring(tab(data.ITEMS_BY_ID[chosen.id]).name or chosen.id)..' for '..chosen.pool)
+a.argCount=3;a.resource=chosen.pool
+return a
+end
 function Core.cosmeticAction(s,data,cfg,objective)
 local plan,why=Core.cosmeticPlan(s,data,cfg,objective)
 if not plan then return nil,why end
@@ -2196,6 +2282,11 @@ return nil,'Cosmetic equipment and collection match the selected objective'
 end
 function Core.mark(a,s)
 if a.marketFlipKind and Core.Market then return Core.Market.flipMark(a,s) end
+if a.remote=='UseConsumable' then
+local inventory=a.args[2] and s.inventoryBound or s.inventory
+return {count=num(tab(inventory)[a.args[1]]),pool=num(tab(s.pools)[a.resource]),
+sequence=num(s.consumableUseSequence)}
+end
 if a.remote=='BriefcaseAction' then
 local briefcase=tab(s.briefcase)
 local board=tab(briefcase.board)
@@ -2291,6 +2382,11 @@ end
 function Core.confirm(a,before,s,response)
 if a.marketFlipKind and Core.Market then return Core.Market.flipConfirmed(a,before,s,response) end
 local after=Core.mark(a,s)
+if a.remote=='UseConsumable' then
+return type(response)=='table' and response.ok==true and response.resource==a.resource
+and num(response.gain)>0 and after.count==before.count-1 and after.pool>before.pool
+and num(response.sequence)>before.sequence
+end
 if a.remote=='BriefcaseAction' then
 if type(response)~='table' or response.ok~=true
 or before.season~=a.briefcaseSeason or after.season~=before.season or before.opened then return false end
@@ -3823,6 +3919,15 @@ if num(member.userId)==num(userId) then return member end
 end
 return nil
 end
+function Family.hasStationedCrew(state,family)
+if type(state)~='table' or type(family)~='table' or family.id==nil
+or tostring(tab(state.family).id)~=tostring(family.id) then return false end
+for slot=2,#tab(state.crew) do
+local member=tab(state.crew[slot])
+if type(member.duty)=='string' and member.duty~='' and member.recalling~=true then return true end
+end
+return false
+end
 function Family.plan(feature,s,cfg,c,view,now,userId)
 local family=tab(view.data)
 if not view.at or now-view.at>=45 then
@@ -3850,6 +3955,9 @@ return {feature=feature,remote='FamilyAction',args={'donategold',value},argCount
 counter='donatedGold',beforeCounter=num(member.donatedGold),details='Donate Gold Bars to Family'}
 end
 if feature=='familyStamina' then
+if c.familyStaminaOnlyStationed and not Family.hasStationedCrew(s,family) then
+return nil,'Waiting for one of your Crew to be stationed in your current Family'
+end
 local value=amount(c.familyStaminaAmount)
 if value~=1 and value~=5 then return nil,'Family stamina contribution must be 1 or 5' end
 if value+num(view.spentStamina)>num(c.familyStaminaMaxPerLoad) then return nil,'Family stamina session limit reached' end
@@ -4248,6 +4356,7 @@ end
 local serverNow=finite(state.serverNow)
 local territory=tab(cfg.TERRITORY)
 local activeSeconds=finite(territory.siegeActiveSeconds) or 1800
+local significantHpPercent=math.max(1,math.min(100,finite(options.significantHpPercent) or 50))
 local districts={}
 for _,row in ipairs(map.districts) do
 if type(row)=='table' and type(row.id)=='string' and row.id~=''
@@ -4259,22 +4368,26 @@ if count and cap and count>=0 and cap>count then
 local last=finite(row.lastHitAt)
 local siege=serverNow and last and last<=serverNow and last>=serverNow-activeSeconds or false
 local hp,hpMax=finite(row.hp),finite(row.hpMax)
+local hpRatio=hp and hpMax and hpMax>0 and math.max(0,math.min(1,hp/hpMax)) or nil
 districts[#districts+1]={id=row.id,count=count,cap=cap,
 openSlots=cap-count,underSiege=siege==true,
-hpRatio=hp and hpMax and hpMax>0 and math.max(0,math.min(1,hp/hpMax)) or 1}
+significantAttack=siege==true and hpRatio~=nil and hpRatio*100<=significantHpPercent,
+hpRatio=hpRatio or 1}
 end
 end
 end
 table.sort(districts,function(a,b)
+if a.significantAttack~=b.significantAttack then return a.significantAttack end
 if a.underSiege~=b.underSiege then return a.underSiege end
-if a.hpRatio~=b.hpRatio then return a.hpRatio<b.hpRatio end
 if a.count/a.cap~=b.count/b.cap then return a.count/a.cap<b.count/b.cap end
+if a.hpRatio~=b.hpRatio then return a.hpRatio<b.hpRatio end
 return a.id<b.id
 end)
 local best=districts[1]
 if not best then return {reason='No eligible district held by your Family has a verified open garrison slot'} end
 local advice={districtId=best.id,defenders=best.count,capacity=best.cap,
-openSlots=best.openSlots,underSiege=best.underSiege,hpRatio=best.hpRatio}
+openSlots=best.openSlots,underSiege=best.underSiege,
+significantAttack=best.significantAttack,hpRatio=best.hpRatio}
 local crew=tab(state.crew)
 local home,stationed,available={},0,0
 for index=2,#crew do
@@ -4282,7 +4395,8 @@ local member=tab(crew[index])
 if member.duty or member.stationed==true then stationed=stationed+1
 elseif member.rarity and member.rolling~=true and member.recalling~=true
 and type(member.training)~='table'
-and (finite(member.injuredUntil) or 0)<=(serverNow or 0) then
+and (finite(member.injuredUntil) or 0)<=(serverNow or 0)
+and (finite(member.recalledUntil) or 0)<=(serverNow or 0) then
 available=available+1;home[#home+1]={index=index,member=member}
 end
 end
@@ -4295,6 +4409,7 @@ local unknownGear=false
 local chosen=nil
 for _,entry in ipairs(home) do
 local member=entry.member
+if entry.index~=options.stationTrainCandidate then
 local defense=finite(member.def)
 local equipped=false
 for _,kind in ipairs({'weapon','armor','vehicle'}) do
@@ -4324,14 +4439,192 @@ or (defense==chosen.defense and entry.index<chosen.index)) then
 chosen={index=entry.index,defense=defense}
 end
 end
+end
 if not chosen then
 advice.reason=unknownGear and 'Crew gear defense is unavailable; no member proposed'
+or options.stationTrainCandidate and 'Keeping the next eligible Crew trainee at home'
 or 'No eligible unassigned Crew member has verified defense'
 return advice
 end
 advice.memberIndex=chosen.index;advice.memberDefense=chosen.defense
 advice.reason='Read-only candidate; native member defense is not exact personal stat loss'
 return advice
+end
+function Residency.transferPlan(state,view,now,cfg,data,gearSets,settings,userId)
+state=tab(state);view=tab(view);settings=tab(settings)
+if settings.stationMove~=true then return nil,'Auto transfer is OFF' end
+local familyId=tab(state.family).id
+local serverNow=finite(state.serverNow)
+local map=tab(view.map)
+if finite(tab(view.transferCooldown).global) and now<view.transferCooldown.global then
+return nil,'Waiting for Crew transfer cooldown' end
+if not familyId or not serverNow or map.ok~=true or type(map.districts)~='table'
+or not finite(view.mapAt) or now-view.mapAt>20 or now<view.mapAt then
+return nil,'Waiting for a fresh Family Territory map before transfer' end
+local destination=Residency.stationAdvice(state,map,view.mapAt,now,cfg,data,gearSets,
+{minCrewAtHome=settings.stationMinHome,maxStationed=settings.stationMaxStationed,
+significantHpPercent=settings.stationSignificantHpPercent,
+stationTrainCandidate=settings.stationTrainCandidate})
+if not destination.districtId then return nil,destination.reason end
+local targetId=destination.districtId
+local rows={}
+for _,row in ipairs(map.districts) do
+if type(row)=='table' and type(row.id)=='string' then rows[row.id]=row end
+end
+local target=tab(rows[targetId])
+local activeSeconds=finite(tab(cfg.TERRITORY).siegeActiveSeconds) or 1800
+local minimum=math.max(1,math.floor(finite(settings.stationMinSourceDefenders) or 2))
+local deficit=math.max(1,math.floor(finite(settings.stationMoveMinDeficit) or 3))
+local best=nil
+for slot=2,#tab(state.crew) do
+local member=tab(state.crew[slot])
+local source=tab(rows[member.duty])
+local sourceCount=finite(source.garrisonCount)
+local sourceHp,sourceMax=finite(source.hp),finite(source.hpMax)
+local lastHit=finite(source.lastHitAt)
+local quiet=not lastHit or lastHit<serverNow-activeSeconds
+local safeHp=sourceHp and sourceMax and sourceMax>0 and sourceHp/sourceMax>=0.75
+local shortage=sourceCount and finite(target.garrisonCount)
+and sourceCount-finite(target.garrisonCount)>=deficit
+if source.id and source.id~=targetId and tostring(source.holderId)==tostring(familyId)
+and source.settling~=true and sourceCount and sourceCount>minimum
+and quiet and safeHp and (destination.significantAttack or shortage)
+and member.recalling~=true and member.rolling~=true
+and type(member.training)~='table' and (finite(member.recalledUntil) or 0)<=serverNow
+and (finite(member.injuredUntil) or 0)<=serverNow and finite(member.def) then
+local cooldown=tab(view.transferCooldown)[slot]
+if (not finite(cooldown) or now>=cooldown)
+and (not finite(tab(view.transferCooldown)[source.id]) or now>=view.transferCooldown[source.id]) then
+if not best or finite(member.def)<best.defense then
+best={slot=slot,member=member,source=source,defense=finite(member.def)}
+end
+end
+end
+end
+if not best then return nil,'No quiet, sufficiently defended source can safely spare your Crew' end
+for _,id in ipairs({targetId,best.source.id}) do
+local detail=tab(tab(view.stationDetails)[id])
+if not finite(detail.at) or now-detail.at>15 or now<detail.at then
+return {feature='station',remote='TerritoryView',args={'district',id},argCount=2,
+readOnly=true,stationDetailRead=true,stationDistrict=id,cost=0,
+details='Check '..id..' garrison before Crew transfer'}
+end
+local district=tab(tab(detail.data).district)
+local expectedCount=id==targetId and target.garrisonCount or best.source.garrisonCount
+if tab(detail.data).ok~=true or district.id~=id or district.mine~=true
+or tostring(district.holderId)~=tostring(familyId)
+or district.garrisonCount~=expectedCount or type(district.garrison)~='table' then
+return nil,'Exact transfer district ownership or garrison changed' end
+if id==targetId then
+local cap=finite(district.garrisonCap) or finite(tab(cfg.TERRITORY).garrisonCap)
+if not cap or expectedCount>=cap then return nil,'Destination garrison is full' end
+end
+end
+local sourceDetail=tab(tab(tab(view.stationDetails)[best.source.id]).data).district
+local selected=nil
+for _,row in ipairs(tab(sourceDetail.garrison)) do
+if type(row)=='table' and finite(row.userId or row.uid)==finite(userId)
+and finite(row.memberIndex)==best.slot then selected=row;break end
+end
+if not selected then return nil,'Your Crew deployment is absent from the source garrison' end
+local token=best.member.dutyToken or best.member.dutyAt
+if token==nil or tostring(selected.deploymentId or selected.at)~=tostring(token) then
+return nil,'Crew deployment identity changed before transfer' end
+local recallTarget={districtId=best.source.id,userId=userId,memberIndex=best.slot,
+deploymentId=selected.deploymentId,at=selected.at,
+memberName=selected.memberName or best.member.name,rarity=selected.rarity or best.member.rarity}
+return {feature='station',remote='TerritoryAction',args={'recallcrew',nil,{recallTarget}},
+argCount=3,cost=0,stationRecallMutation=true,stationDistrict=targetId,
+stationSource=best.source.id,stationMember=best.slot,stationUserId=userId,
+stationFamily=familyId,stationToken=token,stationName=best.member.name,
+stationRarity=best.member.rarity,
+details='Recall your Crew slot '..best.slot..' from '..best.source.id..' for '..targetId},nil
+end
+function Residency.recallConfirmed(action,response,state,detail)
+if type(action)~='table' or action.stationRecallMutation~=true
+or type(response)~='table' or response.ok~=true or type(response.settled)~='table'
+or type(state)~='table' or tostring(tab(state.family).id)~=tostring(action.stationFamily) then return false end
+local settled=false
+for _,row in ipairs(response.settled) do
+if type(row)=='table' and row.districtId==action.stationSource
+and finite(row.userId)==finite(action.stationUserId)
+and finite(row.memberIndex)==finite(action.stationMember)
+and tostring(row.deploymentId or row.at)==tostring(action.stationToken) then settled=true;break end
+end
+if not settled then return false end
+local member=tab(tab(state.crew)[action.stationMember])
+if member.duty==action.stationSource then return false end
+local info=tab(detail)
+local district=tab(info.district)
+if info.ok~=true or district.id~=action.stationSource
+or type(district.garrison)~='table' then return false end
+for _,row in ipairs(district.garrison) do
+if type(row)=='table' and finite(row.userId or row.uid)==finite(action.stationUserId)
+and finite(row.memberIndex)==finite(action.stationMember) then return false end
+end
+return true
+end
+function Residency.trainingRecallPlan(state,view,now,cfg,settings,userId)
+state=tab(state);view=tab(view);settings=tab(settings)
+local slot=finite(settings.stationTrainingRotationSlot)
+if settings.stationTrainRotation~=true or not slot then return nil,'Training rotation is OFF or not currently eligible' end
+local familyId=tab(state.family).id
+local serverNow=finite(state.serverNow)
+local member=tab(tab(state.crew)[slot])
+local sourceId=member.duty
+local map=tab(view.map)
+if not familyId or not serverNow or not finite(userId) or not sourceId
+or map.ok~=true or type(map.districts)~='table' or not finite(view.mapAt)
+or now-view.mapAt>20 or now<view.mapAt then
+return nil,'Waiting for a fresh Family map and eligible stationed trainee' end
+local cooldown=tab(view.transferCooldown)
+if (finite(cooldown.global) or 0)>now or (finite(cooldown[slot]) or 0)>now
+or (finite(cooldown[sourceId]) or 0)>now then
+return nil,'Waiting for Crew rotation cooldown' end
+local source=nil
+for _,row in ipairs(map.districts) do if type(row)=='table' and row.id==sourceId then source=row;break end end
+source=tab(source)
+local count=finite(source.garrisonCount)
+local hp,hpMax=finite(source.hp),finite(source.hpMax)
+local recent=finite(source.lastHitAt)
+local activeSeconds=finite(tab(cfg.TERRITORY).siegeActiveSeconds) or 1800
+local minimum=math.max(1,math.floor(finite(settings.stationMinSourceDefenders) or 2))
+if source.id~=sourceId or tostring(source.holderId)~=tostring(familyId)
+or source.settling==true or not count or count<=minimum
+or not hp or not hpMax or hpMax<=0 or hp/hpMax<0.75
+or recent and recent>=serverNow-activeSeconds
+or member.recalling==true or member.rolling==true or type(member.training)=='table'
+or (finite(member.injuredUntil) or 0)>serverNow then
+return nil,'Stationed trainee is not in a quiet, safely staffed Family district' end
+local detail=tab(tab(view.stationDetails)[sourceId])
+if not finite(detail.at) or now-detail.at>15 or now<detail.at then
+return {feature='station',remote='TerritoryView',args={'district',sourceId},argCount=2,
+readOnly=true,stationDetailRead=true,stationDistrict=sourceId,cost=0,
+details='Check '..sourceId..' before training rotation'}
+end
+local district=tab(tab(detail.data).district)
+if tab(detail.data).ok~=true or district.id~=sourceId or district.mine~=true
+or tostring(district.holderId)~=tostring(familyId)
+or district.garrisonCount~=count or type(district.garrison)~='table' then
+return nil,'Exact training-rotation garrison changed' end
+local selected=nil
+for _,row in ipairs(district.garrison) do
+if type(row)=='table' and finite(row.userId or row.uid)==finite(userId)
+and finite(row.memberIndex)==slot then selected=row;break end
+end
+local token=member.dutyToken or member.dutyAt
+if not selected or token==nil
+or tostring(selected.deploymentId or selected.at)~=tostring(token) then
+return nil,'Stationed trainee deployment identity is unverified' end
+local target={districtId=sourceId,userId=userId,memberIndex=slot,
+deploymentId=selected.deploymentId,at=selected.at,
+memberName=selected.memberName or member.name,rarity=selected.rarity or member.rarity}
+return {feature='station',remote='TerritoryAction',args={'recallcrew',nil,{target}},
+argCount=3,cost=0,stationRecallMutation=true,stationPurpose='training',
+stationSource=sourceId,stationMember=slot,stationUserId=userId,
+stationFamily=familyId,stationToken=token,stationName=member.name,
+stationRarity=member.rarity,
+details='Recall your Crew slot '..slot..' from '..sourceId..' to continue training'}
 end
 function Residency.stationPlan(state,view,now,cfg,data,gearSets,settings,userId)
 state=tab(state);view=tab(view);settings=tab(settings)
@@ -4345,8 +4638,24 @@ return {feature='station',remote='TerritoryView',args={'map'},argCount=1,
 readOnly=true,territoryRead=true,cost=0,details='Refresh Territory map before stationing Crew'}
 end
 local advice=Residency.stationAdvice(state,view.map,view.mapAt,now,cfg,data,gearSets,
-{minCrewAtHome=settings.stationMinHome,maxStationed=settings.stationMaxStationed})
-if not advice.memberIndex then return nil,advice.reason end
+{minCrewAtHome=settings.stationMinHome,maxStationed=settings.stationMaxStationed,
+significantHpPercent=settings.stationSignificantHpPercent,
+stationTrainCandidate=settings.stationTrainCandidate})
+if not advice.memberIndex then
+if advice.significantAttack then
+if settings.stationMove==true then
+return Residency.transferPlan(state,view,now,cfg,data,gearSets,settings,userId)
+end
+return nil,'Training rotation pauses during a significant Family siege'
+end
+if settings.stationTrainRotation==true and settings.stationTrainingRotationSlot then
+return Residency.trainingRecallPlan(state,view,now,cfg,settings,userId)
+end
+if settings.stationMove==true then
+return Residency.transferPlan(state,view,now,cfg,data,gearSets,settings,userId)
+end
+return nil,advice.reason
+end
 local id=advice.districtId
 local entry=tab(tab(view.stationDetails)[id])
 if type(entry.at)~='number' or now-entry.at>15 or now<entry.at then
@@ -4373,6 +4682,8 @@ end
 local member=tab(tab(state.crew)[advice.memberIndex])
 if member.duty~=nil or member.rolling==true or type(member.training)=='table'
 or member.recalling==true or (finite(member.injuredUntil) or 0)>finite(state.serverNow) then
+return nil,'Selected Crew member is no longer available' end
+if (finite(member.recalledUntil) or 0)>finite(state.serverNow) then
 return nil,'Selected Crew member is no longer available' end
 return {feature='station',remote='TerritoryAction',args={'station',id,advice.memberIndex},
 argCount=3,cost=0,stationMutation=true,stationDistrict=id,stationMember=advice.memberIndex,
@@ -5189,6 +5500,7 @@ local cfg=require(child(mw,'Config'))
 local state=require(child(child(child(player,'PlayerScripts'),'MWClient'),'State'))
 local ctl={Running=true,Pending=nil,PropertyWatch=nil,Enabled={},Auto=false,Spent=0,Attempts=0,Confirmed=0,ResponseConfirmed=0,Bypassed=0,Quarantined=0,Skipped=0,Failures={},PlannerFailures={},Blocked={},RetryAt={},RetryReason={},Reasons={},StateSummary={},Storage='Unavailable',DisplayDegraded=false,CrewOwned=false,CrewRollRun=nil,CrewRollStopReason=nil,CrewRollSpent=0,ProgressionPreview='Waiting for planner',LastProgressionPlan='',SelectionReason='Regular rotation',ProgressionCredits={}}
 ctl.BriefcaseKeysAttempted=0
+ctl.Restorative={sequence=0,readyAt=0}
 do
 local module=mw:FindFirstChild('GearSets')
 if not module then ctl.GearSetsIssue='Native GearSets module missing; set-aware gear and Collection automation paused'
@@ -5216,7 +5528,7 @@ familyBossView.boardAt=nil;familyBossView.board=nil;familyBossView.doorHold=nil
 end
 familyBossView.data=nextState;familyBossView.at=now
 end
-ctl.ResidencyView={mapAt=nil,map=nil,views={},stationDetails={},preflightId=nil,preflightAt=nil}
+ctl.ResidencyView={mapAt=nil,map=nil,views={},stationDetails={},transferCooldown={},preflightId=nil,preflightAt=nil}
 ctl.MarketView={rows=nil,rowsAt=nil,rap={}}
 local combatView={armed=false,targetCache={}}
 local connections={}
@@ -5342,23 +5654,35 @@ if not ok then ctl.JournalWritable=false;ctl.ActionJournalStorage='Memory only: 
 return ok
 end
 ctl.PropertyReview={path=folder..'/property-review.json'}
-function ctl.SavePropertyReview(pending,action)
+function ctl.SavePropertyReview(pending,action,before)
 if not disk or not saveAllowed then return false end
-local record={version=1,account=player.Name,placeId=game.PlaceId,
+local record={version=2,account=player.Name,placeId=game.PlaceId,
 state=pending and 'pending' or 'clear',
 remote=pending and action and action.remote or nil,
 target=pending and action and action.args and action.args[1] or nil,
+slot=pending and action and action.args and action.args[2] or nil,
+before=pending and before and {owned=before.owned,lot=before.lot} or nil,
+replacementId=pending and action and action.replacementId or nil,
+replacementCost=pending and action and action.replacementCost or nil,
+replacementVictimOwned=pending and action and action.replacementVictimOwned or nil,
+replacementSlot=pending and action and action.replacementSlot or nil,
 utc=os.time()}
-return pcall(function() writefile(ctl.PropertyReview.path,Http:JSONEncode(record)) end)
+local ok=pcall(function() writefile(ctl.PropertyReview.path,Http:JSONEncode(record)) end)
+if ok then ctl.PropertyReview.record=record;ctl.PropertyReview.markerValid=true end
+return ok
 end
 if disk and isfile(ctl.PropertyReview.path) then
 local ok,record=pcall(function() return Http:JSONDecode(readfile(ctl.PropertyReview.path)) end)
-if not ok or type(record)~='table' or record.version~=1
+if not ok or type(record)~='table' or (record.version~=1 and record.version~=2)
 or record.account~=player.Name or tonumber(record.placeId)~=tonumber(game.PlaceId)
 or (record.state~='pending' and record.state~='clear') then
 ctl.Blocked.properties='Saved Property review marker is invalid; inspect ownership and cash before resuming'
-elseif record.state=='pending' then
+else
+ctl.PropertyReview.record=record;ctl.PropertyReview.markerValid=true
+if record.state=='pending' then
 ctl.Blocked.properties='Prior Property action is unresolved. Review ownership and cash, then use Resume property automation.'
+ctl.PropertyReview.restartPending=record.version==2 and type(record.before)=='table'
+end
 end
 end
 local configPath=folder..'/configs.json'
@@ -5709,6 +6033,7 @@ end
 end
 local ui={}
 ui.dashboard=tabs.Dashboard:CreateParagraph('Status',{Title='Session',Content=status})
+ui.dashboardMode=tabs.Dashboard:CreateParagraph('DashboardMode',{Title='Automation control',Content='Checking saved control mode'})
 ui.antiAfk=tabs.Dashboard:CreateParagraph('AntiAFKStatus',{Title='Idle protection',Content='Off'})
 ui.flow=tabs.Dashboard:CreateParagraph('FlowHealth',{Title='Flow health',Content='All automation is OFF'})
 ui.nextChoice=tabs.Dashboard:CreateParagraph('DashboardNext',{Title='Next choice',Content='Waiting for the first planner check'})
@@ -5726,12 +6051,15 @@ local updateFavorFilterSummary,updateCombatSummary,updateFamilySummary,updateBos
 ui.activity = tabs.Dashboard:CreateParagraph('Activity', {Title='Automation status', Content='All off'})
 local function toggle(tab, key, title, description)
 ctl.Enabled[key] = false
-local t = tab:CreateToggle('run_' .. key, {Title=title, Description='Runs independently of Auto Progression. ' .. (description or ''), Default=false})
+local t = tab:CreateToggle('run_' .. key, {Title=title, Description=(settings.permissions[key]~=nil
+and 'Manual mode only; this choice stays saved but pauses in Progression mode. '
+or 'Separate opt-in; can run in either control mode. ') .. (description or ''), Default=false})
 t:OnChanged(function(v)
 ctl.Enabled[key] = v == true
 if v then ctl.Blocked[key] = nil; ctl.Failures[key] = 0 end
 if key=='crewGear' and ctl.GearPlan.review then ctl.Blocked.crewGear=ctl.GearPlan.review end
 if key=='marketFlip' and ctl.MarketFlip.review then ctl.Blocked.marketFlip=ctl.MarketFlip.review end
+if ctl.UpdateModeStatus then ctl.UpdateModeStatus() end
 local attackMirror=rawget(uiControls,'familyBossAttackMirror')
 if key=='familyBossAttacks' and attackMirror
 and attackMirror.Value~=(v==true) then
@@ -5798,18 +6126,19 @@ local t=tab:CreateToggle('limit_'..(ids[key] or key),{Title=title,Description=de
 t:OnChanged(function(v)
 settings[key]=v==true;settings=Core.settings(settings);save();refreshVisibility()
 if key=='combatLimits' and updateCombatSummary then updateCombatSummary() end
-if key=='familyHospitalOnly' and updateFamilySummary then updateFamilySummary() end
+if (key=='familyHospitalOnly' or key=='familyStaminaOnlyStationed') and updateFamilySummary then updateFamilySummary() end
 end)
 return t
 end
 local presetControl
 local activityMode={jobMode=true,propertyMode=true,operationMode=true,heistMode=true,favorMode=true,combatPriority=true,bossMode=true}
-local function dropdown(tab,key,title,values)
+ctl.DropdownControls={}
+local function dropdown(tab,key,title,values,mirrorId)
 local labels={ROI='Best income for the price',Income='Most hourly income',['Highest tier']='Highest unlocked level',
 ['XP / energy']='Most XP per energy',['Cash / energy']='Most cash per energy',
 ['Profit / hour']='Most profit per hour',['XP / hour']='Most XP per hour',['Value / stamina']='Most cash per stamina',
 ['Risk-adjusted value']='Balance payout and past wins',['Safest history']='Best past win rate'}
-local t=tab:CreateDropdown('setting_'..key,{Title=title,Values=values,Multi=false,Default=settings[key],Displayer=function(v) return labels[v] or tostring(v) end})
+local t=tab:CreateDropdown(mirrorId or 'setting_'..key,{Title=title,Values=values,Multi=false,Default=settings[key],Displayer=function(v) return labels[v] or tostring(v) end})
 t:OnChanged(function(v)
 local changed=settings[key]~=v
 settings[key]=v
@@ -5818,12 +6147,34 @@ settings.strategyPreset='Custom'
 if presetControl then presetControl:SetValue('Custom') end
 end
 settings=Core.settings(settings); save();refreshVisibility()
+for _,other in ipairs(ctl.DropdownControls[key] or {}) do
+if other~=t and other.Value~=settings[key] then other:SetValue(settings[key]) end
+end
 if key=='familyBossStrategy' and uiControls.familyBossStrategyMirror
 and uiControls.familyBossStrategyMirror.Value~=settings.familyBossStrategy then
 uiControls.familyBossStrategyMirror:SetValue(settings.familyBossStrategy)
 end
+if key=='safehouseCap' then
+local original=rawget(uiControls,'safehouseCap')
+if original and original.Value~=settings.safehouseCap then original:SetValue(settings.safehouseCap) end
+elseif key=='shopRule' then
+local limit=rawget(uiControls,'shopPriceLimit')
+if limit and limit.Value~=(settings.shopRule=='Buy cash items under price') then
+limit:SetValue(settings.shopRule=='Buy cash items under price') end
+end
+if key=='safehouseCap' then
+local original=rawget(uiControls,'safehouseCap')
+if original and original.Value~=settings.safehouseCap then original:SetValue(settings.safehouseCap) end
+elseif key=='shopRule' then
+local limit=rawget(uiControls,'shopPriceLimit')
+if limit and limit.Value~=(settings.shopRule=='Buy cash items under price') then
+limit:SetValue(settings.shopRule=='Buy cash items under price') end
+end
 end)
-uiControls[key]=t;return t
+ctl.DropdownControls[key]=ctl.DropdownControls[key] or {}
+ctl.DropdownControls[key][#ctl.DropdownControls[key]+1]=t
+if not mirrorId then uiControls[key]=t end
+return t
 end
 local function catalogPicker(tab,kind,rows)
 local modeKey=kind=='properties' and 'propertySelection' or kind=='operations' and 'operationSelection' or 'heistSelection'
@@ -5848,27 +6199,38 @@ uiControls[selectedKey]=picker
 showWhen(picker,function() return mode.Value=='Only selected' end)
 return picker
 end
-autoToggle=tabs.Progression:CreateToggle('auto',{Title='Run Auto Progression',Default=false,
-Description='Runs every included activity and chooses the best available action for your goal. Activity tabs change its rules; manual toggles can test one activity by itself.'})
-autoToggle:OnChanged(function(v) ctl.Auto=v==true;ctl.ProgressionCredits={} end)
+tabs.Progression:CreateParagraph('ModeHelp',{Title='Choose who controls shared routines',
+Content='Progression mode runs shared routines included below; Manual mode uses their per-tab switches. Switching preserves both saved setups. Separate opt-ins such as Family donations, Auto Station, Market flipping and sabotage can run in either mode. Auto Contracts and Trophy Focus are separate goal controllers that can request ordinary actions in either mode. Combat consent and spending limits still apply.'})
+autoToggle=tabs.Progression:CreateToggle('auto',{Title='Use Progression mode',Default=false,
+Description='ON: use the included-activities list below. OFF: use the Manual-mode run switches in each tab. Neither choice erases the other.'})
+autoToggle:OnChanged(function(v) ctl.Auto=v==true;ctl.ProgressionCredits={};if ctl.UpdateModeStatus then ctl.UpdateModeStatus() end end)
 presetControl=dropdown(tabs.Progression,'strategyPreset','Automation strategy',{'Smart','Money','XP','Balanced','Highest Tier','Custom'})
 dropdown(tabs.Progression,'objective','Custom Auto Progression goal',{'Balanced','Earn XP','Earn Money'})
-tabs.Progression:CreateParagraph('StrategyHelp',{Title='Simple strategy, detailed limits',Content='Smart, Money and XP adjust both eligible choices within activities and their fair share of non-daily turns. Highest Tier picks the highest eligible level within each activity and waits for the top reachable Job to regain energy instead of running an easier Job. Contract Focus can temporarily use low-energy Jobs or short Operations for matching count objectives; the decision preview names the override. Ready earned rewards and unspent skill points go first. XP gives included Jobs extra turns; Money favors included affordable Properties and Jobs; Smart modestly favors both. Other ready activities still run. Balanced and Highest Tier use equal turns; Custom or Auto Progression OFF keeps the original rotation. Activities enabled only manually receive no preset weight. Heists, Favors and Operations keep priority. Presets never enable activities or relax limits.'})
+tabs.Progression:CreateParagraph('StrategyHelp',{Title='What the strategy changes',Content='Smart, Money and XP change eligible choices and the fair share of non-daily turns for included activities. Highest Tier favors the highest unlocked tiers and waits for the top reachable Job to regain energy. Contract Focus may choose shorter matching actions and explains the override. Ready rewards and skill points go first. Balanced and Highest Tier give equal turns; Custom uses the original rotation. Heists, Favors and Operations keep priority. Strategies never include an activity or relax its safety limits.'})
 tabs.Progression:CreateParagraph('Hierarchy',{Title='Daily / hourly task hierarchy',Content='Heists first (collect, then start), Favor help second, Operations third (collect, then start). Only ready, enabled actions compete. Favor help has its own opt-in and limits. Cooldowns allow other work; pending requests are never interrupted.'})
 tabs.Collection:CreateParagraph('EquipmentSection',{Title='Equipment and collection',Content='Optimize backgrounds and borders together. Crew gear is managed in Crew.'})
 toggle(tabs.Collection,'cosmetics','Auto optimize cosmetics and collection','Moves unbound backgrounds/borders only. May temporarily lower stats during a swap. Ranks current final-stat gains when multipliers are available; never ranks by rarity alone. Run without manual inventory changes; pauses on uncertainty.')
 dropdown(tabs.Collection,'collectionObjective','Cosmetic comparison priority',{'Balanced','Attack','Defense'})
 toggle(tabs.Collection,'collectionDonate','Auto deposit safe surplus to Collection','OFF by default. Deposits up to 10 unbound gear/cosmetic copies per request, reserving equipped and preferred cosmetics plus positive Crew gear swaps. Works independently if bound cosmetics block the cosmetic optimizer. Requires observed Collection state changes. No chests, currency, or upgraded items.')
 tabs.Collection:CreateParagraph('ChestSection',{Title='Chest opening',Content='Separate from equipment and collection optimization.'})
-toggle(tabs.Collection,'chests','Auto open all chests','Opens current and newly received unbound chests in batches up to 10. Never buys missing chests.')
+toggle(tabs.Collection,'chests','Auto open unbound chests','Opens current and newly received unbound chests in batches up to 10. Bound copies stay untouched. Never buys missing chests.')
 settingToggle(tabs.Collection,'chestLimitEnabled','Limit chests opened this load','OFF means keep opening all available and newly received unbound chests.')
 number(tabs.Collection,'chestLimit','Maximum chests this load','Shared across all chest types; counter resets only when the hub reloads.')
 showWhen(uiControls.chestLimit,function() return settings.chestLimitEnabled end)
+tabs.Collection:CreateParagraph('RestorativeSection',{Title='Restorative items',Content='Nine native restoratives: 25%, 50%, and 100% for Health, Energy, and Stamina. Separate from crates; Upgrade Insurance is never used. The game imposes a 10-second cooldown. Balanced picks the largest recovery without overflow, or the least wasteful if all overflow. Small/Large first deliberately prefer that size.'})
+toggle(tabs.Collection,'restoratives','Auto use restoratives','OFF by default. Uses owned bound items below the resource thresholds. Does not buy items or open crates.')
+settingToggle(tabs.Collection,'consumableUseTradable','Use tradable copies too','OFF by default. Bound copies are preferred; this permits a tradable copy only when no bound restorative is eligible for that resource.')
+number(tabs.Collection,'consumableHealthBelow','Use Health items at (%)','0 disables Health use; e.g. 25 means 25 / 100 maximum Health or lower.')
+dropdown(tabs.Collection,'consumableHealthMode','Health item size',{'Balanced','Small first','Large first'})
+number(tabs.Collection,'consumableEnergyBelow','Use Energy items at (%)','0 disables Energy use; e.g. 25 means 25 / 100 maximum Energy or lower.')
+dropdown(tabs.Collection,'consumableEnergyMode','Energy item size',{'Balanced','Small first','Large first'})
+number(tabs.Collection,'consumableStaminaBelow','Use Stamina items at (%)','0 disables Stamina use; e.g. 25 means 25 / 100 maximum Stamina or lower.')
+dropdown(tabs.Collection,'consumableStaminaMode','Stamina item size',{'Balanced','Small first','Large first'})
 tabs.Collection:CreateParagraph('CollectionScope',{Title='Cosmetic collection audit — read only',Content='Owned counts include bound copies, but projected deposits exclude bound inventory and reserve an equipped copy. Gains below are collection-only Attack AND Defense, not final character stats or a best-loadout recommendation. Automatic cosmetic changes and chest opening have separate controls above.'})
 ui.collectionReport=tabs.Collection:CreateParagraph('CollectionReport',{Title='Collection audit and leftover items',Content='Waiting for state'})
 ui.cosmeticReport=tabs.Collection:CreateParagraph('CosmeticPlan',{Title='Combined cosmetic recommendation',Content='Waiting for state'})
 ctl.ChestsOpened=0
-local featureLabels={cosmetics='Optimize cosmetics',collectionDonate='Deposit safe Collection surplus',chests='Open all chests',jobs='Best jobs',bank='Bank extra cash',withdraw='Use banked cash when needed',properties='Buy useful properties',
+local featureLabels={cosmetics='Optimize cosmetics',collectionDonate='Deposit safe Collection surplus',chests='Open unbound chests',restoratives='Use restoratives',jobs='Best jobs',bank='Bank extra cash',withdraw='Use banked cash when needed',properties='Buy useful properties',
 operations='Start operations',collect='Collect finished operations',bosses='Fight NPC bosses',skills='Spend skill points',
 contracts='Claim completed contracts',bonuses='Claim contract completion rewards',briefcases='Open Lucky Briefcases',crew='Equip the best crew gear',crewGear='Optimize Crew gear + collection',crewRoll='Auto roll Crew slots',crewTrain='Train eligible Crew',crewHire='Hire for active contracts',
 shop='Buy useful shop items',marketWatch='Watch Black Market opportunities',marketFlip='Auto flip Black Market',trophies='Claim earned collectibles',heists='Start personal heists',favors='Help active heists',sabotage='Sabotage eligible heists',
@@ -5877,7 +6239,9 @@ groupBonus='Claim the group income bonus',combat='Mug players',familyCash='Donat
 familyGold='Donate Family Gold Bars',familyStamina='Contribute Family stamina',
 familyBossClaims='Claim Takedown rewards',familyBossAttacks='Use free Takedown attacks',warCombat='Attack active-war targets',
 territoryWatch='Watch Territory map',station='Station my Crew',residency='Auto select residence'}
-local progressionChoices={'jobs','bank','properties','operations','collect','bosses','skills','contracts','bonuses','briefcases','crew','crewGear','crewRoll','crewTrain','cosmetics','collectionDonate','chests','shop','marketWatch','trophies','heists','heistCollect','favors','safehouse','playtime','groupBonus','combat','warCombat','familyBossClaims','familyBossAttacks','territoryWatch','residency'}
+local progressionChoices={'heistCollect','heists','favors','collect','operations','jobs','bank','properties','safehouse','shop','bosses','combat','warCombat','crew','crewGear','crewRoll','crewTrain','cosmetics','collectionDonate','chests','restoratives','playtime','briefcases','contracts','bonuses','skills','trophies','groupBonus','familyBossClaims','familyBossAttacks','territoryWatch','residency','marketWatch'}
+ctl.ProgressionDescriptions={heistCollect='Collect finished personal Heists; does not start one.',heists='Start the best allowed personal Heist using energy and cash.',favors='Help active players using Favor and energy; separate relationship limits apply.',collect='Collect finished Operation slots.',operations='Start the best eligible Operation in an open slot.',jobs='Run the best eligible Job for your strategy and Job limits.',bank='Deposit cash above the Banking cash-to-keep amount.',properties='Buy eligible Properties using the Property tab rules.',safehouse='Buy the next eligible Safehouse tier.',shop='Buy selected Shop stock or Buy all within Shop limits.',bosses='Fight eligible NPC bosses using Boss safety settings.',combat='Mug players under Combat target and daily limits; requires attack consent.',warCombat='Attack verified enemy Family members during an active war; requires attack consent.',crew='Use the native Crew auto-equip action.',crewGear='Optimize player and Crew gear with set and Collection awareness.',crewRoll='Roll eligible Crew slots with your owned Auto Roll entitlement.',crewTrain='Train eligible Crew within rarity, level and cash limits.',cosmetics='Optimize backgrounds and borders against Collection gains.',collectionDonate='Deposit safe surplus gear and cosmetics; never upgraded items.',chests='Open owned unbound chests in batches of at most ten; bound copies stay untouched.',restoratives='Use nine native Health, Energy, and Stamina restoratives at the Collection thresholds and size modes. Tradable copies need a separate opt-in.',playtime='Claim ready playtime rewards.',briefcases='Use free Lucky Briefcase picks; owned keys need a separate opt-in.',contracts='Claim completed Contract rewards.',bonuses='Claim ready Contract completion bonuses.',skills='Spend available skill points on the chosen skill.',trophies='Claim earned Trophy rewards only.',groupBonus='Claim the available group income bonus.',familyBossClaims='Claim earned Family Takedown rewards.',familyBossAttacks='Use free Family Takedown attacks under safety limits.',territoryWatch='Read-only Territory ownership summary.',residency='Move your own residence to the best eligible bonus district.',marketWatch='Read-only Black Market opportunity research.'}
+ui.controlMode=tabs.Progression:CreateParagraph('ControlMode',{Title='Active control mode',Content='Checking saved controls'})
 local progressionScope=tabs.Progression:CreateParagraph('ProgressionActivities',{Title='Included activities',Content=''})
 local function updateProgressionScope()
 local included,off=0,{}
@@ -5890,15 +6254,98 @@ ctl.SetDisplay(progressionScope,string.format('%d of %d included. Mugs: %s · Wa
     included,#progressionChoices,state('combat'),state('warCombat'),state('favors'),state('crewRoll'),state('collectionDonate'),
     #off>0 and table.concat(off,', ') or 'none'),'progression activities')
 end
+function ctl.UpdateModeStatus()
+local included,manual,paused,extras=0,0,0,{}
+for _,key in ipairs(progressionChoices) do
+if settings.permissions[key] then included=included+1 end
+if ctl.Enabled[key]==true then manual=manual+1;if ctl.Auto then paused=paused+1 end end
+end
+for key,on in pairs(ctl.Enabled) do
+if on==true and settings.permissions[key]==nil then extras[#extras+1]=featureLabels[key] or key end
+end
+if settings.sabotageEnabled then extras[#extras+1]='Sabotage eligible heists' end
+table.sort(extras)
+local line=ctl.Auto and string.format('Progression mode: %d activities included; %d manual choices saved but paused.',included,paused)
+or string.format('Manual mode: %d shared run switches selected; %d Progression inclusions saved but inactive.',manual,included)
+line=line..'\nIndependent extras: '..(#extras>0 and table.concat(extras,', ') or 'none')..'.'
+if settings.autoContracts or settings.trophyFocus then line=line..'\nSeparate goal controllers: '
+..(settings.autoContracts and 'Auto Contracts ' or '')..(settings.trophyFocus and 'Trophy Focus' or '')..'.' end
+ctl.SetDisplay(ui.controlMode,line,'Progression control mode')
+ctl.SetDisplay(ui.dashboardMode,line,'Dashboard control mode')
+end
 local editActivities=tabs.Progression:CreateToggle('edit_progression_activities',{Title='Edit included activities',Default=false,
 Description='Show the individual Auto Progression choices. Hiding them does not turn anything off.'})
 editActivities:OnChanged(refreshVisibility)
+ui.safehouseTiers={}
+for tier,row in ipairs(cfg.SAFEHOUSE or {}) do
+if tier>1 and type(row)=='table' then ui.safehouseTiers[#ui.safehouseTiers+1]=tier end
+end
+if #ui.safehouseTiers==0 then ui.safehouseTiers={settings.safehouseCap} end
+function ui.quickChoice(feature,key,title,values)
+showWhen(dropdown(tabs.Progression,key,title,values,'quick_'..key),
+function() return editActivities.Value and settings.permissions[feature] end)
+end
+function ui.quickNumber(feature,key,title,description,extra)
+showWhen(number(tabs.Progression,key,title,description,'quick_'..key),
+function() return editActivities.Value and settings.permissions[feature] and (not extra or extra()) end)
+end
 for _,key in ipairs(progressionChoices) do
-local t=tabs.Progression:CreateToggle('permit_'..key,{Title='Include in Auto Progression: '..featureLabels[key],Default=settings.permissions[key]})
-t:OnChanged(function(v) settings.permissions[key]=v==true;save();updateProgressionScope() end)
+if key=='heistCollect' or key=='jobs' or key=='combat' or key=='crew' or key=='playtime' then
+showWhen(tabs.Progression:CreateParagraph('ProgressionGroup'..key,{Title=key=='heistCollect' and 'Daily and hourly'
+or key=='jobs' and 'Growth and spending' or key=='combat' and 'Player combat'
+or key=='crew' and 'Crew and collection' or 'Rewards and read-only helpers',Content='Include only what this mode should run. Activity-tab rules still apply.'}),function() return editActivities.Value end)
+end
+local t=tabs.Progression:CreateToggle('permit_'..key,{Title='Include: '..featureLabels[key],Default=settings.permissions[key],Description=ctl.ProgressionDescriptions[key] or 'Uses the existing activity-tab settings.'})
+t:OnChanged(function(v) settings.permissions[key]=v==true;save();updateProgressionScope();ctl.UpdateModeStatus();refreshVisibility() end)
 showWhen(t,function() return editActivities.Value end)
+if key=='jobs' then
+showWhen(dropdown(tabs.Progression,'jobMode','Job priority',{'Balanced','Highest tier','XP / energy','Cash / energy','Job count','Mastery','Selected job'},'quick_jobMode'),function() return editActivities.Value and settings.permissions.jobs end)
+showWhen(number(tabs.Progression,'energyReserve','Energy to keep for other activities','Uses the same Job energy reserve as the Jobs tab.','quick_energyReserve'),function() return editActivities.Value and settings.permissions.jobs end)
+elseif key=='heists' then
+showWhen(dropdown(tabs.Progression,'heistMode','Heist priority',{'Best chest','Balanced','Highest tier','Lowest stake','XP / hour','Profit / hour'},'quick_heistMode'),function() return editActivities.Value and settings.permissions.heists end)
+elseif key=='operations' then
+showWhen(dropdown(tabs.Progression,'operationMode','Operation priority',{'Best chest','Balanced','Highest tier','Profit / hour','XP / hour'},'quick_operationMode'),function() return editActivities.Value and settings.permissions.operations end)
+elseif key=='properties' then
+showWhen(dropdown(tabs.Progression,'propertyMode','Property priority',{'ROI','Income','Highest tier'},'quick_propertyMode'),function() return editActivities.Value and settings.permissions.properties end)
+elseif key=='bank' then
+showWhen(number(tabs.Progression,'bankCashToKeep','Cash to keep on hand','Same Banking limit; deposits leave this amount on hand.','quick_bankCashToKeep'),function() return editActivities.Value and settings.permissions.bank end)
+elseif key=='combat' then
+showWhen(dropdown(tabs.Progression,'combatSource','Mug target phases',{'Saved history','History then discover','Scout new hit-list targets'},'quick_combatSource'),function() return editActivities.Value and settings.permissions.combat end)
+showWhen(number(tabs.Progression,'combatMinimum','Minimum known mug average','Same Combat target filter; player-attack consent is still required.','quick_combatMinimum'),function() return editActivities.Value and settings.permissions.combat end)
+elseif key=='favors' then
+ui.quickChoice(key,'favorMode','Favor priority',{'Balanced','Cash reward','XP reward','Ending soon','Highest tier'})
+ui.quickChoice(key,'favorRelationship','Who may receive help',{'Friends & family','Friends only','Family only','Anyone except war'})
+elseif key=='safehouse' then
+ui.quickChoice(key,'safehouseCap','Upgrade through tier',ui.safehouseTiers)
+elseif key=='shop' then
+ui.quickChoice(key,'shopRule','Cash purchase rule',{'Buy all allowed','Buy cash items under price'})
+ui.quickNumber(key,'shopCashMax','Maximum cash price per item','Used only when the price limit is on. Chosen rarity overrides may ignore it.',
+function() return settings.shopRule=='Buy cash items under price' end)
+elseif key=='bosses' then
+ui.quickChoice(key,'bossMode','Boss priority',{'Smart','Progression','Best chest','Cash reward','XP reward','Highest level'})
+elseif key=='crewGear' then
+ui.quickChoice(key,'crewGearObjective','Gear priority',{'Balanced','Attack','Defense'})
+elseif key=='crewRoll' then
+ui.quickChoice(key,'crewRollTier','Roll type',{'Street','Professional','Elite'})
+ui.quickChoice(key,'crewRollRarity','Minimum rarity',{'Common','Uncommon','Rare','Epic','Legendary','Mythic','Secret','Forbidden'})
+elseif key=='crewTrain' then
+ui.quickChoice(key,'crewTrainMinRarity','Minimum rarity to train',{'Epic','Legendary','Mythic','Secret','Forbidden'})
+ui.quickNumber(key,'crewTrainTargetLevel','Train through level','Maximum +10 per member; cash limit remains in Crew.')
+elseif key=='cosmetics' then
+ui.quickChoice(key,'collectionObjective','Cosmetic comparison',{'Balanced','Attack','Defense'})
+elseif key=='skills' then
+ui.quickChoice(key,'skill','Skill to allocate',{'energy','stamina','health','attack','defense','property'})
+ui.quickNumber(key,'skillCap','Maximum allocations','Allocation count, not displayed stat value.')
+elseif key=='familyBossAttacks' then
+ui.quickChoice(key,'familyBossStrategy','Takedown strategy',{'Steady','Rank focus'})
+elseif key=='residency' then
+ui.quickNumber(key,'residencyMaxRent','Maximum rent (%)','0 allows only free districts; moving locks in rent.')
+elseif key=='marketWatch' then
+ui.quickChoice(key,'marketResearchMode','Research horizon',{'Fast Turnover','Balanced','Long Haul'})
+end
 end
 updateProgressionScope()
+ctl.UpdateModeStatus()
 tabs.Progression:CreateParagraph('Limits',{Title='Current progression scope',Content='Coordinates jobs, cash funding, properties, operations, bosses, skills, contract bonuses, earned trophies, cash gear and crew equipment. It does not yet solve all end-game prerequisites.'})
 ui.unlocks=tabs.Progression:CreateParagraph('Unlocks',{Title='Unlocks',Content='Waiting for state'})
 ui.progressionPlan=tabs.Progression:CreateParagraph('ProgressionPlan',{Title='Next action preview',Content='Waiting for planner'})
@@ -5957,6 +6404,7 @@ logEvent('property_watch_manual_clear',{remote=ctl.PropertyWatch.action.remote,
 target=ctl.PropertyWatch.action.args[1],duplicateRisk=true})
 ctl.PropertyWatch=nil
 end
+ctl.PropertyReview.restartPending=false
 ctl.Blocked.properties=nil
 ctl.RetryAt.properties=0
 ctl.RetryReason.properties=nil
@@ -5972,7 +6420,14 @@ end
 if #tierValues==0 then tierValues={settings.safehouseCap};tierLabels[settings.safehouseCap]=tostring(settings.safehouseCap)..' — Current cap' end
 local safehouseCap=tabs.Safehouse:CreateDropdown('setting_safehouseCap',{Title='Upgrade through tier',Values=tierValues,Multi=false,Default=settings.safehouseCap,
 Displayer=function(tier) return tierLabels[tier] or tostring(tier) end})
-safehouseCap:OnChanged(function(tier) if type(tier)=='number' then settings.safehouseCap=tier;settings=Core.settings(settings);save() end end)
+safehouseCap:OnChanged(function(tier)
+if type(tier)=='number' then
+settings.safehouseCap=tier;settings=Core.settings(settings);save()
+for _,other in ipairs(ctl.DropdownControls.safehouseCap or {}) do
+if other.Value~=settings.safehouseCap then other:SetValue(settings.safehouseCap) end
+end
+end
+end)
 uiControls.safehouseCap=safehouseCap
 settingToggle(tabs.Safehouse,'safehouseUseBank','Safehouse: use bank cash','Withdraw only the Safehouse upgrade shortfall.')
 toggle(tabs.Operations,'operations','Auto start operations','Uses eligible open slots and available funds.')
@@ -6020,7 +6475,7 @@ updateFavorFilterSummary()
 tabs.Heists:CreateParagraph('SabotageSection',{Title='Sabotage — separate opt-in',Content='Only active non-friend, non-family heists. Auto Progression never enables this.'})
 toggles.sabotage=tabs.Heists:CreateToggle('auto_sabotage',{Title='Auto sabotage non-friend, non-family heists',Default=settings.sabotageEnabled,
 Description='Separate saved opt-in, OFF by default. Uses current native Favor/energy costs and per-heist limit. It can run independently or toward a sabotage contract; never joins Auto Progression.'})
-toggles.sabotage:OnChanged(function(v) settings.sabotageEnabled=v==true;save() end)
+toggles.sabotage:OnChanged(function(v) settings.sabotageEnabled=v==true;save();ctl.UpdateModeStatus() end)
 number(tabs.Heists,'sabotageDailyCap','Maximum sabotages per game day','Zero stops automatic sabotage. Counts only board-confirmed actions.')
 number(tabs.Heists,'sabotageFavorReserve','Favors to keep after sabotage','Uses the native cost from the current board.')
 number(tabs.Heists,'sabotageEnergyReserve','Energy to keep after sabotage','Uses the native cost from the current board.')
@@ -6030,7 +6485,7 @@ Description='Saved in named configs and restored when that config loads. Request
 combatConsent:OnChanged(function(v) combatView.armed=v==true end)
 tabs.Combat:CreateParagraph('CombatLanes',{Title='Choose what to fight',Content='Three separate activities: free Family Takedown, active-war enemy targets, and ordinary mugs. When a Combat turn has several ready choices: Takedown first only if the preference below is ON, then war targets, then mugs. Waiting or blocked activities never stop the others. Heists, Favors, and Operations keep their higher priority.'})
 uiControls.familyBossAttackMirror=tabs.Combat:CreateToggle('combat_takedown',{Title='Auto free Takedown attacks',Default=false,
-Description='Same switch as Family. Uses only free charges with zero Tickets held, safe health, and enough stamina; never enables player attacks.'})
+Description='Same Manual-mode switch as Family; saved but paused in Progression mode unless Takedown attacks are included there. Uses only free charges with zero Tickets held, safe health, and enough stamina; never enables player attacks.'})
 uiControls.familyBossAttackMirror:OnChanged(function(v)
 if toggles.familyBossAttacks and toggles.familyBossAttacks.Value~=(v==true) then
 toggles.familyBossAttacks:SetValue(v==true)
@@ -6132,7 +6587,7 @@ Description='Only prioritizes already-enabled routines, alternating with normal 
 contractFocus:OnChanged(function(v) settings.contractFocus=v==true;save() end)
 ui.autoContracts=rewards:CreateToggle('auto_contracts',{Title='Auto Contracts',Default=settings.autoContracts,
 Description='Works on unfinished ordinary personal contracts using existing routines and their limits, even when those routine switches are OFF. Player fights, Favor help, Family cash donations, and sabotage require their own switches or permission; Auto Contracts never enables them. Territory actions and trades remain unsupported.'})
-ui.autoContracts:OnChanged(function(v) settings.autoContracts=v==true;save() end)
+ui.autoContracts:OnChanged(function(v) settings.autoContracts=v==true;save();ctl.UpdateModeStatus() end)
 do
 local contractKeys={'banked','bosshits','bosskills','crates','deposits','districts','donatecash',
 'energy','fightwins','heisthelps','heistsabos','heiststarts','hires','jobs','ladder','ops',
@@ -6165,7 +6620,7 @@ rewards:CreateParagraph('TrophyHunterSection',{Title='Trophy Hunter — read onl
 toggles.trophyFocus=rewards:CreateToggle('trophy_focus',{Title='Trophy Focus: work toward selected goal',Default=settings.trophyFocus,
 Description='Temporarily uses safe personal routines even when their normal switches are OFF. Stops when the native reward is ready or owned; sensitive actions still need their own opt-in.'})
 ui.trophyFocus=toggles.trophyFocus
-toggles.trophyFocus:OnChanged(function(v) settings.trophyFocus=v==true;save() end)
+toggles.trophyFocus:OnChanged(function(v) settings.trophyFocus=v==true;save();ctl.UpdateModeStatus() end)
 do
 local trophyIds,trophyNames={},{}
 for _,item in ipairs(data.ITEMS or {}) do
@@ -6196,9 +6651,10 @@ dropdown(tabs.Crew,'contractHireTier','Contract hire tier',{'Street','Profession
 number(tabs.Crew,'contractHireMaxCost','Maximum cash per contract hire','Default 10,000 allows Street only. Zero disables contract hiring.')
 ctl.Enabled.crewRoll=false
 local crewRollToggle=tabs.Crew:CreateToggle('run_crewRoll',{Title='Auto roll crew slots',Default=false,
-Description='Requires your owned native Auto Roll entitlement and level 15. Fills empty slots first; with the replace toggle below, it can also roll the lowest-rarity eligible member under your minimum setting. Never buys or bypasses the pass.'})
+Description='Manual mode only; saved but paused in Progression mode. Requires your owned native Auto Roll entitlement and level 15. Fills empty slots first; with the replace toggle below, it can also roll the lowest-rarity eligible member under your minimum setting. Never buys or bypasses the pass.'})
 crewRollToggle:OnChanged(function(v)
 ctl.Enabled.crewRoll=v==true
+ctl.UpdateModeStatus()
 if v then
 ctl.Blocked.crewRoll=nil;ctl.Failures.crewRoll=0;crewRollStopRequested=false
 elseif ctl.CrewOwned and not (ctl.Auto and settings.permissions.crewRoll) then
@@ -6261,7 +6717,13 @@ settings.shopSelected=chosen;save()
 end)
 showWhen(picker,function() return not settings.shopBuyAll end)
 local priceLimit=tabs.Shop:CreateToggle('shop_price_limit',{Title='Limit cash price per item',Default=settings.shopRule=='Buy cash items under price'})
-priceLimit:OnChanged(function(v) settings.shopRule=v and 'Buy cash items under price' or 'Buy all allowed';save();refreshVisibility() end)
+priceLimit:OnChanged(function(v)
+settings.shopRule=v and 'Buy cash items under price' or 'Buy all allowed';save();refreshVisibility()
+for _,other in ipairs(ctl.DropdownControls.shopRule or {}) do
+if other.Value~=settings.shopRule then other:SetValue(settings.shopRule) end
+end
+end)
+uiControls.shopPriceLimit=priceLimit
 number(tabs.Shop,'shopCashMax','Maximum cash price per item','Applies to normal cash purchases while the price limit is enabled. Chosen rarity overrides ignore this cap.')
 uiControls.shopRarityOverride=tabs.Shop:CreateToggle('shop_rarity_override',{
 Title='Buy all chosen rarities (ignore cash price cap)',Default=settings.shopRarityOverride,
@@ -6357,6 +6819,7 @@ tabs.Family:CreateParagraph('FamilyScope',{Title='Family contributions',Content=
 toggle(tabs.Family,'familyCash','Auto donate cash','Donates the configured amount when affordable and within the per-load limit.')
 toggle(tabs.Family,'familyStamina','Auto contribute stamina','Rotates across selected stamina perks after each confirmed contribution, in native batches of 1 or 5. Skips maxed perks.')
 toggle(tabs.Family,'familyGold','Auto donate Gold Bars','Uses only unbound Gold Bars; default OFF with a zero per-load limit.')
+settingToggle(tabs.Family,'familyStaminaOnlyStationed','Contribute only while my Crew is stationed','Requires at least one of your Crew on duty for this Family. Auto contribute stamina must also be ON; all existing stamina limits still apply.')
 local staminaPerks={}
 local perkTracks=(cfg.FAMILY or {}).perkTracks or {}
 for id,track in pairs(perkTracks) do
@@ -6378,7 +6841,8 @@ updateFamilySummary=function()
 ctl.SetDisplay(familySummary,string.format('Cash %s each · cap %s per load.\nStamina %s round-robin: %s · keep %s · cap %s per load%s.\nGold cap %s per load · %s each · keep %s unbound.',
     settings.familyCashAmount,settings.familyCashMaxPerLoad,
     settings.familyStaminaAmount,selectedStaminaNames(),settings.familyStaminaReserve,settings.familyStaminaMaxPerLoad,
-    settings.familyHospitalOnly and ' · hospital only' or '',
+    (settings.familyHospitalOnly and ' · hospital only' or '')
+    ..(settings.familyStaminaOnlyStationed and ' · only while my Crew is stationed' or ''),
     settings.familyGoldMaxPerLoad,settings.familyGoldAmount,settings.familyGoldReserve))
 end
 local editFamilySettings=tabs.Family:CreateToggle('edit_family_settings',{Title='Edit contribution settings',Default=false,
@@ -6411,11 +6875,17 @@ end
 showWhen(hospitalOnly,function() return editFamilySettings.Value end)
 updateFamilySummary()
 ui.familyStatus=tabs.Family:CreateParagraph('FamilyStatus',{Title='Family status',Content='Waiting for enabled Family status refresh'})
-tabs.Territory:CreateParagraph('TerritoryScope',{Title='Territory and residency',Content='Watch Territory only reads holdings. Auto station (separate opt-in) sends one eligible Crew member to a held district; it never recalls or moves stationed Crew. Auto Residency moves your own residence to an open district offering the selected bonus. Neither routine attacks districts or changes Family settings. Native capacity and rent may change after the final read.'})
+tabs.Territory:CreateParagraph('TerritoryScope',{Title='Territory and residency',Content='Watch Territory only reads holdings. Auto Station sends one eligible member to a held district. Separate Auto Transfer can recall only your Crew from a quiet district, then waits for recovery before another station action. Auto Residency moves only your own residence. These routines never attack districts or change Family orders.'})
 toggle(tabs.Territory,'territoryWatch','Watch Territory map','Read-only ownership summary; no siege, station, or Family orders.')
-toggle(tabs.Territory,'station','Auto station my Crew','OFF by default. Sends one eligible member to a held district after exact map and garrison checks. Never recalls or moves members already stationed.')
+toggle(tabs.Territory,'station','Auto station my Crew','OFF by default. Sends one eligible member to a held district after exact map and garrison checks. Significant recent damage ranks first; quiet districts balance by defender coverage.')
 number(tabs.Territory,'stationMinHome','Crew to keep at home','Default 2. Auto station will not send the last available members.')
 number(tabs.Territory,'stationMaxStationed','Maximum of my stationed Crew','Default 8; zero disables station actions without changing the toggle.')
+number(tabs.Territory,'stationSignificantHpPercent','Significant attack: district HP at or below %','Default 50%. Requires a recent hit too. This ranks pressured districts first; it does not claim every recent hit is severe.')
+settingToggle(tabs.Territory,'stationMove','Auto transfer my stationed Crew','OFF by default. Auto Station must also be ON. Recalls only your Crew from a quiet, well-defended district for a significantly attacked or much thinner Family district; waits for native recovery before restation.')
+settingToggle(tabs.Territory,'stationTrainRotation','Rotate quiet stationed Crew into training','OFF by default. Requires Auto Station and Auto Train. Recalls one of your eligible trainees only from a quiet, healthy district that keeps its minimum defenders; waits for native recovery, then the normal training cost and concurrency checks apply.')
+number(tabs.Territory,'stationMoveMinDeficit','Transfer when destination has this many fewer defenders','Default 3. A significantly attacked destination can override this shortage test, but source safety still applies.')
+number(tabs.Territory,'stationMinSourceDefenders','Minimum defenders left at source','Default 2. The source must have more than this before one of your Crew is recalled.')
+number(tabs.Territory,'stationMoveCooldownMinutes','Minutes between Crew transfers','Default 30. Prevents repeated recall/move decisions while district conditions change.')
 toggle(tabs.Territory,'residency','Auto select and move residence','OFF by default. Reads only matching bonus districts, rechecks the best option, then verifies resident status.')
 do
 local kinds=Residency and Residency.kinds(data) or {}
@@ -6451,16 +6921,16 @@ end
 number(tabs.Territory,'residencyMaxRent','Maximum rent (%)','0 allows free districts only; rent is a percentage of property income, locked when you move in.')
 number(tabs.Territory,'residencyMinImprovement','Minimum improvement (percentage points)','Do not move unless the selected bonus improves by more than this. Property income compares bonus minus rent.')
 ui.territoryStatus=tabs.Territory:CreateParagraph('TerritoryStatus',{Title='Map status',Content='Enable Watch Territory map to read holdings.'})
-ui.stationAdvisorStatus=tabs.Territory:CreateParagraph('StationAdvisorStatus',{Title='Crew station choice',Content='Enable Watch Territory for read-only advice, or Auto station to use one member at a time. Recall and moves are not automated.'})
+ui.stationAdvisorStatus=tabs.Territory:CreateParagraph('StationAdvisorStatus',{Title='Crew station choice',Content='Enable Watch Territory for advice, Auto Station for single-member stationing, and the separate Auto Transfer option for guarded recalls.'})
 ui.residencyStatus=tabs.Territory:CreateParagraph('ResidencyStatus',{Title='Residency choice',Content='Auto Residency is OFF.'})
-local featureTabs={cosmetics='Collection',collectionDonate='Collection',chests='Collection',jobs='Jobs',bank='Banking',properties='Properties',operations='Operations',collect='Operations',
+local featureTabs={cosmetics='Collection',collectionDonate='Collection',chests='Collection',restoratives='Collection',jobs='Jobs',bank='Banking',properties='Properties',operations='Operations',collect='Operations',
 heists='Heists',heistCollect='Heists',favors='Favors',sabotage='Heists',combat='Combat',warCombat='Combat',bosses='Bosses',crew='Crew',crewGear='Crew',crewRoll='Crew',crewTrain='Crew',crewHire='Crew',shop='Shop',marketWatch='Market',marketFlip='Market',safehouse='Safehouse',
 familyCash='Family',familyGold='Family',familyStamina='Family',familyBossClaims='Family',familyBossAttacks='Family',
 territoryWatch='Territory',station='Territory',residency='Territory',
 skills='Rewards & Skills',contracts='Rewards & Skills',bonuses='Rewards & Skills',briefcases='Rewards & Skills',trophies='Rewards & Skills',playtime='Rewards & Skills',groupBonus='Rewards & Skills'}
 ui.featureStatus={}
 ui.statusTabs={}
-for _,key in ipairs({'jobs','heists','heistCollect','favors','sabotage','operations','collect','warCombat','combat','bosses','crew','crewGear','crewRoll','crewTrain','crewHire','cosmetics','collectionDonate','chests','shop','marketWatch','marketFlip','bank','properties','safehouse','playtime','groupBonus','contracts','bonuses','briefcases','trophies','skills','familyBossClaims','familyBossAttacks','familyCash','familyStamina','familyGold','territoryWatch','station','residency'}) do
+for _,key in ipairs({'jobs','heists','heistCollect','favors','sabotage','operations','collect','warCombat','combat','bosses','crew','crewGear','crewRoll','crewTrain','crewHire','cosmetics','collectionDonate','chests','restoratives','shop','marketWatch','marketFlip','bank','properties','safehouse','playtime','groupBonus','contracts','bonuses','briefcases','trophies','skills','familyBossClaims','familyBossAttacks','familyCash','familyStamina','familyGold','territoryWatch','station','residency'}) do
 local tabName=featureTabs[key]
 local group=({Heists='Heists',Favors='Heists',Shop='Shop',Market='Shop',
 Banking='Money',Properties='Money',Safehouse='Money',Family='Family',Territory='Family'})[tabName] or tabName
@@ -6623,6 +7093,13 @@ configResult(true,#configNames()>0 and 'Choose a saved config above' or 'No save
 end
 local settingsTab=tabs.Settings
 settingsTab:CreateParagraph('RuntimeSettings',{Title='Appearance',Content='Theme and transparency change now and save automatically. Acrylic applies on the next hub load.'})
+local theme=settingsTab:CreateDropdown('theme',{Title='Color theme',Description='Choose a built-in Fluent Renewed palette.',Values={'DuoTone Dark Earth','DuoTone Dark Forest','Amethyst Dark','GitHub Dark','GitHub Light','GitHub Dark High Contrast'},Multi=false,Default=settings.theme,
+Callback=function(v) if type(v)=='string' then settings.theme=Core.settings({theme=v}).theme;Fluent:SetTheme(settings.theme);save() end end})
+local acrylic=settingsTab:CreateToggle('acrylic',{Title='Acrylic blur on next load',Default=settings.acrylic})
+acrylic:OnChanged(function(v) settings.acrylic=v==true; save() end)
+local transparent=settingsTab:CreateToggle('transparent',{Title='Transparent background',Default=settings.transparent})
+transparent:OnChanged(function(v) settings.transparent=v==true; Fluent:ToggleTransparency(v==true); save() end)
+settingsTab:CreateParagraph('SessionReliability',{Title='Session reliability',Content='Idle prevention is separate from gameplay actions. Its effect still needs to be observed in your client.'})
 do
 local toggle=settingsTab:CreateToggle('anti_afk',{Title='Prevent idle session refresh',Default=settings.antiAfk,
 Description='OFF by default. Tries reversible cursor motion after 8 idle minutes. No clicks or game actions; effectiveness must be observed.'})
@@ -6631,12 +7108,6 @@ settings.antiAfk=v==true;ctl.AntiAFK:setEnabled(settings.antiAfk);save()
 logEvent('anti_afk_setting',{enabled=settings.antiAfk})
 end)
 end
-local theme=settingsTab:CreateDropdown('theme',{Title='Color theme',Description='Choose a built-in Fluent Renewed palette.',Values={'DuoTone Dark Earth','DuoTone Dark Forest','Amethyst Dark','GitHub Dark','GitHub Light','GitHub Dark High Contrast'},Multi=false,Default=settings.theme,
-Callback=function(v) if type(v)=='string' then settings.theme=Core.settings({theme=v}).theme;Fluent:SetTheme(settings.theme);save() end end})
-local acrylic=settingsTab:CreateToggle('acrylic',{Title='Acrylic blur on next load',Default=settings.acrylic})
-acrylic:OnChanged(function(v) settings.acrylic=v==true; save() end)
-local transparent=settingsTab:CreateToggle('transparent',{Title='Transparent background',Default=settings.transparent})
-transparent:OnChanged(function(v) settings.transparent=v==true; Fluent:ToggleTransparency(v==true); save() end)
 settingsTab:CreateParagraph('AutomationTiming',{Title='Automation timing & confirmation',Content='Normal mode prefers replicated-state proof. Combat Scout/Attack may fall back to a validated successful server response after a short grace period so stale replication does not stall the hub. Read-only combat requests use their own shorter timeout. Testing bypass still accepts successful server responses immediately.'})
 number(settingsTab,'interval','Seconds between tasks','Global minimum delay between server requests. Default and minimum: 1 second. Slower requests and confirmation can still add waiting.')
 number(settingsTab,'timeout','Mutation confirmation timeout (seconds)','How long normal confirmation waits on mutating actions before entering uncertainty handling.')
@@ -6649,7 +7120,7 @@ settings.skipConfirmation=v==true
 save()
 logEvent('confirmation_mode',{bypass=settings.skipConfirmation,interval=settings.interval,timeout=settings.timeout,readTimeout=settings.readTimeout,combatConfirmGrace=settings.combatConfirmGrace})
 end)
-local order={'collect','playtime','contracts','bonuses','briefcases','trophies','skills','jobs','properties','safehouse','operations','bosses','crewGear','crew','crewHire','crewRoll','crewTrain','shop','warCombat','combat','heistCollect','heists','favors','sabotage','familyBossClaims','familyBossAttacks','territoryWatch','station','residency','marketFlip','marketWatch','groupBonus','cosmetics','collectionDonate','chests','familyCash','familyStamina','familyGold','bank'}
+local order={'collect','playtime','contracts','bonuses','briefcases','trophies','skills','restoratives','jobs','properties','safehouse','operations','bosses','crewGear','crew','crewHire','crewRoll','crewTrain','shop','warCombat','combat','heistCollect','heists','favors','sabotage','familyBossClaims','familyBossAttacks','territoryWatch','station','residency','marketFlip','marketWatch','groupBonus','cosmetics','collectionDonate','chests','familyCash','familyStamina','familyGold','bank'}
 local crewFingerprint,crewNextAt=nil,0
 local mugSnapshot
 local combatCooldowns={}
@@ -6828,7 +7299,7 @@ if p.action.gearPlanStep then
 ctl.GearPlan.markReview('Set step unconfirmed after 45 seconds; inspect member gear and copies before clearing')
 end
 if p.action.remote=='DeleteProperty' or p.action.remote=='BuyProperty' then
-ctl.SavePropertyReview(true,p.action)
+ctl.SavePropertyReview(true,p.action,p.before)
 ctl.Blocked.properties='Property action unconfirmed after 45 seconds. Review ownership and cash, then resume Auto buy properties.'
 if p.action.remote=='DeleteProperty' then propertyReplacePlan=nil end
 logEvent('property_action_paused',{remote=p.action.remote,target=p.action.args[1],replacement=p.action.replacementId})
@@ -6844,7 +7315,12 @@ heistView.board=nil;heistView.at=-math.huge
 end
 if key=='familyBossClaims' or key=='familyBossAttacks' then familyBossView.at=nil end
 if key=='residency' then ctl.ResidencyView.views={};ctl.ResidencyView.preflightId=nil end
-if key=='station' then ctl.ResidencyView.mapAt=nil;ctl.ResidencyView.stationDetails={} end
+if key=='station' then
+ctl.ResidencyView.mapAt=nil;ctl.ResidencyView.stationDetails={}
+if p.action.stationRecallMutation then
+ctl.ResidencyView.transferCooldown.global=now+settings.stationMoveCooldownMinutes*60
+end
+end
 nextActionAt=now
 status='Unconfirmed after 45s: '..p.action.details..'. Original action may have succeeded; skipping it and retrying '
 ..(featureLabels[key] or key)..' in '..delay..'s. Other routines continue.'
@@ -6865,6 +7341,18 @@ end
 end
 end
 end
+function ctl.SelectedByMode(k)
+if ctl.Auto and settings.permissions[k]~=nil then return settings.permissions[k]==true end
+return ctl.Enabled[k]==true
+end
+function ctl.ActionSource(k)
+if settings.autoContracts and contractControl.view.borrow[k] and not ctl.SelectedByMode(k) then return 'Auto Contracts override' end
+if settings.trophyFocus and trophyFocusView.borrow[k] and not ctl.SelectedByMode(k) then return 'Trophy Focus override' end
+if settings.permissions[k]~=nil then
+return ctl.Auto and 'Progression inclusion' or 'Manual toggle'
+end
+return 'Separate opt-in'
+end
 local function active(k)
 if ctl.EmergencyStopped then return false end
 if k=='station' then return ctl.Enabled.station==true end
@@ -6873,17 +7361,29 @@ if not settings.sabotageEnabled then return false end
 if settings.trophyFocus and settings.trophyGoalId=='t_wrench' and trophyFocusView.borrow.sabotage~=true then return false end
 return true
 end
-return ctl.Enabled[k] or (ctl.Auto and settings.permissions[k])
+return ctl.SelectedByMode(k)
 or (settings.autoContracts and contractControl.view.borrow[k]==true)
 or (settings.trophyFocus and trophyFocusView.borrow[k]==true)
 end
+function ctl.StationSettings(state,base)
+local copy={}
+for key,value in pairs(base) do copy[key]=value end
+copy.significantHpPercent=copy.stationSignificantHpPercent
+if active('crewTrain') then
+local training=Core.crewTrain(state,cfg,base)
+if training then copy.stationTrainCandidate=training.crewTrainSlot end
+if not training and base.stationTrainRotation then
+copy.stationTrainingRotationSlot=Core.crewTrainRotationCandidate(state,cfg,base)
+end
+end
+return copy
+end
 local function trophyOptIns()
 return {
-favors=ctl.Enabled.favors==true or (ctl.Auto and settings.permissions.favors==true),
-combat=ctl.Enabled.combat==true or ctl.Enabled.warCombat==true
-or (ctl.Auto and (settings.permissions.combat==true or settings.permissions.warCombat==true)),
+favors=ctl.SelectedByMode('favors'),
+combat=ctl.SelectedByMode('combat') or ctl.SelectedByMode('warCombat'),
 combatArmed=combatView.armed==true,
-chests=ctl.Enabled.chests==true or (ctl.Auto and settings.permissions.chests==true),
+chests=ctl.SelectedByMode('chests'),
 }
 end
 local groupCheck={nextAt=0,pending=false,member=nil}
@@ -6918,6 +7418,14 @@ end
 local function readState()
 local ok,s=pcall(state.latest)
 if ok and type(s)=='table' and type(s.level)=='number' then return s end
+return nil
+end
+function ctl.CrateLuck(s)
+local module=mw:FindFirstChild('TerritoryBonusRules')
+if not module then return nil end
+local rules=require(module)
+if type(rules.crateLuck)=='function' then return rules.crateLuck(s) end
+if type(rules.fromData)=='function' then return rules.fromData(s,'crateLuck') end
 return nil
 end
 local function validCombatMutationResponse(a,response)
@@ -7124,6 +7632,9 @@ local inventory=fresh and fresh.inventory or {}
 local enough=fresh and (a.feature=='familyCash' and Core.num(fresh.cash)>=a.amount
 or a.feature=='familyStamina' and Core.num(pools.stamina)>=a.amount+settings.familyStaminaReserve
 or a.feature=='familyGold' and Core.num(inventory.gold_bar)>=a.amount+settings.familyGoldReserve)
+if a.feature=='familyStamina' and settings.familyStaminaOnlyStationed then
+enough=enough and Family and Family.hasStationedCrew(fresh,familyView.data)
+end
 if not enough then
 pending.sendInFlight=false
 if ctl.Pending==pending then ctl.Pending=nil end
@@ -7192,13 +7703,17 @@ logEvent('residency_recheck',{targetId=a.targetId,reason='Candidate or settings 
 return
 end
 end
-if not pending.sent and a.stationMutation then
+if not pending.sent and (a.stationMutation or a.stationRecallMutation) then
 local fresh=readState()
 local current=fresh and Residency and Residency.stationPlan(fresh,ctl.ResidencyView,os.clock(),cfg,data,
-ctl.GearSets,settings,player.UserId)
-if not current or not current.stationMutation or current.stationDistrict~=a.stationDistrict
+ctl.GearSets,ctl.StationSettings(fresh,settings),player.UserId)
+if not current or current.stationMutation~=a.stationMutation
+or current.stationRecallMutation~=a.stationRecallMutation
+or current.stationDistrict~=a.stationDistrict
 or current.stationMember~=a.stationMember or current.stationFamily~=a.stationFamily
-or current.stationName~=a.stationName or current.stationRarity~=a.stationRarity then
+or current.stationName~=a.stationName or current.stationRarity~=a.stationRarity
+or current.stationSource~=a.stationSource or current.stationToken~=a.stationToken
+or current.stationPurpose~=a.stationPurpose then
 pending.sendInFlight=false
 if ctl.Pending==pending then ctl.Pending=nil end
 logEvent('station_recheck',{district=a.stationDistrict,member=a.stationMember,
@@ -7261,6 +7776,35 @@ logEvent('crew_training_recheck',{slot=a.crewTrainSlot,reason='Member, training 
 return
 end
 end
+end
+if not pending.sent and a.remote=='OpenCrate' then
+local fresh=readState()
+local nativeState=type(state.data)=='table' and state.data or fresh
+local ok,luck=pcall(ctl.CrateLuck,nativeState)
+if not fresh or not ok or type(luck)~='number' or luck~=luck or luck<0 or luck==math.huge then
+pending.sendInFlight=false
+if ctl.Pending==pending then ctl.Pending=nil end
+status='Waiting for current native crate luck before opening'
+logEvent('chest_luck_recheck',{reason='Native crate luck unavailable before send'})
+return
+end
+a.args[4]=luck;request.args[4]=luck
+pending.before=Core.mark(a,fresh)
+end
+if not pending.sent and a.remote=='UseConsumable' then
+local fresh=readState()
+local checkSettings=Core.featureSpending(settings,'restoratives')
+checkSettings.consumableReadyAt=ctl.Restorative.readyAt
+checkSettings.consumableUseSequence=ctl.Restorative.sequence
+local current=fresh and Core.restoratives(fresh,data,checkSettings,workspace:GetServerTimeNow())
+if not current or current.args[1]~=a.args[1] or current.args[2]~=a.args[2]
+or current.args[3]~=a.args[3] then
+pending.sendInFlight=false
+if ctl.Pending==pending then ctl.Pending=nil end
+logEvent('restorative_recheck',{item=a.args[1],reason='Resource, inventory, cooldown, or sequence changed before send'})
+return
+end
+pending.before=Core.mark(a,fresh)
 end
 if not pending.sent and a.heistKind=='sabotage' and request.args[1]=='sabotage' then
 local day=math.floor(Core.num(heistView.board and heistView.board.serverNow)/86400)
@@ -7326,6 +7870,11 @@ combatView.profiles.inFlight[id]=true
 combatView.profiles.attempted[id]=Core.num(s.serverNow,os.time())
 end
 if a.feature=='crewGear' then crewGearTx=a.crewGearTx;ctl.CrewGearTransaction=crewGearTx end
+if a.stationRecallMutation then
+ctl.LastStationRecallRequestId=math.max(Core.num(ctl.LastStationRecallRequestId)+1,
+math.floor(workspace:GetServerTimeNow()*1000))
+a.args[2]=ctl.LastStationRecallRequestId
+end
 local before
 if a.remote=='FamilyAction' and Family then before=Family.mark(a,s)
 elseif a.remote=='FamilyBossAction' and FamilyBoss then before=FamilyBoss.mark(a,s,familyBossView.data,player.UserId)
@@ -7595,6 +8144,31 @@ ctl.SetDisplay(ui.flow,ctl.Pending and 'Game state unavailable; current request 
 or 'Game state unavailable; no new action can be chosen.','flow health')
 return
 end
+if ctl.PropertyReview.restartPending then
+local record=ctl.PropertyReview.record
+local action=record and {remote=record.remote,args={record.target,record.slot},
+replacementId=record.replacementId,replacementCost=record.replacementCost,
+replacementVictimOwned=record.replacementVictimOwned,replacementSlot=record.replacementSlot}
+if action and (action.remote=='BuyProperty' or action.remote=='DeleteProperty')
+and type(record.before.owned)=='number'
+and (action.remote~='DeleteProperty' or (record.before.lot==record.target and type(record.slot)=='number'))
+and Core.confirm(action,record.before,s,nil) then
+if ctl.SavePropertyReview(false) then
+ctl.PropertyReview.restartPending=false
+ctl.Blocked.properties=nil
+ctl.RetryAt.properties=0
+ctl.RetryReason.properties=nil
+if action.remote=='DeleteProperty' and record.replacementId
+and type(record.replacementCost)=='number' and type(record.replacementVictimOwned)=='number'
+and type(record.replacementSlot)=='number' then
+propertyReplacePlan=action
+end
+status='Property ownership change verified after restart; Property automation resumed'
+logEvent('property_restart_confirmed',{remote=action.remote,target=record.target,
+replacement=record.replacementId})
+end
+end
+end
 if ctl.PropertyWatch then
 local watch=ctl.PropertyWatch
 local observed=Core.mark(watch.action,s)
@@ -7651,11 +8225,11 @@ end
 end
 if Contracts and type(Contracts.inspect)=='function' then
 local inspected,view=pcall(Contracts.inspect,s,cfg,settings,contractControl.cooldowns,now,{
-favors=ctl.Enabled.favors==true or (ctl.Auto and settings.permissions.favors==true),
+favors=ctl.SelectedByMode('favors'),
 familyCash=ctl.Enabled.familyCash==true,
 sabotage=settings.sabotageEnabled==true,
-combat=combatView.armed==true and (ctl.Enabled.combat==true or (ctl.Auto and settings.permissions.combat==true)),
-warCombat=combatView.armed==true and (ctl.Enabled.warCombat==true or (ctl.Auto and settings.permissions.warCombat==true)),
+combat=combatView.armed==true and ctl.SelectedByMode('combat'),
+warCombat=combatView.armed==true and ctl.SelectedByMode('warCombat'),
 })
 if inspected and type(view)=='table' then
 contractControl.view=view;ctl.ContractView=view
@@ -7801,7 +8375,8 @@ and validCombatMutationResponse(p.action,p.response)
 and now-Core.num(p.lastSent,p.started)>=Core.num(settings.combatConfirmGrace,1) then
 combatResponseAccepted=true
 end
-local stateAccepted=not p.action.familyRead and not p.action.stationMutation and not explicitlyRejected
+local stateAccepted=not p.action.familyRead and not p.action.stationMutation
+and not p.action.stationRecallMutation and not explicitlyRejected
 and (p.settled or (p.sent and Core.canConfirmWithoutResponse(p.action)))
 and (p.action.remote=='FamilyAction' and Family and Family.confirm(p.action,p.before,s,p.response,player.UserId)
 or p.action.remote~='FamilyAction' and Core.confirm(p.action,p.before,s,p.response))
@@ -7853,6 +8428,58 @@ ctl.RetryAt[key]=now+delay;ctl.RetryReason[key]='Territory/Residency read unavai
 ctl.Pending=nil;nextActionAt=now
 status='Territory/Residency read unavailable; retrying after backoff'
 logEvent('residency_read_retry',{feature=key,targetId=p.action.targetId,response=p.response,retrySeconds=delay})
+end
+elseif p.action.stationRecallMutation then
+if p.recallPhase=='verify' then
+if p.settled then
+if p.ok and Residency and Residency.recallConfirmed(p.action,p.recallResult,s,responseTable) then
+ctl.Confirmed=ctl.Confirmed+1;ctl.Failures.station=0
+ctl.Pending=nil;nextActionAt=afterConfirmedRequest(p,now)
+ctl.ResidencyView.mapAt=nil;ctl.ResidencyView.stationDetails={}
+ctl.ResidencyView.transferCooldown.global=now+settings.stationMoveCooldownMinutes*60
+ctl.ResidencyView.transferCooldown[p.action.stationMember]=ctl.ResidencyView.transferCooldown.global
+ctl.ResidencyView.transferCooldown[p.action.stationSource]=ctl.ResidencyView.transferCooldown.global
+if p.journalId then Journal.finish(ctl.ActionJournal,p.journalId,'confirmed',now);ctl.SaveJournal() end
+status='Verified recall of your Crew slot '..p.action.stationMember
+..(p.action.stationPurpose=='training' and '; waiting for recovery before training'
+or '; waiting for recovery before restation')
+logEvent('station_recall_confirmed',{source=p.action.stationSource,
+destination=p.action.stationDistrict,member=p.action.stationMember,
+recalledUntil=tab(tab(s.crew)[p.action.stationMember]).recalledUntil})
+else
+p.settled=false;p.sendInFlight=false;p.recallNextAt=now+3
+status='Waiting for Crew duty and source garrison to confirm recall'
+end
+end
+elseif p.settled then
+if p.ok and responseTable and type(responseTable.settled)=='table'
+and #responseTable.settled>0 then
+p.recallResult=responseTable;p.recallPhase='verify'
+p.settled=false;p.sendInFlight=false;p.recallNextAt=now
+ctl.ResidencyView.stationDetails[p.action.stationSource]=nil
+status='Recall settled; verifying Crew duty and source garrison'
+logEvent('station_recall_verification_started',{source=p.action.stationSource,
+member=p.action.stationMember})
+elseif p.ok and responseTable and (responseTable.pending==true
+or responseTable.code=='rate_limited' or responseTable.code=='unknown_request') then
+p.recallPhase='status';p.settled=false;p.sendInFlight=false;p.recallNextAt=now+3
+status='Waiting for native Crew recall status'
+else
+ctl.Pending=nil;ctl.Failures.station=(ctl.Failures.station or 0)+1
+local delay=math.min(300,15*2^math.min(5,ctl.Failures.station-1))
+ctl.RetryAt.station=now+delay;ctl.RetryReason.station='Crew recall rejected or unavailable'
+status='Crew recall was not accepted; retrying Station after backoff'
+logEvent('station_recall_rejected',{source=p.action.stationSource,
+member=p.action.stationMember,response=p.response,retrySeconds=delay})
+end
+end
+if ctl.Pending==p and not p.sendInFlight and not p.settled
+and now>=Core.num(p.recallNextAt) and not skipUnconfirmed(p,now,observed) then
+if p.recallPhase=='verify' then
+sendPending(p,{remote='TerritoryView',args={'district',p.action.stationSource},count=2})
+elseif p.recallPhase=='status' then
+sendPending(p,{remote='TerritoryStatus',args={'recallstatus',p.action.args[2],nil},count=3})
+end
 end
 elseif p.action.stationMutation and (p.stationVerify
 or (p.settled and p.ok and responseTable and responseTable.ok==true)) then
@@ -8073,6 +8700,12 @@ logEvent('market_flip_listed',{item=p.action.proposal.item,ask=p.action.proposal
 end
 end
 if p.action.remote=='OpenCrate' then ctl.ChestsOpened=ctl.ChestsOpened+Core.num(response.opened) end
+if p.action.remote=='UseConsumable' then
+ctl.Restorative.sequence=math.max(ctl.Restorative.sequence,Core.num(response.sequence))
+ctl.Restorative.readyAt=math.max(ctl.Restorative.readyAt,Core.num(response.readyAt))
+logEvent('restorative_confirmed',{item=p.action.args[1],resource=response.resource,gain=response.gain,
+readyAt=ctl.Restorative.readyAt})
+end
 if p.action.remote=='FamilyAction' then
 if type(response.family)=='table' then familyView.data=response.family end
 familyView.at=now
@@ -8158,7 +8791,7 @@ and (p.action.remote=='DeleteProperty' or p.action.remote=='BuyProperty')
 and p.settled and p.ok and responseTable
 and responseTable.ok==true and p.sent
 and now-Core.num(p.lastSent,p.started)>=2 then
-if not disk or not saveAllowed or ctl.SavePropertyReview(true,p.action) then
+if not disk or not saveAllowed or ctl.SavePropertyReview(true,p.action,p.before) then
 ctl.PropertyWatch=p
 ctl.Pending=nil;ctl.JournalOpen=nil
 nextActionAt=now
@@ -8345,7 +8978,7 @@ c.selectedProperties=trophyFocusView.propertyIds
 c.propertyReplace=false
 end
 if key=='trophies' and trophyFocusView.status=='working' and trophyFocusView.borrow.trophies
-and not ctl.Enabled.trophies and not (ctl.Auto and settings.permissions.trophies) then
+and not ctl.SelectedByMode('trophies') then
 c.trophyClaimId=trophyFocusView.goalId
 end
 if key=='operations' and operationSettings.contractOverride then
@@ -8357,6 +8990,7 @@ if key=='familyCash' then c.perAction=c.familyCashMaxPerLoad end
 local allowBank=c[key..'UseBank']==true
 c.purchaseAvailable=math.max(0,Core.num(s.cash))
 if allowBank and Core.unlocked(s,cfg,'Bank') then c.purchaseAvailable=c.purchaseAvailable+math.min(Core.num(s.banked),c.withdrawalLimit) end
+if key=='properties' then c.purchaseAvailable=nil end
 local a,why
 if key=='properties' and propertyReplacePlan then
 a,why=Core.propertyReplacementBuy(s,data,cfg,c,propertyReplacePlan)
@@ -8380,7 +9014,7 @@ if Residency then a,why=Residency.plan(key,s,data,c,ctl.ResidencyView,now)
 else a=nil;why='Territory/Residency controller unavailable' end
 end
 if key=='station' then
-if Residency then a,why=Residency.stationPlan(s,ctl.ResidencyView,now,cfg,data,ctl.GearSets,c,player.UserId)
+if Residency then a,why=Residency.stationPlan(s,ctl.ResidencyView,now,cfg,data,ctl.GearSets,ctl.StationSettings(s,c),player.UserId)
 else a=nil;why='Crew station controller unavailable' end
 end
 if key=='marketWatch' then
@@ -8490,12 +9124,13 @@ if key=='chests' then
 if trophyFocusView.status=='working' and trophyFocusView.priority=='chests' then
 c.chestPreferredId=trophyFocusView.chestId
 end
-local ok,luck=pcall(function()
-local module=mw:FindFirstChild('TerritoryBonusRules')
-if not module then return nil end
-return require(module).fromData(s,'crateLuck')
-end)
+local ok,luck=pcall(ctl.CrateLuck,s)
 a,why=Core.chests(s,data,c,ctl.ChestsOpened,ok and luck or nil)
+end
+if key=='restoratives' then
+c.consumableReadyAt=ctl.Restorative.readyAt
+c.consumableUseSequence=ctl.Restorative.sequence
+a,why=Core.restoratives(s,data,c,workspace:GetServerTimeNow())
 end
 if key=='shop' then
 local shopSettings=Core.settings(c)
@@ -8538,7 +9173,7 @@ if funded and funded.remote=='Withdraw' then
 funded.feature=key
 funded.shopFunding=key=='shop'
 end
-if funded and trophyFocusView.borrow[key] and not ctl.Enabled[key] and not (ctl.Auto and settings.permissions[key])
+if funded and trophyFocusView.borrow[key] and not ctl.SelectedByMode(key)
 and not (settings.autoContracts and contractControl.view.borrow[key]) then funded.trophyGoalId=trophyFocusView.goalId end
 candidates[key]=funded; reasons[key]=funded and ('Ready: '..a.details) or reason
 else reasons[key]=why end
@@ -8561,7 +9196,7 @@ if active('bank') and not ctl.Blocked.bank and now>=Core.num(ctl.RetryAt.bank) t
 local planned,action,why=pcall(Core.deposit,s,cfg,c,reserved)
 if planned then
 candidates.bank=action;reasons.bank=why
-if action and trophyFocusView.borrow.bank and not ctl.Enabled.bank and not (ctl.Auto and settings.permissions.bank)
+if action and trophyFocusView.borrow.bank and not ctl.SelectedByMode('bank')
 and not (settings.autoContracts and contractControl.view.borrow.bank) then action.trophyGoalId=trophyFocusView.goalId end
 ctl.PlannerFailures.bank=0
 else
@@ -8591,6 +9226,7 @@ end
 if not selected and trophyFocusView.goalId=='t_wrench' and trophyFocusView.status=='working' and candidates.sabotage then
 selected=candidates.sabotage;ctl.SelectionReason='Trophy Focus: Wrench sabotage goal'
 end
+if not selected and candidates.restoratives then selected=candidates.restoratives;ctl.SelectionReason='Restore a low resource before more activity' end
 for _,key in ipairs({'heistCollect','heists','favors','collect','operations'}) do
 if not selected and candidates[key] then selected=candidates[key];ctl.SelectionReason='Daily/hourly priority';break end
 end
@@ -8676,12 +9312,18 @@ elseif not duplicateSuppressed then status='Waiting: no eligible action; see aut
 local previewSettings=selected and selected.feature=='jobs' and jobSettings
 or selected and selected.feature=='operations' and operationSettings or c
 ctl.ProgressionPreview=Core.progressionPreview(selected,s,data,cfg,previewSettings,ctl.SelectionReason,reasons)
+if selected then
+ctl.ProgressionPreview=ctl.ProgressionPreview..'\nControl: '..tostring(ctl.ActionSource(selected.feature))
+end
 end
 local latest=ctl.ActionJournal.entries[#ctl.ActionJournal.entries]
 local journalLine=latest and ('Latest action: '..latest.feature..' / '..latest.remote..' — '..latest.state
 ..(latest.state=='unconfirmed' and (' (duplicate risk; retry in '..math.max(0,math.ceil(Core.num(latest.retryAt)-now))..'s)') or '')) or 'Latest action: none'
 local view=string.format('Account: %s | Runtime: %ds\nLevel: %s | Cash: %.0f | Banked: %.0f\nNow: %s',
     player.Name,math.floor(now-started),tostring(s.level),Core.num(s.cash),Core.num(s.banked),status)
+if active('properties') and ctl.Blocked.properties then
+view=view..'\nProperties paused: '..tostring(ctl.Blocked.properties)
+end
 if view~=lastView then ctl.SetDisplay(ui.dashboard,view,'session'); lastView=view end
 local nextChoice=ctl.Pending and 'Next action is chosen after the current request settles.'
     or tostring(ctl.ProgressionPreview or 'Waiting for the first planner check')
@@ -8722,11 +9364,11 @@ if active(key) then blocked[#blocked+1]={key=key,why=why} end
 end
 table.sort(cooling,function(a,b) return a.at<b.at end)
 table.sort(blocked,function(a,b) return a.key<b.key end)
-local anyEnabled=ctl.Auto
-if not anyEnabled then
-for _,enabled in pairs(ctl.Enabled) do if enabled then anyEnabled=true;break end end
-end
-flow=anyEnabled and 'No request in flight.' or 'All automation is OFF.'
+local anyEnabled=false
+for _,key in ipairs(order) do if active(key) then anyEnabled=true;break end end
+flow=anyEnabled and 'No request in flight.'
+or ctl.Auto and 'Progression mode has no included activities or independent extras active; manual choices are paused.'
+or 'All automation is OFF.'
 if #blocked>0 then
 local item=blocked[1]
 flow=flow..' Blocked: '..(featureLabels[item.key] or item.key)..' — '..tostring(item.why)..'.'
@@ -8744,7 +9386,7 @@ local lines={}
 if contractFocusError and settings.contractFocus then lines[#lines+1]='Contract priority: '..contractFocusError end
 do
 local enabledLines,offCount={},0
-for _,key in ipairs({'jobs','bank','properties','operations','collect','bosses','skills','contracts','bonuses','crew','crewGear','crewHire','crewRoll','cosmetics','collectionDonate','chests','shop','marketFlip','marketWatch','trophies','heists','heistCollect','favors','sabotage','safehouse','playtime','groupBonus','combat','warCombat','familyCash','familyStamina','familyGold','familyBossClaims','familyBossAttacks','territoryWatch','station','residency'}) do
+for _,key in ipairs({'jobs','bank','properties','operations','collect','bosses','skills','contracts','bonuses','crew','crewGear','crewHire','crewRoll','cosmetics','collectionDonate','chests','restoratives','shop','marketFlip','marketWatch','trophies','heists','heistCollect','favors','sabotage','safehouse','playtime','groupBonus','combat','warCombat','familyCash','familyStamina','familyGold','familyBossClaims','familyBossAttacks','territoryWatch','station','residency'}) do
 if active(key) then
 enabledLines[#enabledLines+1]=(featureLabels[key] or key)..': '..(ctl.Blocked[key] or reasons[key] or 'Included')
 else
@@ -8853,18 +9495,25 @@ local stationEnabled=active('station')
 local stationText='Enable Watch Territory map for read-only station advice. Auto station is OFF.'
 if active('territoryWatch') or stationEnabled then
 local ok,advice=pcall(Residency.stationAdvice,s,map,ctl.ResidencyView.mapAt,now,cfg,data,ctl.GearSets,
-{minCrewAtHome=settings.stationMinHome,maxStationed=settings.stationMaxStationed})
+ctl.StationSettings(s,settings))
 if not ok then stationText='Station advice unavailable; no Crew is moved.'
 elseif advice.districtId then
 stationText=string.format('%s · defenders %d/%d · %s\n%s',
     advice.districtId,advice.defenders,advice.capacity,
-    advice.underSiege and 'recently attacked' or 'no recent attack observed',
+    advice.significantAttack and 'significant recent attack' or
+    (advice.underSiege and 'recently attacked' or 'no recent attack observed'),
     advice.memberIndex and string.format('Candidate slot %d · %.0f DEF. %s',
         advice.memberIndex,advice.memberDefense,
         stationEnabled and ('Auto station: '..tostring(reasons.station or 'checking exact garrison'))
         or 'Read-only; Auto station is OFF.')
         or tostring(advice.reason))
 else stationText=tostring(advice.reason or 'No station candidate; no Crew is moved.') end
+if stationEnabled and (settings.stationMove or settings.stationTrainRotation)
+and ok and advice and not advice.memberIndex then
+local transfer,transferWhy=Residency.stationPlan(s,ctl.ResidencyView,now,cfg,data,
+ctl.GearSets,ctl.StationSettings(s,settings),player.UserId)
+stationText=stationText..'\nRotation/transfer: '..tostring(transfer and transfer.details or transferWhy or 'no safe source')
+end
 end
 if ui.stationAdvisorStatus.Value~=stationText then ctl.SetDisplay(ui.stationAdvisorStatus,stationText,'station advisor') end
 local best=tab(ctl.ResidencyView.best)
@@ -8876,7 +9525,9 @@ local residenceText=string.format('Bonus: %s · maximum rent: %s%% · current: %
 if ui.residencyStatus.Value~=residenceText then ctl.SetDisplay(ui.residencyStatus,residenceText,'residency status') end
 end
 local previewText
-if ctl.PropertyWatch then
+if ctl.Blocked.properties then
+previewText='Property automation paused: '..tostring(ctl.Blocked.properties)
+elseif ctl.PropertyWatch then
 previewText=string.format('Waiting for ownership and lot sync after the server accepted %s for %s. Reserved for this Property plan: $%.0f. No second Property action will be sent. %s',
     tostring(ctl.PropertyWatch.action.remote),tostring(ctl.PropertyWatch.action.args[1]),
     Core.num(ctl.PropertyWatch.action.replacementCost or ctl.PropertyWatch.action.cost),
@@ -8888,10 +9539,7 @@ previewText=string.format('Deleted one %s. Waiting to buy %s for $%.0f; no other
 else
 local previewSettings=Core.featureSpending(effectiveSettings(),'properties')
 previewSettings.propertyReplace=true
-previewSettings.purchaseAvailable=Core.num(s.cash)
-if settings.propertiesUseBank and Core.unlocked(s,cfg,'Bank') then
-previewSettings.purchaseAvailable=previewSettings.purchaseAvailable+math.min(Core.num(s.banked),previewSettings.withdrawalLimit)
-end
+previewSettings.purchaseAvailable=nil
 local preview,why=Core.properties(s,data,cfg,previewSettings,0)
 if preview and preview.remote=='DeleteProperty' then
 local delta=Core.num(preview.replacementIncome)-Core.num(preview.replacementOldIncome)
@@ -8970,6 +9618,7 @@ status=checkpointIssue and ('Saved config restored. '..checkpointIssue..'; actio
 logEvent('config_resumed',{combatPermission=combatView.armed,enabled=ctl.Enabled,auto=ctl.Auto,
 checkpointIssue=checkpointIssue})
 end
+if not ctl.PropertyReview.markerValid then
 for i=#ctl.ActionJournal.entries,1,-1 do
 local row=ctl.ActionJournal.entries[i]
 if row.remote=='BuyProperty' then
@@ -8983,6 +9632,7 @@ if row.remote=='DeleteProperty' then
 ctl.Blocked.properties='Prior property deletion has no confirmed replacement purchase in the saved journal. Review ownership and cash, then use Resume property automation.'
 logEvent('property_replacement_restart_review',{journalId=row.id,state=row.state})
 break
+end
 end
 end
 task.spawn(function()
@@ -9083,4 +9733,4 @@ if not started then error(ctl) end
 return ctl
 end
 end)()
-return Bootstrap(Start,LoadFluent,Core,Heists,Combat,Family,FamilyBoss,Residency,Journal,'0.48.17',Contracts,Market)
+return Bootstrap(Start,LoadFluent,Core,Heists,Combat,Family,FamilyBoss,Residency,Journal,'0.48.25',Contracts,Market)
