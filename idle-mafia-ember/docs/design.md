@@ -109,25 +109,37 @@ Desktop target: approximately 900 × 620 with a 210-pixel rail, scalable within 
 
 ### Page map
 
-The following are Ember sections. The groupings inside them are collapsible Ember groups, not a second navigation framework.
+Each system has its own Ember section/tab. Simplify the controls inside each tab; do not merge unrelated systems to reduce the tab count. Related fight routines are grouped within Combat. This replaces the earlier 13-section grouping.
 
-| Page | Primary groups |
+| Tab | Controls / summary |
 | --- | --- |
 | Overview | Current action, next choice, blockers, pause/stop, shared context and quick links |
-| Jobs & Missions | Separate Jobs, Operation start/collect, personal Heist start/collect, Favors and sabotage |
-| Combat & Bosses | Player permission, Mugs/War policies, city Boss stages and Boss Token Shop |
-| Crew & Gear | Rerolls, training, stamina/item healing, native equip, custom gear/sets and recovery |
-| Inventory | Cosmetics, safe Collection surplus, unbound chests and player restoratives |
-| Money & Property | Bank/funding, property goal, Safehouse and separately permitted prestige/replacement |
-| Shop & Market | Separate Shop/research/sale/flip/rent/earnings groups with concise budgets |
-| Family & Territory | Takedown, contributions, city/season/decree/fortification views, station/recall/residency |
-| Goals & Rewards | Contracts/Trophy goals, earned contract/playtime/monthly/group claims and skills |
-| Events | Global Boss, Briefcases, effective buffs and Event Shop |
+| Heists | Personal Heist start/collect and separately permitted sabotage |
+| Jobs | Selected or automatic Jobs, goal and native ownership status |
+| Operations | Operation start/collect, goal, slots and budget |
+| Favors | Heist help, eligibility, energy reserve and daily usage |
+| Combat | Player permission, Mugs/War, city Bosses, Boss Token Shop, Family Takedown attacks/claims and Global Boss attacks/claims |
+| Crew & Gear | Rerolls, hiring, training, stamina/item healing, native equip, gear/sets and recovery |
+| Inventory | Cosmetics, owned unbound chests and player restoratives |
+| Collection | Safe-surplus deposits, native checkpoints and protected copies |
+| Money | Bank deposits, reserves and purpose-specific shortfall funding |
+| Property | Property buying goal, cash limits and separately permitted replacement |
+| Safehouse | Next eligible Safehouse tier and upgrade budget |
+| Prestige | Native requirements, reset permission and per-load limits |
+| Shop | Native Shop rotation, item choices and purchase budget |
+| Black Market | Research, listing/selling, flipping, rental and sold-earnings collection |
+| Family | Separate Cash, Stamina and Gold contributions |
+| Territory | Holdings, station/recall/residency and read-only city/season/decree/fortification context |
+| Contracts | Auto Contracts, objective/focus choice and earned entry/completion claims |
+| Trophies | Trophy goal/focus, progress and earned claims |
+| Skills | Chosen stat and earned skill-point allocation |
+| Rewards | Earned playtime, monthly and group claims |
+| Events | Briefcases, effective buffs and Event Shop; Global Boss controls belong only to Combat |
 | Profiles | Active versus selected profile, import preview and explicit activation |
 | Settings | Appearance, idle protection, common resource limits and optional event preference |
 | Activity | Current reasons/recent outcomes; compatibility, timing and technical export collapsed |
 
-The simplified scope uses **13 sections**, with at most two to four primary controls per feature and one Custom disclosure of at most six useful overrides. The first browser prototype has four Custom fields for Combat and three for Properties. Secondary routines may be collapsed. Navigation/scrolling still needs visual verification. Grouped pages use extracted domain panels rather than monolithic source files.
+The scope uses **25 dedicated tabs**, with at most two to four primary controls per feature and one Custom disclosure of at most six useful overrides. The first browser prototype has four Custom fields for Combat and three for Property. Secondary routines may be collapsed within their owning tab. Keep the rail scrollable and search available; navigation/overflow still needs visual verification and an actual Ember rendering check. Separate tab modules compose shared domain planners without duplicate senders or copied settings.
 
 ### Common feature pattern
 
@@ -152,11 +164,11 @@ Idle Mafia                         [Search controls] [Hide]
 Account / native build / hub build
 -----------------------------------------------------------
 Overview             Session: Running   State: fresh 0.2s
-Goals & Rewards      Current: Collect Operation  [3s elapsed]
-Heists & Favors       Next: Best eligible Job
-Jobs & Operations    [Pause] [Emergency Stop · F8] [Unload]
+Heists               Current: Collect Operation  [3s elapsed]
+Jobs                 Next: Best eligible Job
+Operations           [Pause] [Emergency Stop · F8] [Unload]
 Combat               -------------------------------------
-Bosses               Resources   Cash / Energy / Stamina / HP
+Collection           Resources   Cash / Energy / Stamina / HP
 Crew & Gear          Attention   Crew: waiting for recovery
 Inventory ...        Activities  Jobs: Ready
 Events                           Favors: Waiting · daily cap
@@ -389,7 +401,7 @@ Use newly authored tests and fixtures. Old tests are useful for identifying requ
 | Ember adapter | False-value restore, setter refusal, delayed startup callbacks, silent hydration, large catalog filtering, destroy/recreate, hidden window, display failure |
 | Build/static | Deterministic modular release/manifest, dependency provenance, strict type/static checks where supported, every module and optional fallback Luau compile/parse including function/local/register limits, source mapping, no old runtime import |
 | Module delivery | One commit across every fetch, partial/missing/corrupt downloads, syntax/export failure, bounded retries, cycles/duplicate IDs, verified complete cache only, initialize once, no sends before complete startup or during update |
-| Local UI | Nine state/schema checks currently pass; browser navigation is blocked by local URL/file security policy, so screenshots/layout checks are pending. `preview/standalone.html` has no network dependencies. |
+| Local UI | Ten state/schema checks currently pass, including dedicated-tab ownership; browser navigation is blocked by local URL/file security policy, so screenshots/layout checks are pending. `preview/standalone.html` has no network dependencies. |
 | Actual UI | A later small Ember rendering check in Roblox with all gameplay dispatch disabled; fonts/scaling/pointer/focus/F8/cleanup and representative pages checked |
 | Feature live check | Current native build, exact version/account, narrowly scoped authorization, naturally eligible action, before/after proof, recorded rejection/uncertainty and recovery |
 
@@ -416,7 +428,7 @@ Do not add a generic plugin ecosystem, arbitrary user scripting, a remote update
 ## Design self-review
 
 - Fresh source, separate distribution, and no old production imports satisfy the recode requirement.
-- UI grouping and simplification are user requirements. The local prototype is authored and nine model/schema tests pass; actual visual rendering and Ember behavior remain unverified.
+- Dedicated tabs per system and simpler controls are user requirements. The local prototype is authored and ten model/schema tests pass; actual visual rendering and Ember behavior remain unverified.
 - Current source is distinguished from historical Progression and outdated documentation.
 - One local gate, 45-second uncertainty release, and possible lingering remote execution are described consistently.
 - Updated place source is fingerprinted and checked against 42 anchors; native server behavior and inaccessible current Ember bytes remain explicit evidence gaps.

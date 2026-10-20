@@ -75,12 +75,12 @@ Proposed source: `ui/EmberAdapter.luau`, `ui/Bindings.luau`, page/panel modules,
 
 Slices:
 
-- [x] Author local interactive 13-page design preview with 55 activity/permission controls including every legacy ID, four Combat Custom overrides and three Property overrides. No game bridge, account files or gameplay transport.
-- [x] Run nine local model/schema tests and JS syntax checks.
+- [x] Author local interactive design preview with 25 dedicated system tabs with 55 activity/permission controls including every legacy ID, four Combat Custom overrides and three Property overrides. No game bridge, account files or gameplay transport.
+- [x] Run ten local model/schema tests, including dedicated-tab ownership and JS syntax checks.
 - [ ] Verify actual browser layout, navigation/search, disclosure controls and narrow/wide states. Automated local URL/file navigation is blocked by browser security policy; visual checks remain open. Standalone HTML is available.
 - [ ] Prototype the loader with inert modules: one commit/manifest, initialize-once exports, verified complete prefetch/cache, and no partial application startup on failed downloads or compilation.
 - [ ] Resolve actual sidebar scrolling, group density, control search, long catalogs and status visibility at target/minimum viewport sizes.
-- [ ] Implement the simplified feature pattern in actual Ember across 13 proposed sections after the local design review, with sample data clearly labeled.
+- [ ] Implement the simplified feature pattern in actual Ember across 25 dedicated system tabs after the local design review, with sample data clearly labeled.
 - [ ] Implement the settings model and inert profile preview with typed false/enum/color/multi-selection handling; no run-on-hydration behavior.
 - [ ] Check delayed callbacks, `Set` rejection, theme subscriptions, destroy/recreate, F8 visibility, appearance save failures and reduced motion.
 - [ ] Inspect actual Roblox Ember rendering with gameplay dispatch disabled and record screenshots/observations where available.

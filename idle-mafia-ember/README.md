@@ -15,7 +15,7 @@ This folder is reserved exclusively for the new recode. Legacy scripts elsewhere
 - [Simpler menus and local testing](docs/ui-simplification.md)
 - [Local preview instructions](preview/README.md)
 
-The user requested the same functions with substantially fewer configuration options. The first slice is a local interactive design preview with 13 grouped pages; Combat has four Custom overrides and Properties has three. All 50 old feature IDs remain accounted for. Actual Ember and gameplay scripts follow the simplified layout and a tested request/recovery engine. Features will be freshly implemented from reviewed requirements and current game evidence; old production modules will not be copied, imported, or wrapped.
+The user requested the same functions with substantially fewer configuration options. The first slice is a local interactive design preview with 25 dedicated system tabs, including separate Heists, Jobs, Collection, Money, Property, Shop and Black Market tabs. Combat groups player fights, city Bosses, Family Takedown and Global Bosses, and has four Custom overrides and Properties has three. All 50 old feature IDs remain accounted for. Actual Ember and gameplay scripts follow the simplified layout and a tested request/recovery engine. Features will be freshly implemented from reviewed requirements and current game evidence; old production modules will not be copied, imported, or wrapped.
 
 ## Planned organization
 
@@ -58,4 +58,4 @@ A short entry script will select one reviewed release commit, load its matching 
 
 The supplied place reports native `0.26.487.1` (latest bundled notes `0.26.454`). Forty of the 48 prior selected sources changed; 42 source anchors and 852 unique city district IDs were checked without executing the saved source. All 231 legacy default keys have proposed simplification/migration dispositions.
 
-Nine local state/schema tests and JavaScript syntax checks pass. Automated visual checks are blocked by browser local URL/file security policy; layout and actual Ember rendering remain unverified. No gameplay request or account setting was changed.
+Ten local state/schema tests and JavaScript syntax checks pass, including dedicated-tab ownership. Automated visual checks are blocked by browser local URL/file security policy; layout and actual Ember rendering remain unverified. No gameplay request or account setting was changed.

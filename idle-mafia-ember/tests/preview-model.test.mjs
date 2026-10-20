@@ -115,11 +115,99 @@ test("catalog accounts for every legacy feature and keeps Custom bounded", () =>
   const controls = catalog.features.map((feature) => feature.id);
   assert.equal(new Set(controls).size, controls.length);
   assert.ok(ids.every((id) => controls.includes(id)));
-  assert.equal(catalog.pages.length, 13);
+  assert.equal(
+    new Set(catalog.pages.map((page) => page.id)).size,
+    catalog.pages.length,
+  );
   assert.ok(catalog.features.every((feature) => feature.custom.length <= 6));
   assert.ok(
     catalog.features.every((feature) =>
       catalog.pages.some((page) => page.id === feature.page),
     ),
   );
+});
+
+test("each system owns its tab and all related fights stay in Combat", () => {
+  const catalog = JSON.parse(
+    readFileSync(new URL("../preview/catalog.json", import.meta.url), "utf8"),
+  );
+  const owners = {
+    heists: ["heists", "heistCollect", "sabotage"],
+    jobs: ["jobs"],
+    operations: ["operations", "collect"],
+    favors: ["favors"],
+    combat: [
+      "combat",
+      "warCombat",
+      "bosses",
+      "bossShop",
+      "familyBossAttacks",
+      "familyBossClaims",
+      "globalBossAttack",
+      "globalBossClaim",
+    ],
+    crew: [
+      "crew",
+      "crewGear",
+      "crewRoll",
+      "crewSort",
+      "crewHeal",
+      "crewTrain",
+      "crewHire",
+      "crewHealItems",
+    ],
+    inventory: ["cosmetics", "chests", "restoratives"],
+    collection: ["collectionDonate"],
+    money: ["bank", "withdraw"],
+    property: ["properties"],
+    safehouse: ["safehouse"],
+    prestige: ["prestige"],
+    shop: ["shop"],
+    blackMarket: [
+      "marketWatch",
+      "marketSell",
+      "marketFlip",
+      "marketRent",
+      "marketManage",
+    ],
+    family: ["familyCash", "familyStamina", "familyGold"],
+    territory: ["territoryWatch", "station", "residency"],
+    contracts: ["contracts", "bonuses", "autoContracts"],
+    trophies: ["trophies", "trophyFocus"],
+    skills: ["skills"],
+    rewards: ["playtime", "groupBonus", "monthlyRewards"],
+    events: ["briefcases", "eventShop"],
+  };
+  const expected = Object.entries(owners).flatMap(([page, ids]) =>
+    ids.map((id) => [id, page]),
+  );
+  assert.deepEqual(
+    Object.fromEntries(catalog.features.map(({ id, page }) => [id, page])),
+    Object.fromEntries(expected),
+  );
+  const pages = Object.fromEntries(
+    catalog.pages.map((page) => [page.id, page]),
+  );
+  for (const id of [
+    ...Object.keys(owners),
+    "overview",
+    "profiles",
+    "settings",
+    "activity",
+  ]) {
+    assert.ok(pages[id], `Missing dedicated tab: ${id}`);
+    assert.ok(pages[id].symbol, `Missing navigation symbol: ${id}`);
+  }
+  for (const [id, label] of Object.entries({
+    heists: "Heists",
+    jobs: "Jobs",
+    combat: "Combat",
+    collection: "Collection",
+    money: "Money",
+    property: "Property",
+    shop: "Shop",
+    blackMarket: "Black Market",
+  })) {
+    assert.equal(pages[id].label, label);
+  }
 });

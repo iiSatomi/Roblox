@@ -14,23 +14,37 @@ Every routine still has its own switch. Player attacks, Gold/key/medal spending,
 
 Native costs, timers, unlocks, rarity/set lists, fee rounding, buff composition and eligibility are automatic current-state facts, not user configuration. Similar preferences use one consistent goal vocabulary. Keep feature-specific choices when they describe a real outcome: mastery, a selected Job, a particular chest, a desired Crew rarity or a residency bonus.
 
-## Proposed page map — 13 sections
+## Dedicated system tabs — 25 sections
 
-1. Overview — current action, next choice, blockers, pause/stop and quick links.
-2. Jobs & Missions — Jobs, Operations, personal Heists, Favors and separately permissioned sabotage.
-3. Combat & Bosses — player permission, ordinary/war targets, city Bosses and Boss Token Shop.
-4. Crew & Gear — training/healing/rerolls, gear handling and reachable set plans.
-5. Inventory — cosmetics, safe Collection surplus, chests and player restoratives.
-6. Money & Property — bank/funding, property buying, Safehouse and prestige.
-7. Shop & Market — compact Shop choices and separately grouped research/sale/flip/rent/earnings.
-8. Family & Territory — Takedown, contributions, city watch/station/recall/residency; read-only season/decree/fortification facts.
-9. Goals & Rewards — Contracts/Trophy goals, earned playtime/monthly/group/contract claims and skills.
-10. Events — Global Boss, Briefcases, effective buffs and Event Shop.
-11. Profiles — active versus selected profile and explicit activation/import.
-12. Settings — appearance, idle protection, common resource limits and optional event preference.
-13. Activity — concise outcomes and blockers; detailed compatibility, timing, logs and export are collapsed developer views.
+The user explicitly requested a separate tab for each system. This supersedes the initial 13-page grouping: simplify the controls within each tab while keeping unrelated systems apart. Combat owns all related fight routines.
 
-Each page starts with a short summary; secondary routines can be collapsed. Search finds features across pages. There are no mirrored editable controls on several pages; use **Open settings** links to the owning control instead.
+1. Overview — Current action, next choice, blockers, pause/stop, shared context and quick links.
+2. Heists — Personal Heist start/collect and separately permitted sabotage.
+3. Jobs — Selected or automatic Jobs, goal and native ownership status.
+4. Operations — Operation start/collect, goal, slots and budget.
+5. Favors — Heist help, eligibility, energy reserve and daily usage.
+6. Combat — Player permission, Mugs/War, city Bosses, Boss Token Shop, Family Takedown attacks/claims and Global Boss attacks/claims.
+7. Crew & Gear — Rerolls, hiring, training, stamina/item healing, native equip, gear/sets and recovery.
+8. Inventory — Cosmetics, owned unbound chests and player restoratives.
+9. Collection — Safe-surplus deposits, native checkpoints and protected copies.
+10. Money — Bank deposits, reserves and purpose-specific shortfall funding.
+11. Property — Property buying goal, cash limits and separately permitted replacement.
+12. Safehouse — Next eligible Safehouse tier and upgrade budget.
+13. Prestige — Native requirements, reset permission and per-load limits.
+14. Shop — Native Shop rotation, item choices and purchase budget.
+15. Black Market — Research, listing/selling, flipping, rental and sold-earnings collection.
+16. Family — Separate Cash, Stamina and Gold contributions.
+17. Territory — Holdings, station/recall/residency and read-only city/season/decree/fortification context.
+18. Contracts — Auto Contracts, objective/focus choice and earned entry/completion claims.
+19. Trophies — Trophy goal/focus, progress and earned claims.
+20. Skills — Chosen stat and earned skill-point allocation.
+21. Rewards — Earned playtime, monthly and group claims.
+22. Events — Briefcases, effective buffs and Event Shop; Global Boss controls belong only to Combat.
+23. Profiles — Active versus selected profile, import preview and explicit activation.
+24. Settings — Appearance, idle protection, common resource limits and optional event preference.
+25. Activity — Current reasons/recent outcomes; compatibility, timing and technical export collapsed.
+
+Each tab starts with a short summary and owns its controls. Related routines can use small groups within that tab. The sidebar scrolls independently, and search locates features across tabs. No editable controls are mirrored elsewhere; Overview and related pages link to the owning tab instead. Verify the longer rail in actual Ember before gameplay implementation.
 
 ## Concrete simplifications
 
@@ -70,6 +84,7 @@ Actual Ember API compatibility, fonts/scaling, pointer/focus behavior, respawn, 
 ## Acceptance
 
 - All 50 legacy IDs remain accounted for, while new features have separate proposed coverage rows.
+- Heists, Jobs, Combat, Collection, Money, Property, Shop and Black Market each have a dedicated tab; related fight controls appear only in Combat.
 - Normal Combat and Properties use the compact controls above; no giant Advanced settings dump.
 - Each Custom disclosure stays within six meaningful fields; protected actions remain separately permissioned.
 - No mirrored setting copies or goal-specific duplicate planners.

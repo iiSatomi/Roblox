@@ -11,6 +11,8 @@ node idle-mafia-ember/tools/build_preview.mjs
 node --test idle-mafia-ember/tests/preview-model.test.mjs
 ```
 
-Try the sample choices, Combat permission/policy, Properties goal/Custom limits, feature search, Pause/Resume, Emergency Stop/F8 and sample situations. Scenarios explain low health, native Auto Jobs ownership, closed Market and unconfirmed requests. They are not a gameplay simulator or proof of native formulas.
+Each system now has its own tab. Combat includes player fights, city Bosses, Family Takedown and Global Bosses. Money, Property, Shop, Black Market, Collection, Heists, Jobs and Operations keep separate controls. The longer sidebar scrolls independently.
 
-Nine local model/schema tests pass. Automated visual testing is still unverified: this environment's browser security policy blocks local URL/file navigation. Actual Ember rendering/scaling, pointer/focus, respawn and cleanup need a separate inert Roblox check later.
+Try the sample choices, Combat permission/policy, Property goal/Custom limits, feature search, Pause/Resume, Emergency Stop/F8 and sample situations. Scenarios explain low health, native Auto Jobs ownership, closed Market and unconfirmed requests. They are not a gameplay simulator or proof of native formulas.
+
+Ten local model/schema tests pass, including exact feature-to-tab ownership. Automated visual testing is still unverified: this environment's browser security policy blocks local URL/file navigation. Actual Ember rendering/scaling, pointer/focus, respawn and cleanup need a separate inert Roblox check later.

@@ -20,21 +20,6 @@ let permission = false;
 let customValues = {};
 const history = [];
 const content = document.querySelector("#content");
-const symbols = [
-  "⌂",
-  "◇",
-  "⚔",
-  "♟",
-  "□",
-  "$",
-  "⇄",
-  "⚑",
-  "✓",
-  "✦",
-  "▤",
-  "⚙",
-  "≡",
-];
 const escape = (value) =>
   String(value).replace(
     /[&<>"']/g,
@@ -130,8 +115,8 @@ function specialPage() {
 function render() {
   document.querySelector("#navigation").innerHTML = catalog.pages
     .map(
-      (page, index) =>
-        `<button data-page="${page.id}" ${pageId === page.id ? 'aria-current="page"' : ""}><span class="nav-symbol" aria-hidden="true">${symbols[index]}</span>${escape(page.label)}</button>`,
+      (page) =>
+        `<button data-page="${page.id}" ${pageId === page.id ? 'aria-current="page"' : ""}><span class="nav-symbol" aria-hidden="true">${escape(page.symbol)}</span>${escape(page.label)}</button>`,
     )
     .join("");
   const page = catalog.pages.find((page) => page.id === pageId);
