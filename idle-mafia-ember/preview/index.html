@@ -1,27 +1,51 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark">
-  <title>Idle Mafia · local UI preview</title>
-  <link rel="stylesheet" href="styles.css">
-  <script type="module" src="app.mjs"></script>
-</head>
-<body>
-  <div class="preview-note"><strong>LOCAL DESIGN PREVIEW</strong><span>Simulated data · No Roblox connection · No gameplay requests</span></div>
-  <div class="shell">
-    <aside class="sidebar">
-      <div class="brand"><span class="brand-mark">IM</span><div>Idle Mafia<small>EMBER RECODE</small></div></div>
-      <label class="search"><span class="sr-only">Find a feature</span><input id="search" type="search" placeholder="Find a feature…" autocomplete="off"></label>
-      <nav id="navigation" aria-label="Hub pages"></nav>
-      <div class="sidebar-foot">A fresh start.<br><span>Evidence build 0.26.487.1</span></div>
-    </aside>
-    <div class="workspace">
-      <header class="topbar"><span id="breadcrumb">Overview</span><div><span class="local-dot"></span> Local preview <button id="stop" class="stop">Emergency stop <kbd>F8</kbd></button></div></header>
-      <main id="content" tabindex="-1"><p>Loading the local design…</p></main>
-      <footer><span id="session-state">All activities off</span><span>Memory only · Nothing saved to your account</span></footer>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Idle Mafia · local UI preview</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="app.mjs"></script>
+  </head>
+  <body>
+    <div class="preview-note">
+      <strong>LOCAL DESIGN PREVIEW</strong
+      ><span>Simulated data · No Roblox connection · No gameplay requests</span>
     </div>
-  </div>
-</body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">IM</span>
+          <div>Idle Mafia<small>EMBER RECODE</small></div>
+        </div>
+        <label class="search"
+          ><span class="sr-only">Find a feature</span
+          ><input
+            id="search"
+            type="search"
+            placeholder="Find a feature…"
+            autocomplete="off"
+        /></label>
+        <nav id="navigation" aria-label="Hub pages"></nav>
+        <div class="sidebar-foot">
+          A fresh start.<br /><span>Evidence build 0.26.487.1</span>
+        </div>
+      </aside>
+      <div class="workspace">
+        <header class="topbar">
+          <span id="breadcrumb">Overview</span>
+          <div>
+            <span class="local-dot"></span> Local preview
+            <button id="stop" class="stop">Emergency stop <kbd>F8</kbd></button>
+          </div>
+        </header>
+        <main id="content" tabindex="-1"><p>Loading the local design…</p></main>
+        <footer>
+          <span id="session-state">All activities off</span
+          ><span>Memory only · Nothing saved to your account</span>
+        </footer>
+      </div>
+    </div>
+  </body>
 </html>

@@ -1,133 +1,230 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark">
-  <title>Idle Mafia · local UI preview</title>
-  <style>:root{color-scheme:dark;--bg:#171b22;--rail:#12161c;--panel:#202630;--panel2:#252d38;--border:#343e4c;--text:#eceff4;--muted:#b4becc;--faint:#8b98ab;--accent:#d7a66a;--green:#a2c5ad;--amber:#e5bf7d;--red:#edb1ad;font:14px/1.5 'Segoe UI',system-ui,sans-serif}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text)}button,input,select{font:inherit}button,input,select,summary{outline-offset:4px}button{cursor:pointer}button:disabled{cursor:default;opacity:.6}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent)}
-.preview-note{height:39px;display:flex;gap:18px;align-items:center;padding:0 24px;border-bottom:1px solid #4a4033;background:#25221e;color:#ded3c4;font-size:12px}.preview-note strong{font-size:10px;letter-spacing:.12em;color:var(--accent)}
-.shell{display:grid;grid-template-columns:224px 1fr;height:calc(100dvh - 39px);min-height:460px}.sidebar{background:var(--rail);border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0;padding:27px 14px 16px}.brand{display:flex;align-items:center;gap:12px;font-size:19px;font-weight:600;padding:0 12px 24px}.brand-mark{display:grid;place-items:center;width:35px;height:35px;border:1px solid #88704e;color:var(--accent);font-size:12px;font-weight:700;border-radius:5px}.brand small{display:block;font-size:9px;letter-spacing:.18em;font-weight:500;color:var(--faint);margin-top:1px}
-.search{display:block;padding:0 6px 16px}.search input{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);font-size:12px}.search input::placeholder{color:var(--faint)}nav{overflow:auto;min-height:0;scrollbar-width:thin}nav button{display:flex;width:100%;gap:10px;align-items:center;text-align:left;border:0;border-left:2px solid transparent;background:transparent;color:var(--muted);padding:9px 12px;font-size:12px;border-radius:3px;margin:1px 0}nav button:hover{background:#1e252e}nav button[aria-current=page]{background:#292a29;border-left-color:var(--accent);color:#f1d2a6}nav .nav-symbol{width:18px;text-align:center;font-size:13px;opacity:.85}.sidebar-foot{margin-top:auto;padding:17px 12px 0;color:var(--muted);font-size:11px}.sidebar-foot span{color:var(--faint);font-size:10px}
-.workspace{min-width:0;min-height:0;display:flex;flex-direction:column}.topbar{min-height:65px;padding:0 30px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:16px;color:var(--muted);font-size:12px}.topbar>div{display:flex;align-items:center;gap:8px}.local-dot{width:6px;height:6px;background:var(--accent);border-radius:50%}.stop{margin-left:18px;border:1px solid #76514f;color:#f1bbb4;border-radius:5px;background:#2c2224;padding:7px 11px;font-size:11px}kbd{font-family:inherit;font-size:10px;opacity:.65;margin-left:12px}
-main{flex:1;min-height:0;overflow:auto;padding:31px 38px 45px;scrollbar-width:thin}.page-head{margin-bottom:28px;display:flex;justify-content:space-between;align-items:start;gap:20px}h1{margin:0 0 5px;font-size:25px;font-weight:600;letter-spacing:-.035em}h2{font-size:14px;font-weight:600;margin:0}h3{font-size:13px;margin:0;font-weight:600}p{margin:5px 0 0}.muted,.page-head p{color:var(--muted);font-size:12px}.eyebrow{font-size:10px;letter-spacing:.13em;color:var(--faint);text-transform:uppercase;margin-bottom:10px}.badge{display:inline-flex;align-items:center;padding:3px 8px;border:1px solid var(--border);border-radius:4px;color:var(--muted);font-size:10px;white-space:nowrap}.badge.on,.badge.Ready{color:var(--green);border-color:#40574c;background:#202d28}.badge.Waiting,.badge.Paused{color:var(--amber);border-color:#655537;background:#2e2b24}.badge.Stopped{color:var(--red);border-color:#76514f}
-.overview-columns{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(240px,1fr);gap:20px}.session-panel,.context-panel{border:1px solid var(--border);border-radius:7px;padding:23px;background:var(--panel)}.session-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.session-title{font-size:22px;margin:18px 0 6px;letter-spacing:-.02em}.session-help{color:var(--muted);font-size:12px;max-width:460px}.button-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:21px}.button{border:1px solid #665641;border-radius:5px;background:#3b3329;color:#edd3ae;padding:8px 13px;font-size:12px}.button.secondary{border-color:var(--border);background:transparent;color:var(--muted)}.context-row{display:flex;justify-content:space-between;gap:18px;padding:11px 0;border-bottom:1px solid var(--border);font-size:12px}.context-row:last-child{border-bottom:0}.context-row span{color:var(--faint)}.context-row strong{text-align:right;font-weight:500}.scenario{display:grid;gap:8px;margin:23px 0 24px;font-size:12px;color:var(--muted)}select,input[type=number]{border:1px solid #465264;border-radius:4px;background:#171c24;color:var(--text);padding:7px 10px;font-size:12px;max-width:100%}.scenario select{max-width:310px}
-.section-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:26px 0 10px}.section-heading span{color:var(--faint);font-size:11px}.activity-list{border-top:1px solid var(--border)}.activity-row{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:13px 0;border-bottom:1px solid var(--border);font-size:12px}.activity-row p{color:var(--faint);font-size:11px}.text-button{color:var(--accent);padding:0;border:0;background:none;font-size:11px}
-.feature-list{display:grid;gap:12px;max-width:1000px}.feature{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:18px 21px}.feature-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}.feature-description{font-size:12px;color:var(--muted);max-width:690px;margin-top:5px}.feature-actions{display:flex;align-items:center;gap:12px;margin-top:15px;flex-wrap:wrap}.feature-actions>label{display:flex;gap:10px;align-items:center;font-size:11px;color:var(--faint)}.feature-actions select{min-width:165px}.sensitive{color:#c4ad90;font-size:10px;margin-left:auto}.status-line{border-top:1px solid var(--border);padding-top:11px;margin-top:14px;font-size:11px;color:var(--faint);display:flex;align-items:center;gap:9px}.status-line strong{font-weight:500;color:var(--muted)}.switch{position:relative;flex-shrink:0;cursor:pointer;padding-top:2px}.switch input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0}.switch-track{display:block;width:33px;height:19px;border-radius:12px;background:#3c4654;border:1px solid #536071;transition:background .12s}.switch-track:after{content:'';display:block;width:13px;height:13px;margin:2px;border-radius:50%;background:#b7c0cd;transition:transform .12s}.switch input:checked+.switch-track{background:#80613e;border-color:#c59860}.switch input:checked+.switch-track:after{transform:translateX(13px);background:#f3d2a4}.switch input:focus-visible+.switch-track{outline:2px solid var(--accent);outline-offset:4px}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-details{margin-top:14px;font-size:12px}summary{cursor:pointer;color:var(--muted)}.custom-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:15px;padding:15px;border:1px solid var(--border);border-radius:4px}.custom-grid label{display:grid;gap:7px;color:var(--muted);font-size:11px}.limits{font-size:11px;color:#c8b798;margin-top:12px}.permission-line{background:#29251f;border:1px solid #5b4b36;border-radius:5px;padding:13px 16px;margin-bottom:19px;font-size:12px;color:#dbc6a5}.permission-line label{display:flex;align-items:center;gap:10px}.empty{padding:25px;border:1px dashed var(--border);border-radius:6px;color:var(--muted);font-size:12px}.info-panel{border-left:2px solid var(--accent);padding:2px 0 2px 15px;font-size:12px;color:var(--muted);max-width:850px;margin-bottom:24px}.profile-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:18px 0;border-bottom:1px solid var(--border)}.profile-row strong{min-width:145px;font-size:12px}.profile-row span{color:var(--muted);font-size:12px}footer{min-height:36px;padding:8px 30px;border-top:1px solid var(--border);display:flex;gap:20px;justify-content:space-between;font-size:10px;color:var(--faint)}footer span:first-child{color:var(--muted)}.notice{font-size:11px;color:var(--faint);margin:18px 0 0}
-@media(min-width:1450px){main{padding-left:48px;padding-right:48px}.overview-columns{max-width:1250px}}
-@media(max-width:980px){.shell{grid-template-columns:190px 1fr}.sidebar{padding-left:10px;padding-right:10px}main{padding:25px 22px}.topbar{padding:0 22px}.overview-columns{grid-template-columns:1fr}.context-panel{padding-top:16px;padding-bottom:16px}.context-panel .context-row{padding:8px 0}.sensitive{margin-left:0}.stop{margin-left:4px}}
-@media(max-width:650px){.preview-note{height:auto;min-height:47px;padding:8px 14px;align-items:flex-start;gap:4px;flex-direction:column;font-size:10px}.shell{height:auto;min-height:calc(100dvh - 47px);grid-template-columns:1fr}.sidebar{padding:14px;display:block;border-right:0;border-bottom:1px solid var(--border)}.brand{padding:0 0 12px;font-size:16px}.brand-mark{width:28px;height:28px}.brand small{font-size:8px}.search{padding:0 0 10px}nav{display:flex;overflow:auto;gap:4px}nav button{width:auto;flex-shrink:0;padding:8px;font-size:11px}.nav-symbol,.sidebar-foot{display:none}.workspace{min-height:calc(100dvh - 228px)}.topbar{padding:12px 16px;min-height:50px}.topbar>div{font-size:10px}.stop{font-size:10px;padding:6px 9px}kbd{display:none}main{padding:22px 16px;overflow:visible}.page-head{gap:10px}h1{font-size:23px}.page-head p{font-size:11px}.feature{padding:16px}.custom-grid{grid-template-columns:1fr}footer{padding:9px 16px;flex-direction:column;gap:2px}.session-panel,.context-panel{padding:18px}.feature-description{font-size:11px}}
-@media(prefers-reduced-motion:reduce){*{transition:none!important}}
-</style>
-  
-</head>
-<body>
-  <div class="preview-note"><strong>LOCAL DESIGN PREVIEW</strong><span>Simulated data · No Roblox connection · No gameplay requests</span></div>
-  <div class="shell">
-    <aside class="sidebar">
-      <div class="brand"><span class="brand-mark">IM</span><div>Idle Mafia<small>EMBER RECODE</small></div></div>
-      <label class="search"><span class="sr-only">Find a feature</span><input id="search" type="search" placeholder="Find a feature…" autocomplete="off"></label>
-      <nav id="navigation" aria-label="Hub pages"></nav>
-      <div class="sidebar-foot">A fresh start.<br><span>Evidence build 0.26.487.1</span></div>
-    </aside>
-    <div class="workspace">
-      <header class="topbar"><span id="breadcrumb">Overview</span><div><span class="local-dot"></span> Local preview <button id="stop" class="stop">Emergency stop <kbd>F8</kbd></button></div></header>
-      <main id="content" tabindex="-1"><p>Loading the local design…</p></main>
-      <footer><span id="session-state">All activities off</span><span>Memory only · Nothing saved to your account</span></footer>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Idle Mafia · local UI preview</title>
+    <link rel="stylesheet" href="styles.css" />
+    
+  </head>
+  <body>
+    <div class="preview-note">
+      <strong>LOCAL DESIGN PREVIEW</strong
+      ><span>Simulated data · No Roblox connection · No gameplay requests</span>
     </div>
-  </div>
-<script>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">IM</span>
+          <div>Idle Mafia<small>EMBER RECODE</small></div>
+        </div>
+        <label class="search"
+          ><span class="sr-only">Find a feature</span
+          ><input
+            id="search"
+            type="search"
+            placeholder="Find a feature…"
+            autocomplete="off"
+        /></label>
+        <nav id="navigation" aria-label="Hub pages"></nav>
+        <div class="sidebar-foot">
+          A fresh start.<br /><span>Evidence build 0.26.487.1</span>
+        </div>
+      </aside>
+      <div class="workspace">
+        <header class="topbar">
+          <span id="breadcrumb">Overview</span>
+          <div>
+            <span class="local-dot"></span> Local preview
+            <button id="stop" class="stop">Emergency stop <kbd>F8</kbd></button>
+          </div>
+        </header>
+        <main id="content" tabindex="-1"><p>Loading the local design…</p></main>
+        <footer>
+          <span id="session-state">All activities off</span
+          ><span>Memory only · Nothing saved to your account</span>
+        </footer>
+      </div>
+    </div>
+  <script>
 {
 // Local design state only. No Roblox, network, storage, timers or gameplay code.
 function known(state, id) {
-  if (!Object.hasOwn(state.enabled, id)) throw new Error(`Unknown feature: ${id}`);
+  if (!Object.hasOwn(state.enabled, id))
+    throw new Error(`Unknown feature: ${id}`);
 }
 
 function createState(features) {
   return {
-    enabled: Object.fromEntries(features.map(feature => [feature.id, false])),
-    policies: Object.fromEntries(features.map(feature => [feature.id, feature.policies?.[0] ?? 'Recommended'])),
-    choices: Object.fromEntries(features.map(feature => [feature.id, feature.policies ?? []])),
-    paused: false, stopped: false, scenario: 'normal',
+    enabled: Object.fromEntries(features.map((feature) => [feature.id, false])),
+    policies: Object.fromEntries(
+      features.map((feature) => [
+        feature.id,
+        feature.policies?.[0] ?? "Recommended",
+      ]),
+    ),
+    choices: Object.fromEntries(
+      features.map((feature) => [feature.id, feature.policies ?? []]),
+    ),
+    paused: false,
+    stopped: false,
+    scenario: "normal",
   };
 }
 
 function setEnabled(state, id, on) {
   known(state, id);
-  if (typeof on !== 'boolean') throw new Error('Switch value must be boolean');
-  return {...state, enabled:{...state.enabled, [id]:on}};
+  if (typeof on !== "boolean") throw new Error("Switch value must be boolean");
+  return { ...state, enabled: { ...state.enabled, [id]: on } };
 }
 
 function setPolicy(state, id, value) {
   known(state, id);
-  if (!state.choices[id].includes(value)) throw new Error(`Unknown policy for ${id}`);
-  return {...state, policies:{...state.policies, [id]:value}};
+  if (!state.choices[id].includes(value))
+    throw new Error(`Unknown policy for ${id}`);
+  return { ...state, policies: { ...state.policies, [id]: value } };
 }
 
 function applyValues(state, values) {
   for (const [id, on] of Object.entries(values)) {
     known(state, id);
-    if (typeof on !== 'boolean') throw new Error('Switch value must be boolean');
+    if (typeof on !== "boolean")
+      throw new Error("Switch value must be boolean");
   }
-  return {...state, enabled:{...state.enabled, ...values}};
+  return { ...state, enabled: { ...state.enabled, ...values } };
 }
 
-function pause(state) { return {...state, paused:true}; }
-function resume(state) { return {...state, paused:false, stopped:false}; }
+function pause(state) {
+  return { ...state, paused: true };
+}
+function resume(state) {
+  return { ...state, paused: false, stopped: false };
+}
 function stop(state) {
-  return {...state, stopped:true, paused:false,
-    enabled:Object.fromEntries(Object.keys(state.enabled).map(id => [id, false]))};
+  return {
+    ...state,
+    stopped: true,
+    paused: false,
+    enabled: Object.fromEntries(
+      Object.keys(state.enabled).map((id) => [id, false]),
+    ),
+  };
 }
 
 function featureStatus(state, feature) {
-  if (!state.enabled[feature.id]) return {label:'Off', reason:'Choose when this activity is allowed.'};
-  if (state.stopped) return {label:'Stopped', reason:'Explicit Resume is required after Emergency Stop.'};
-  if (state.paused) return {label:'Paused', reason:'Your choices are kept. No new work starts.'};
-  if (state.scenario === 'unconfirmed') return {label:'Waiting', reason:'Observing a sent action until its 45-second deadline. A skip is not success.'};
-  if (state.scenario === 'nativeJobs' && feature.id === 'jobs') {
-    return {label:'Waiting', reason:'Native Auto Jobs owns this activity. The hub yields.'};
+  if (!state.enabled[feature.id])
+    return { label: "Off", reason: "Choose when this activity is allowed." };
+  if (state.stopped)
+    return {
+      label: "Stopped",
+      reason: "Explicit Resume is required after Emergency Stop.",
+    };
+  if (state.paused)
+    return {
+      label: "Paused",
+      reason: "Your choices are kept. No new work starts.",
+    };
+  if (state.scenario === "unconfirmed")
+    return {
+      label: "Waiting",
+      reason:
+        "Observing a sent action until its 45-second deadline. A skip is not success.",
+    };
+  if (state.scenario === "nativeJobs" && feature.id === "jobs") {
+    return {
+      label: "Waiting",
+      reason: "Native Auto Jobs owns this activity. The hub yields.",
+    };
   }
-  if (state.scenario === 'lowHealth' && feature.combat) {
-    return {label:'Waiting', reason:'Below your health floor. Other activities can continue.'};
+  if (state.scenario === "lowHealth" && feature.combat) {
+    return {
+      label: "Waiting",
+      reason: "Below your health floor. Other activities can continue.",
+    };
   }
-  if (state.scenario === 'closedMarket' && ['marketSell','marketFlip'].includes(feature.id)) {
-    return {label:'Waiting', reason:'Your Market shop is closed. Renting has its own permission.'};
+  if (
+    state.scenario === "closedMarket" &&
+    ["marketSell", "marketFlip"].includes(feature.id)
+  ) {
+    return {
+      label: "Waiting",
+      reason: "Your Market shop is closed. Renting has its own permission.",
+    };
   }
-  return {label:'Ready', reason:'Sample eligibility met. This preview sends no gameplay requests.'};
+  return {
+    label: "Ready",
+    reason: "Sample eligibility met. This preview sends no gameplay requests.",
+  };
 }
 
 const catalog = {"version":"preview-0.1","evidenceBuild":"0.26.487.1","pages":[{"id":"overview","label":"Overview","description":"Session and next steps"},{"id":"missions","label":"Jobs & Missions","description":"Jobs, Operations, Heists and Favors"},{"id":"combat","label":"Combat & Bosses","description":"One clear policy for each kind of fight"},{"id":"crew","label":"Crew & Gear","description":"Build and look after your Crew"},{"id":"inventory","label":"Inventory","description":"Useful items, equipment and Collection"},{"id":"money","label":"Money & Property","description":"Keep cash working within your limits"},{"id":"market","label":"Shop & Market","description":"Separate permissions for every currency and sale"},{"id":"family","label":"Family & Territory","description":"Contributions, defenses and your residence"},{"id":"goals","label":"Goals & Rewards","description":"Choose a goal and claim earned rewards"},{"id":"events","label":"Events","description":"Current buffs, events and medal rewards"},{"id":"profiles","label":"Profiles","description":"Choose settings deliberately"},{"id":"settings","label":"Settings","description":"Shared preferences in one place"},{"id":"activity","label":"Activity","description":"Clear reasons and recent UI changes"}],"features":[{"id":"jobs","page":"missions","label":"Do Jobs","description":"Choose what to work toward. Costs, mastery and unlocks follow native state.","policies":["Balanced","XP","Cash","Mastery","Selected job","Custom"],"custom":[],"limits":"Current native cost, unlocks and shared energy reserve."},{"id":"operations","page":"missions","label":"Start Operations","description":"Fill eligible free slots without borrowing reserved cash.","policies":["Best chest","Highest tier","Custom"],"custom":[],"limits":"Current slots, costs and your shared resource reserves."},{"id":"collect","page":"missions","label":"Collect Operations","description":"Claim completed slots; never treat a timer estimate as proof.","policies":[],"custom":[]},{"id":"heists","page":"missions","label":"Start personal Heists","description":"Start an eligible run. Stakes, energy and board ownership are checked.","policies":["Best chest","Highest tier","Custom"],"custom":[],"limits":"Current slots, costs and your shared resource reserves."},{"id":"heistCollect","page":"missions","label":"Collect Heist results","description":"Collect a matching finished run without starting another.","policies":[],"custom":[]},{"id":"favors","page":"missions","label":"Help with Favors","description":"Help eligible players while keeping your daily and resource limits.","policies":["Best reward","Highest tier","Custom"],"custom":[],"limits":"Friends and Family · daily cap 5 · keep resource reserves."},{"id":"sabotage","page":"missions","label":"Heist sabotage","description":"Separate permission. Excludes friends and Family.","policies":[],"custom":[],"sensitive":true},{"id":"combat","page":"combat","label":"Mug players","description":"Use fresh evidence and a simple target policy. Outcome estimates are not guarantees.","policies":["Cautious","Balanced","Custom"],"custom":[{"label":"Minimum payout","type":"number","value":100000000,"min":0},{"label":"Health floor (%)","type":"number","value":50,"min":1,"max":100},{"label":"Stamina to keep","type":"number","value":1,"min":0},{"label":"Target source","type":"select","options":["Saved and new","Saved only"],"value":"Saved and new"}],"limits":"Health floor, reserve and exclusions always apply.","combat":true,"sensitive":true},{"id":"warCombat","page":"combat","label":"Fight war targets","description":"Only verified active-war enemies, with the same fight protections.","policies":["Cautious","Balanced","Custom"],"custom":[{"label":"Minimum payout","type":"number","value":100000000,"min":0},{"label":"Health floor (%)","type":"number","value":50,"min":1,"max":100},{"label":"Stamina to keep","type":"number","value":1,"min":0},{"label":"Target source","type":"select","options":["Saved and new","Saved only"],"value":"Saved and new"}],"limits":"Health floor, reserve and exclusions always apply.","combat":true,"sensitive":true},{"id":"bosses","page":"combat","label":"Fight city Bosses","description":"Advance eligible stages using current health, stamina and daily state.","policies":[],"custom":[],"combat":true},{"id":"bossShop","page":"combat","label":"Buy Boss Shop rewards","description":"Spend Boss Tokens only on your chosen item within its own limit.","policies":[],"custom":[],"sensitive":true},{"id":"crew","page":"crew","label":"Native auto-equip","description":"Use the game’s equip function; yield when custom gear planning owns the loadout.","policies":[],"custom":[]},{"id":"crewGear","page":"crew","label":"Improve player and Crew gear","description":"Choose safe upgrades or a confirmed complete-set plan.","policies":["Safe improvements","Build complete sets","Custom"],"custom":[],"limits":"One exact confirmed step. Bound/protected copies stay fixed."},{"id":"crewRoll","page":"crew","label":"Improve Crew rarity","description":"Fill empty slots first. Replacement and funding keep separate permissions.","policies":["Legendary or better","Mythic or better","Custom"],"custom":[],"limits":"Protect trained, stationed, assigned and recovering members.","sensitive":true},{"id":"crewSort","page":"crew","label":"Sort Crew","description":"Reorder after useful changes; leave unavailable members protected.","policies":[],"custom":[]},{"id":"crewHeal","page":"crew","label":"Heal Crew with stamina","description":"Heal the exact injured member while keeping your reserve.","policies":[],"custom":[]},{"id":"crewTrain","page":"crew","label":"Train Crew","description":"Use current costs and keep enough Crew available at home.","policies":[],"custom":[]},{"id":"crewHire","page":"crew","label":"Allow contract hires","description":"Fill empty slots for a selected contract; never dismiss a member for it.","policies":[],"custom":[]},{"id":"crewHealItems","page":"crew","label":"Heal Crew with owned items","description":"Separate item permission, bound first, and the native Crew cooldown.","policies":[],"custom":[]},{"id":"cosmetics","page":"inventory","label":"Optimize profile cosmetics","description":"Compare worn cosmetics and Collection value without double counting custody.","policies":[],"custom":[]},{"id":"collectionDonate","page":"inventory","label":"Deposit safe Collection surplus","description":"Protect loadouts and native Collection tiers through 25,000 copies.","policies":[],"custom":[]},{"id":"chests","page":"inventory","label":"Open unbound chests","description":"Open owned eligible chests only. Buying and bound crates are separate.","policies":[],"custom":[]},{"id":"restoratives","page":"inventory","label":"Use player restoratives","description":"Use allowed owned items below your resource thresholds.","policies":["Balanced recovery","Small first","Large first","Custom"],"custom":[],"limits":"Bound first · separate native 3s player cooldown."},{"id":"bank","page":"money","label":"Bank extra cash","description":"Keep useful purchase savings on hand instead of repeatedly banking them.","policies":[],"custom":[]},{"id":"withdraw","page":"money","label":"Allow bank funding","description":"Only fund an enabled purpose and its exact shortfall.","policies":[],"custom":[]},{"id":"properties","page":"money","label":"Buy properties","description":"One clear goal; current quotes and cash reserves decide eligibility.","policies":["Best value","Most income","Next tier","Custom"],"custom":[{"label":"Cash to keep","type":"number","value":1000000,"min":0},{"label":"Maximum purchase","type":"number","value":5000000,"min":0},{"label":"Owned limit per property","type":"number","value":10,"min":1}],"limits":"Spend within your cash reserve. Replacement is separately permissioned."},{"id":"safehouse","page":"money","label":"Upgrade Safehouse","description":"Buy the next allowed native tier, including the newer level 200/215 choices.","policies":[],"custom":[]},{"id":"prestige","page":"money","label":"Prestige when ready","description":"Requires native eligibility and a separate per-load limit.","policies":[],"custom":[],"sensitive":true},{"id":"shop","page":"market","label":"Buy Shop items","description":"Use current prices and the chosen item policy; yield to native Auto Buy.","policies":["Selected useful items","Allowed rarities","Custom"],"custom":[],"limits":"Cash only until Gold is explicitly permitted.","sensitive":true},{"id":"marketWatch","page":"market","label":"Research the Market","description":"Read-only opportunities with bounded research turns.","policies":[],"custom":[]},{"id":"marketSell","page":"market","label":"List owned items","description":"Only allowed copies, with Collection checkpoints and exclusions protected.","policies":[],"custom":[],"sensitive":true},{"id":"marketFlip","page":"market","label":"Flip Market items","description":"A separate buy-then-list plan with its own Gold reserve and budget.","policies":[],"custom":[],"sensitive":true},{"id":"marketRent","page":"market","label":"Rent a Market shop","description":"Independent Gold permission. Unconfirmed sends still consume the attempt cap.","policies":[],"custom":[],"sensitive":true},{"id":"marketManage","page":"market","label":"Collect sale earnings","description":"Confirm earned Gold from exact listing and balance evidence.","policies":[],"custom":[]},{"id":"familyCash","page":"family","label":"Contribute Family cash","description":"Own amount and cap. Goals cannot silently turn this on.","policies":[],"custom":[],"sensitive":true},{"id":"familyStamina","page":"family","label":"Contribute Family stamina","description":"Rotate selected perks using native costs and your reserve.","policies":[],"custom":[]},{"id":"familyGold","page":"family","label":"Contribute Family Gold","description":"Separate permission with a default-zero spending cap.","policies":[],"custom":[],"sensitive":true},{"id":"familyBossAttacks","page":"family","label":"Use free Takedown attacks","description":"Free charges only, with Ticket protection and current hit-back safety.","policies":[],"custom":[],"combat":true},{"id":"familyBossClaims","page":"family","label":"Claim Takedown rewards","description":"Match the exact earned week and stage.","policies":[],"custom":[]},{"id":"territoryWatch","page":"family","label":"Watch Territory","description":"City-scoped ownership, season, bonus and fortification context.","policies":[],"custom":[]},{"id":"station","page":"family","label":"Station my Crew","description":"Exact own members, city capacity and home/defense protections.","policies":[],"custom":[],"sensitive":true},{"id":"residency","page":"family","label":"Choose my residence","description":"Compare effective bonuses and rent rather than nominal district stats.","policies":["Income bonus","Combat bonus","Custom"],"custom":[],"limits":"Current top-two bonuses, city rules and rent cap."},{"id":"contracts","page":"goals","label":"Claim completed contracts","description":"Earned daily/weekly entries only.","policies":[],"custom":[]},{"id":"bonuses","page":"goals","label":"Claim contract bonuses","description":"Separate because some rewards immediately refill resources.","policies":[],"custom":[]},{"id":"trophies","page":"goals","label":"Claim earned trophies","description":"Claim eligible rewards without consuming items for trade-ins.","policies":[],"custom":[]},{"id":"skills","page":"goals","label":"Allocate skill points","description":"Chosen native skill, batch and allocation cap.","policies":[],"custom":[]},{"id":"playtime","page":"goals","label":"Claim playtime rewards","description":"Resolve level, weekday/weekend and actual Mystery rewards before claiming.","policies":[],"custom":[]},{"id":"groupBonus","page":"goals","label":"Claim group bonus","description":"Existing verified members only; never join automatically.","policies":[],"custom":[]},{"id":"monthlyRewards","page":"goals","label":"Claim monthly reward","description":"One earned native UTC-day claim. No catch-up purchase.","policies":[],"custom":[]},{"id":"autoContracts","page":"goals","label":"Work on Contracts","description":"Use the same ordinary feature planners and explicit borrowing policy.","policies":[],"custom":[]},{"id":"trophyFocus","page":"goals","label":"Work toward a trophy","description":"Choose a supported goal; show precise blockers for manual routes.","policies":[],"custom":[]},{"id":"globalBossAttack","page":"events","label":"Fight the Global Boss","description":"Only an accessible live event, within health, stamina and sent-hit limits.","policies":[],"custom":[],"combat":true},{"id":"globalBossClaim","page":"events","label":"Claim Global Boss drops","description":"Match participation and settlement; reconcile rewards already auto-claimed.","policies":[],"custom":[]},{"id":"briefcases","page":"events","label":"Use free Briefcase picks","description":"Owned-key spending stays separately permissioned.","policies":[],"custom":[]},{"id":"eventShop","page":"events","label":"Buy selected Event rewards","description":"Separate medal budget; native free/paid-origin and account restrictions apply.","policies":[],"custom":[],"sensitive":true}]};
 let state = createState(catalog.features);
-let pageId = 'overview';
-let query = '';
+let pageId = "overview";
+let query = "";
 let permission = false;
 let customValues = {};
 const history = [];
-const content = document.querySelector('#content');
-const symbols = ['⌂','◇','⚔','♟','□','
-</html>
-,'⇄','⚑','✓','✦','▤','⚙','≡'];
-const escape = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-const enabled = () => catalog.features.filter(feature => state.enabled[feature.id]);
-const matches = feature => `${feature.id} ${feature.label} ${feature.description}`.toLowerCase().includes(query);
-function log(text) { history.unshift({text,time:new Date().toLocaleTimeString()}); history.splice(40); }
+const content = document.querySelector("#content");
+const symbols = [
+  "⌂",
+  "◇",
+  "⚔",
+  "♟",
+  "□",
+  "$",
+  "⇄",
+  "⚑",
+  "✓",
+  "✦",
+  "▤",
+  "⚙",
+  "≡",
+];
+const escape = (value) =>
+  String(value).replace(
+    /[&<>"']/g,
+    (char) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        char
+      ],
+  );
+const enabled = () =>
+  catalog.features.filter((feature) => state.enabled[feature.id]);
+const matches = (feature) =>
+  `${feature.id} ${feature.label} ${feature.description}`
+    .toLowerCase()
+    .includes(query);
+function log(text) {
+  history.unshift({ text, time: new Date().toLocaleTimeString() });
+  history.splice(40);
+}
 function switchRow(feature) {
-  return `<label class="switch"><input type="checkbox" data-enable="${feature.id}" aria-label="${escape(feature.label)}" ${state.enabled[feature.id]?'checked':''}><span class="switch-track"></span></label>`;
+  return `<label class="switch"><input type="checkbox" data-enable="${feature.id}" aria-label="${escape(feature.label)}" ${state.enabled[feature.id] ? "checked" : ""}><span class="switch-track"></span></label>`;
 }
 function control(field, feature) {
   const value = customValues[`${feature.id}/${field.label}`] ?? field.value;
-  if (field.type === 'select') return `<label>${escape(field.label)}<select data-custom="${escape(feature.id+'/'+field.label)}" aria-label="${escape(field.label)}">${field.options.map(option=>`<option ${option===value?'selected':''}>${escape(option)}</option>`).join('')}</select></label>`;
-  return `<label>${escape(field.label)}<input data-custom="${escape(feature.id+'/'+field.label)}" aria-label="${escape(field.label)}" type="number" min="${field.min??0}" ${field.max?'max="'+field.max+'"':''} value="${escape(value)}"></label>`;
+  if (field.type === "select")
+    return `<label>${escape(field.label)}<select data-custom="${escape(feature.id + "/" + field.label)}" aria-label="${escape(field.label)}">${field.options.map((option) => `<option ${option === value ? "selected" : ""}>${escape(option)}</option>`).join("")}</select></label>`;
+  return `<label>${escape(field.label)}<input data-custom="${escape(feature.id + "/" + field.label)}" aria-label="${escape(field.label)}" type="number" min="${field.min ?? 0}" ${field.max ? 'max="' + field.max + '"' : ""} value="${escape(value)}"></label>`;
 }
 function featureCard(feature) {
   let status = featureStatus(state, feature);
-  if (['combat','warCombat'].includes(feature.id) && state.enabled[feature.id] && !permission && !['Stopped','Paused'].includes(status.label)) status={label:'Waiting',reason:'Allow player attacks separately. A target policy never grants permission.'};
+  if (
+    ["combat", "warCombat"].includes(feature.id) &&
+    state.enabled[feature.id] &&
+    !permission &&
+    !["Stopped", "Paused"].includes(status.label)
+  )
+    status = {
+      label: "Waiting",
+      reason:
+        "Allow player attacks separately. A target policy never grants permission.",
+    };
   return `<article class="feature" data-feature="${feature.id}"><div class="feature-head"><div><h3>${escape(feature.label)}</h3><p class="feature-description">${escape(feature.description)}</p></div>${switchRow(feature)}</div>
-    <div class="feature-actions">${feature.policies.length?`<label>Goal / policy<select aria-label="${escape(feature.label)} policy" data-policy="${feature.id}">${feature.policies.map(policy=>`<option ${state.policies[feature.id]===policy?'selected':''}>${escape(policy)}</option>`).join('')}</select></label>`:''}${feature.sensitive?'<span class="sensitive">Separate permission and limits</span>':''}</div>
-    ${feature.limits?`<p class="limits">${escape(feature.limits)}</p>`:''}
-    ${feature.custom.length?`<details ${state.policies[feature.id]==='Custom'?'open':''}><summary>Custom · ${feature.custom.length} useful overrides</summary><div class="custom-grid">${feature.custom.map(field=>control(field,feature)).join('')}</div><p class="notice">Preview values only. No account configuration is loaded or saved.</p></details>`:''}
+    <div class="feature-actions">${feature.policies.length ? `<label>Goal / policy<select aria-label="${escape(feature.label)} policy" data-policy="${feature.id}">${feature.policies.map((policy) => `<option ${state.policies[feature.id] === policy ? "selected" : ""}>${escape(policy)}</option>`).join("")}</select></label>` : ""}${feature.sensitive ? '<span class="sensitive">Separate permission and limits</span>' : ""}</div>
+    ${feature.limits ? `<p class="limits">${escape(feature.limits)}</p>` : ""}
+    ${feature.custom.length ? `<details ${state.policies[feature.id] === "Custom" ? "open" : ""}><summary>Custom · ${feature.custom.length} useful overrides</summary><div class="custom-grid">${feature.custom.map((field) => control(field, feature)).join("")}</div><p class="notice">Preview values only. No account configuration is loaded or saved.</p></details>` : ""}
     <div class="status-line"><span class="badge ${status.label}">${status.label}</span><span>${escape(status.reason)}</span></div></article>`;
 }
 function pageHeading(page) {
@@ -135,50 +232,152 @@ function pageHeading(page) {
 }
 function overview() {
   const active = enabled();
-  const status = state.stopped?'Stopped':state.paused?'Paused':active.length?'Choices prepared':'All activities off';
-  return `<div class="overview-columns"><section class="session-panel"><div class="session-heading"><h2>Your session</h2><span class="badge ${state.stopped?'Stopped':state.paused?'Paused':''}">${status}</span></div><div class="session-title">${active.length?`${active.length} activities selected`:'A clear place to start'}</div><p class="session-help">Turn on what you want and choose a goal. The hub explains the next step; routine details follow native state.</p><div class="button-row"><button class="button" data-command="sample">Load sample choices</button><button class="button secondary" data-command="${state.paused||state.stopped?'resume':'pause'}">${state.paused||state.stopped?'Resume':'Pause'}</button><button class="button secondary" data-command="reset">Reset preview</button></div><p class="notice">These controls change this preview only. No account is connected.</p></section>
-    <section class="context-panel"><h2>Current context <span class="badge">Sample</span></h2><div class="context-row"><span>Cash / bank</span><strong>$4.2M / $18M</strong></div><div class="context-row"><span>Health / stamina</span><strong>${state.scenario==='lowHealth'?'34%':'82%'} / 24</strong></div><div class="context-row"><span>Native automation</span><strong>${state.scenario==='nativeJobs'?'Auto Jobs active':'None in sample'}</strong></div><div class="context-row"><span>Native evidence build</span><strong>${catalog.evidenceBuild}</strong></div></section></div>
-    <label class="scenario">Try a sample situation<select id="scenario" aria-label="Sample situation">${[['normal','Normal conditions'],['lowHealth','Low health'],['nativeJobs','Native Auto Jobs active'],['closedMarket','Market shop closed'],['unconfirmed','Sent action still unconfirmed']].map(([value,label])=>`<option value="${value}" ${state.scenario===value?'selected':''}>${label}</option>`).join('')}</select></label>
-    <div class="section-heading"><h2>Your activities</h2><span>One reason per routine</span></div><div class="activity-list">${active.length?active.map(feature=>{const result=featureStatus(state,feature);return `<div class="activity-row"><div><h3>${escape(feature.label)}</h3><p>${escape(result.reason)}</p></div><button class="text-button" data-page="${feature.page}">Open settings →</button></div>`;}).join(''):'<div class="empty">Nothing selected. Load the sample choices or open a feature page.</div>'}</div>`;
+  const status = state.stopped
+    ? "Stopped"
+    : state.paused
+      ? "Paused"
+      : active.length
+        ? "Choices prepared"
+        : "All activities off";
+  return `<div class="overview-columns"><section class="session-panel"><div class="session-heading"><h2>Your session</h2><span class="badge ${state.stopped ? "Stopped" : state.paused ? "Paused" : ""}">${status}</span></div><div class="session-title">${active.length ? `${active.length} activities selected` : "A clear place to start"}</div><p class="session-help">Turn on what you want and choose a goal. The hub explains the next step; routine details follow native state.</p><div class="button-row"><button class="button" data-command="sample">Load sample choices</button><button class="button secondary" data-command="${state.paused || state.stopped ? "resume" : "pause"}">${state.paused || state.stopped ? "Resume" : "Pause"}</button><button class="button secondary" data-command="reset">Reset preview</button></div><p class="notice">These controls change this preview only. No account is connected.</p></section>
+    <section class="context-panel"><h2>Current context <span class="badge">Sample</span></h2><div class="context-row"><span>Cash / bank</span><strong>$4.2M / $18M</strong></div><div class="context-row"><span>Health / stamina</span><strong>${state.scenario === "lowHealth" ? "34%" : "82%"} / 24</strong></div><div class="context-row"><span>Native automation</span><strong>${state.scenario === "nativeJobs" ? "Auto Jobs active" : "None in sample"}</strong></div><div class="context-row"><span>Native evidence build</span><strong>${catalog.evidenceBuild}</strong></div></section></div>
+    <label class="scenario">Try a sample situation<select id="scenario" aria-label="Sample situation">${[
+      ["normal", "Normal conditions"],
+      ["lowHealth", "Low health"],
+      ["nativeJobs", "Native Auto Jobs active"],
+      ["closedMarket", "Market shop closed"],
+      ["unconfirmed", "Sent action still unconfirmed"],
+    ]
+      .map(
+        ([value, label]) =>
+          `<option value="${value}" ${state.scenario === value ? "selected" : ""}>${label}</option>`,
+      )
+      .join("")}</select></label>
+    <div class="section-heading"><h2>Your activities</h2><span>One reason per routine</span></div><div class="activity-list">${
+      active.length
+        ? active
+            .map((feature) => {
+              const result = featureStatus(state, feature);
+              return `<div class="activity-row"><div><h3>${escape(feature.label)}</h3><p>${escape(result.reason)}</p></div><button class="text-button" data-page="${feature.page}">Open settings →</button></div>`;
+            })
+            .join("")
+        : '<div class="empty">Nothing selected. Load the sample choices or open a feature page.</div>'
+    }</div>`;
 }
 function specialPage() {
-  if (pageId === 'profiles') return `<div class="info-panel">Profile layout preview. No account files are read, imported or overwritten.</div><div class="profile-row"><strong>Active profile</strong><span>Local sample · memory only</span></div><div class="profile-row"><strong>Selected profile</strong><select aria-label="Sample profile"><option>Sample farming choices</option></select><button class="button" data-command="sample">Apply sample choices</button></div><p class="notice">Selecting a real profile will never be the same as activating it. Import changes and permissions will be reviewed first.</p>`;
-  if (pageId === 'settings') return `<div class="info-panel">Keep common preferences here once. Native costs, timers and protocol internals are automatic facts, not dozens of settings.</div><div class="profile-row"><strong>Appearance</strong><span>Slate surfaces · copper accent · motion follows your browser preference</span></div><div class="profile-row"><strong>Shared limits</strong><span>Health, stamina, cash reserves and spending policies will have one authoritative home.</span></div><div class="profile-row"><strong>Technical details</strong><span>Compatibility, state age and request history live in Activity.</span></div>`;
-  if (pageId === 'activity') return `<div class="info-panel">UI changes in this local preview. These are not gameplay actions or confirmed server outcomes.</div><div class="activity-list">${history.length?history.map(row=>`<div class="activity-row"><span>${escape(row.text)}</span><span class="muted">${escape(row.time)}</span></div>`).join(''):'<div class="empty">No local changes yet.</div>'}</div>`;
-  return '';
+  if (pageId === "profiles")
+    return `<div class="info-panel">Profile layout preview. No account files are read, imported or overwritten.</div><div class="profile-row"><strong>Active profile</strong><span>Local sample · memory only</span></div><div class="profile-row"><strong>Selected profile</strong><select aria-label="Sample profile"><option>Sample farming choices</option></select><button class="button" data-command="sample">Apply sample choices</button></div><p class="notice">Selecting a real profile will never be the same as activating it. Import changes and permissions will be reviewed first.</p>`;
+  if (pageId === "settings")
+    return `<div class="info-panel">Keep common preferences here once. Native costs, timers and protocol internals are automatic facts, not dozens of settings.</div><div class="profile-row"><strong>Appearance</strong><span>Slate surfaces · copper accent · motion follows your browser preference</span></div><div class="profile-row"><strong>Shared limits</strong><span>Health, stamina, cash reserves and spending policies will have one authoritative home.</span></div><div class="profile-row"><strong>Technical details</strong><span>Compatibility, state age and request history live in Activity.</span></div>`;
+  if (pageId === "activity")
+    return `<div class="info-panel">UI changes in this local preview. These are not gameplay actions or confirmed server outcomes.</div><div class="activity-list">${history.length ? history.map((row) => `<div class="activity-row"><span>${escape(row.text)}</span><span class="muted">${escape(row.time)}</span></div>`).join("") : '<div class="empty">No local changes yet.</div>'}</div>`;
+  return "";
 }
 function render() {
-  document.querySelector('#navigation').innerHTML=catalog.pages.map((page,index)=>`<button data-page="${page.id}" ${pageId===page.id?'aria-current="page"':''}><span class="nav-symbol" aria-hidden="true">${symbols[index]}</span>${escape(page.label)}</button>`).join('');
-  const page=catalog.pages.find(page=>page.id===pageId);
-  document.querySelector('#breadcrumb').textContent=page.label;
-  const filtered=catalog.features.filter(feature=>feature.page===pageId&&matches(feature));
-  const notice=pageId==='combat'?`<div class="permission-line"><label><input id="player-permission" type="checkbox" ${permission?'checked':''}>Allow player attacks <span class="muted">· sample permission only</span></label></div>`:'';
-  const body=pageId==='overview'&&!query?overview():['profiles','settings','activity'].includes(pageId)&&!query?specialPage():`${notice}<div class="feature-list">${filtered.length?filtered.map(featureCard).join(''):'<div class="empty">No matching feature on this page.</div>'}</div>`;
-  content.innerHTML=pageHeading(page)+body;
-  document.querySelector('#session-state').textContent=state.stopped?'Stopped · explicit Resume required':state.paused?'Paused · choices kept':`${enabled().length} sample activities selected · 0 gameplay requests`;
+  document.querySelector("#navigation").innerHTML = catalog.pages
+    .map(
+      (page, index) =>
+        `<button data-page="${page.id}" ${pageId === page.id ? 'aria-current="page"' : ""}><span class="nav-symbol" aria-hidden="true">${symbols[index]}</span>${escape(page.label)}</button>`,
+    )
+    .join("");
+  const page = catalog.pages.find((page) => page.id === pageId);
+  document.querySelector("#breadcrumb").textContent = page.label;
+  const filtered = catalog.features.filter(
+    (feature) => feature.page === pageId && matches(feature),
+  );
+  const notice =
+    pageId === "combat"
+      ? `<div class="permission-line"><label><input id="player-permission" type="checkbox" ${permission ? "checked" : ""}>Allow player attacks <span class="muted">· sample permission only</span></label></div>`
+      : "";
+  const body =
+    pageId === "overview" && !query
+      ? overview()
+      : ["profiles", "settings", "activity"].includes(pageId) && !query
+        ? specialPage()
+        : `${notice}<div class="feature-list">${filtered.length ? filtered.map(featureCard).join("") : '<div class="empty">No matching feature on this page.</div>'}</div>`;
+  content.innerHTML = pageHeading(page) + body;
+  document.querySelector("#session-state").textContent = state.stopped
+    ? "Stopped · explicit Resume required"
+    : state.paused
+      ? "Paused · choices kept"
+      : `${enabled().length} sample activities selected · 0 gameplay requests`;
 }
-document.addEventListener('click',event=>{
-  const nav=event.target.closest('[data-page]');
-  if(nav){pageId=nav.dataset.page;query='';document.querySelector('#search').value='';render();content.scrollTop=0;return;}
-  const command=event.target.closest('[data-command]')?.dataset.command;
-  if(command==='sample') state=applyValues(state,{jobs:true,operations:true,collect:true,properties:true,bank:true});
-  if(command==='pause') state=pause(state);
-  if(command==='resume') state=resume(state);
-  if(command==='reset'){state=createState(catalog.features);permission=false;customValues={};}
-  if(command){log(`Preview: ${command}`);render();}
+document.addEventListener("click", (event) => {
+  const nav = event.target.closest("[data-page]");
+  if (nav) {
+    pageId = nav.dataset.page;
+    query = "";
+    document.querySelector("#search").value = "";
+    render();
+    content.scrollTop = 0;
+    return;
+  }
+  const command = event.target.closest("[data-command]")?.dataset.command;
+  if (command === "sample")
+    state = applyValues(state, {
+      jobs: true,
+      operations: true,
+      collect: true,
+      properties: true,
+      bank: true,
+    });
+  if (command === "pause") state = pause(state);
+  if (command === "resume") state = resume(state);
+  if (command === "reset") {
+    state = createState(catalog.features);
+    permission = false;
+    customValues = {};
+  }
+  if (command) {
+    log(`Preview: ${command}`);
+    render();
+  }
 });
-document.addEventListener('change',event=>{
-  const target=event.target;
-  if(target.dataset.enable){state=setEnabled(state,target.dataset.enable,target.checked);log(`${target.checked?'Selected':'Cleared'}: ${target.getAttribute('aria-label')}`);render();}
-  if(target.dataset.policy){state=setPolicy(state,target.dataset.policy,target.value);log(`Policy: ${target.value}`);render();}
-  if(target.dataset.custom) customValues[target.dataset.custom]=target.value;
-  if(target.id==='scenario'){state={...state,scenario:target.value};render();}
-  if(target.id==='player-permission'){permission=target.checked;render();}
+document.addEventListener("change", (event) => {
+  const target = event.target;
+  if (target.dataset.enable) {
+    state = setEnabled(state, target.dataset.enable, target.checked);
+    log(
+      `${target.checked ? "Selected" : "Cleared"}: ${target.getAttribute("aria-label")}`,
+    );
+    render();
+  }
+  if (target.dataset.policy) {
+    state = setPolicy(state, target.dataset.policy, target.value);
+    log(`Policy: ${target.value}`);
+    render();
+  }
+  if (target.dataset.custom) customValues[target.dataset.custom] = target.value;
+  if (target.id === "scenario") {
+    state = { ...state, scenario: target.value };
+    render();
+  }
+  if (target.id === "player-permission") {
+    permission = target.checked;
+    render();
+  }
 });
-document.querySelector('#search').addEventListener('input',event=>{query=event.target.value.trim().toLowerCase();if(query){const found=catalog.features.find(matches);if(found)pageId=found.page;}render();});
-function emergencyStop(){state=stop(state);permission=false;log('Emergency Stop · sample switches cleared');render();}
-document.querySelector('#stop').addEventListener('click',emergencyStop);
-document.addEventListener('keydown',event=>{if(event.key==='F8'){event.preventDefault();emergencyStop();}});
+document.querySelector("#search").addEventListener("input", (event) => {
+  query = event.target.value.trim().toLowerCase();
+  if (query) {
+    const found = catalog.features.find(matches);
+    if (found) pageId = found.page;
+  }
+  render();
+});
+function emergencyStop() {
+  state = stop(state);
+  permission = false;
+  log("Emergency Stop · sample switches cleared");
+  render();
+}
+document.querySelector("#stop").addEventListener("click", emergencyStop);
+document.addEventListener("keydown", (event) => {
+  if (event.key === "F8") {
+    event.preventDefault();
+    emergencyStop();
+  }
+});
 render();
 
 }
