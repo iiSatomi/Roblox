@@ -1,0 +1,674 @@
+{
+  "version": "preview-0.1",
+  "evidenceBuild": "0.26.487.1",
+  "pages": [
+    {
+      "id": "overview",
+      "label": "Overview",
+      "description": "Session and next steps"
+    },
+    {
+      "id": "missions",
+      "label": "Jobs & Missions",
+      "description": "Jobs, Operations, Heists and Favors"
+    },
+    {
+      "id": "combat",
+      "label": "Combat & Bosses",
+      "description": "One clear policy for each kind of fight"
+    },
+    {
+      "id": "crew",
+      "label": "Crew & Gear",
+      "description": "Build and look after your Crew"
+    },
+    {
+      "id": "inventory",
+      "label": "Inventory",
+      "description": "Useful items, equipment and Collection"
+    },
+    {
+      "id": "money",
+      "label": "Money & Property",
+      "description": "Keep cash working within your limits"
+    },
+    {
+      "id": "market",
+      "label": "Shop & Market",
+      "description": "Separate permissions for every currency and sale"
+    },
+    {
+      "id": "family",
+      "label": "Family & Territory",
+      "description": "Contributions, defenses and your residence"
+    },
+    {
+      "id": "goals",
+      "label": "Goals & Rewards",
+      "description": "Choose a goal and claim earned rewards"
+    },
+    {
+      "id": "events",
+      "label": "Events",
+      "description": "Current buffs, events and medal rewards"
+    },
+    {
+      "id": "profiles",
+      "label": "Profiles",
+      "description": "Choose settings deliberately"
+    },
+    {
+      "id": "settings",
+      "label": "Settings",
+      "description": "Shared preferences in one place"
+    },
+    {
+      "id": "activity",
+      "label": "Activity",
+      "description": "Clear reasons and recent UI changes"
+    }
+  ],
+  "features": [
+    {
+      "id": "jobs",
+      "page": "missions",
+      "label": "Do Jobs",
+      "description": "Choose what to work toward. Costs, mastery and unlocks follow native state.",
+      "policies": [
+        "Balanced",
+        "XP",
+        "Cash",
+        "Mastery",
+        "Selected job",
+        "Custom"
+      ],
+      "custom": [],
+      "limits": "Current native cost, unlocks and shared energy reserve."
+    },
+    {
+      "id": "operations",
+      "page": "missions",
+      "label": "Start Operations",
+      "description": "Fill eligible free slots without borrowing reserved cash.",
+      "policies": [
+        "Best chest",
+        "Highest tier",
+        "Custom"
+      ],
+      "custom": [],
+      "limits": "Current slots, costs and your shared resource reserves."
+    },
+    {
+      "id": "collect",
+      "page": "missions",
+      "label": "Collect Operations",
+      "description": "Claim completed slots; never treat a timer estimate as proof.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "heists",
+      "page": "missions",
+      "label": "Start personal Heists",
+      "description": "Start an eligible run. Stakes, energy and board ownership are checked.",
+      "policies": [
+        "Best chest",
+        "Highest tier",
+        "Custom"
+      ],
+      "custom": [],
+      "limits": "Current slots, costs and your shared resource reserves."
+    },
+    {
+      "id": "heistCollect",
+      "page": "missions",
+      "label": "Collect Heist results",
+      "description": "Collect a matching finished run without starting another.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "favors",
+      "page": "missions",
+      "label": "Help with Favors",
+      "description": "Help eligible players while keeping your daily and resource limits.",
+      "policies": [
+        "Best reward",
+        "Highest tier",
+        "Custom"
+      ],
+      "custom": [],
+      "limits": "Friends and Family · daily cap 5 · keep resource reserves."
+    },
+    {
+      "id": "sabotage",
+      "page": "missions",
+      "label": "Heist sabotage",
+      "description": "Separate permission. Excludes friends and Family.",
+      "policies": [],
+      "custom": [],
+      "sensitive": true
+    },
+    {
+      "id": "combat",
+      "page": "combat",
+      "label": "Mug players",
+      "description": "Use fresh evidence and a simple target policy. Outcome estimates are not guarantees.",
+      "policies": [
+        "Cautious",
+        "Balanced",
+        "Custom"
+      ],
+      "custom": [
+        {
+          "label": "Minimum payout",
+          "type": "number",
+          "value": 100000000,
+          "min": 0
+        },
+        {
+          "label": "Health floor (%)",
+          "type": "number",
+          "value": 50,
+          "min": 1,
+          "max": 100
+        },
+        {
+          "label": "Stamina to keep",
+          "type": "number",
+          "value": 1,
+          "min": 0
+        },
+        {
+          "label": "Target source",
+          "type": "select",
+          "options": [
+            "Saved and new",
+            "Saved only"
+          ],
+          "value": "Saved and new"
+        }
+      ],
+      "limits": "Health floor, reserve and exclusions always apply.",
+      "combat": true,
+      "sensitive": true
+    },
+    {
+      "id": "warCombat",
+      "page": "combat",
+      "label": "Fight war targets",
+      "description": "Only verified active-war enemies, with the same fight protections.",
+      "policies": [
+        "Cautious",
+        "Balanced",
+        "Custom"
+      ],
+      "custom": [
+        {
+          "label": "Minimum payout",
+          "type": "number",
+          "value": 100000000,
+          "min": 0
+        },
+        {
+          "label": "Health floor (%)",
+          "type": "number",
+          "value": 50,
+          "min": 1,
+          "max": 100
+        },
+        {
+          "label": "Stamina to keep",
+          "type": "number",
+          "value": 1,
+          "min": 0
+        },
+        {
+          "label": "Target source",
+          "type": "select",
+          "options": [
+            "Saved and new",
+            "Saved only"
+          ],
+          "value": "Saved and new"
+        }
+      ],
+      "limits": "Health floor, reserve and exclusions always apply.",
+      "combat": true,
+      "sensitive": true
+    },
+    {
+      "id": "bosses",
+      "page": "combat",
+      "label": "Fight city Bosses",
+      "description": "Advance eligible stages using current health, stamina and daily state.",
+      "policies": [],
+      "custom": [],
+      "combat": true
+    },
+    {
+      "id": "bossShop",
+      "page": "combat",
+      "label": "Buy Boss Shop rewards",
+      "description": "Spend Boss Tokens only on your chosen item within its own limit.",
+      "policies": [],
+      "custom": [],
+      "sensitive": true
+    },
+    {
+      "id": "crew",
+      "page": "crew",
+      "label": "Native auto-equip",
+      "description": "Use the game’s equip function; yield when custom gear planning owns the loadout.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "crewGear",
+      "page": "crew",
+      "label": "Improve player and Crew gear",
+      "description": "Choose safe upgrades or a confirmed complete-set plan.",
+      "policies": [
+        "Safe improvements",
+        "Build complete sets",
+        "Custom"
+      ],
+      "custom": [],
+      "limits": "One exact confirmed step. Bound/protected copies stay fixed."
+    },
+    {
+      "id": "crewRoll",
+      "page": "crew",
+      "label": "Improve Crew rarity",
+      "description": "Fill empty slots first. Replacement and funding keep separate permissions.",
+      "policies": [
+        "Legendary or better",
+        "Mythic or better",
+        "Custom"
+      ],
+      "custom": [],
+      "limits": "Protect trained, stationed, assigned and recovering members.",
+      "sensitive": true
+    },
+    {
+      "id": "crewSort",
+      "page": "crew",
+      "label": "Sort Crew",
+      "description": "Reorder after useful changes; leave unavailable members protected.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "crewHeal",
+      "page": "crew",
+      "label": "Heal Crew with stamina",
+      "description": "Heal the exact injured member while keeping your reserve.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "crewTrain",
+      "page": "crew",
+      "label": "Train Crew",
+      "description": "Use current costs and keep enough Crew available at home.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "crewHire",
+      "page": "crew",
+      "label": "Allow contract hires",
+      "description": "Fill empty slots for a selected contract; never dismiss a member for it.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "crewHealItems",
+      "page": "crew",
+      "label": "Heal Crew with owned items",
+      "description": "Separate item permission, bound first, and the native Crew cooldown.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "cosmetics",
+      "page": "inventory",
+      "label": "Optimize profile cosmetics",
+      "description": "Compare worn cosmetics and Collection value without double counting custody.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "collectionDonate",
+      "page": "inventory",
+      "label": "Deposit safe Collection surplus",
+      "description": "Protect loadouts and native Collection tiers through 25,000 copies.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "chests",
+      "page": "inventory",
+      "label": "Open unbound chests",
+      "description": "Open owned eligible chests only. Buying and bound crates are separate.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "restoratives",
+      "page": "inventory",
+      "label": "Use player restoratives",
+      "description": "Use allowed owned items below your resource thresholds.",
+      "policies": [
+        "Balanced recovery",
+        "Small first",
+        "Large first",
+        "Custom"
+      ],
+      "custom": [],
+      "limits": "Bound first · separate native 3s player cooldown."
+    },
+    {
+      "id": "bank",
+      "page": "money",
+      "label": "Bank extra cash",
+      "description": "Keep useful purchase savings on hand instead of repeatedly banking them.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "withdraw",
+      "page": "money",
+      "label": "Allow bank funding",
+      "description": "Only fund an enabled purpose and its exact shortfall.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "properties",
+      "page": "money",
+      "label": "Buy properties",
+      "description": "One clear goal; current quotes and cash reserves decide eligibility.",
+      "policies": [
+        "Best value",
+        "Most income",
+        "Next tier",
+        "Custom"
+      ],
+      "custom": [
+        {
+          "label": "Cash to keep",
+          "type": "number",
+          "value": 1000000,
+          "min": 0
+        },
+        {
+          "label": "Maximum purchase",
+          "type": "number",
+          "value": 5000000,
+          "min": 0
+        },
+        {
+          "label": "Owned limit per property",
+          "type": "number",
+          "value": 10,
+          "min": 1
+        }
+      ],
+      "limits": "Spend within your cash reserve. Replacement is separately permissioned."
+    },
+    {
+      "id": "safehouse",
+      "page": "money",
+      "label": "Upgrade Safehouse",
+      "description": "Buy the next allowed native tier, including the newer level 200/215 choices.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "prestige",
+      "page": "money",
+      "label": "Prestige when ready",
+      "description": "Requires native eligibility and a separate per-load limit.",
+      "policies": [],
+      "custom": [],
+      "sensitive": true
+    },
+    {
+      "id": "shop",
+      "page": "market",
+      "label": "Buy Shop items",
+      "description": "Use current prices and the chosen item policy; yield to native Auto Buy.",
+      "policies": [
+        "Selected useful items",
+        "Allowed rarities",
+        "Custom"
+      ],
+      "custom": [],
+      "limits": "Cash only until Gold is explicitly permitted.",
+      "sensitive": true
+    },
+    {
+      "id": "marketWatch",
+      "page": "market",
+      "label": "Research the Market",
+      "description": "Read-only opportunities with bounded research turns.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "marketSell",
+      "page": "market",
+      "label": "List owned items",
+      "description": "Only allowed copies, with Collection checkpoints and exclusions protected.",
+      "policies": [],
+      "custom": [],
+      "sensitive": true
+    },
+    {
+      "id": "marketFlip",
+      "page": "market",
+      "label": "Flip Market items",
+      "description": "A separate buy-then-list plan with its own Gold reserve and budget.",
+      "policies": [],
+      "custom": [],
+      "sensitive": true
+    },
+    {
+      "id": "marketRent",
+      "page": "market",
+      "label": "Rent a Market shop",
+      "description": "Independent Gold permission. Unconfirmed sends still consume the attempt cap.",
+      "policies": [],
+      "custom": [],
+      "sensitive": true
+    },
+    {
+      "id": "marketManage",
+      "page": "market",
+      "label": "Collect sale earnings",
+      "description": "Confirm earned Gold from exact listing and balance evidence.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "familyCash",
+      "page": "family",
+      "label": "Contribute Family cash",
+      "description": "Own amount and cap. Goals cannot silently turn this on.",
+      "policies": [],
+      "custom": [],
+      "sensitive": true
+    },
+    {
+      "id": "familyStamina",
+      "page": "family",
+      "label": "Contribute Family stamina",
+      "description": "Rotate selected perks using native costs and your reserve.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "familyGold",
+      "page": "family",
+      "label": "Contribute Family Gold",
+      "description": "Separate permission with a default-zero spending cap.",
+      "policies": [],
+      "custom": [],
+      "sensitive": true
+    },
+    {
+      "id": "familyBossAttacks",
+      "page": "family",
+      "label": "Use free Takedown attacks",
+      "description": "Free charges only, with Ticket protection and current hit-back safety.",
+      "policies": [],
+      "custom": [],
+      "combat": true
+    },
+    {
+      "id": "familyBossClaims",
+      "page": "family",
+      "label": "Claim Takedown rewards",
+      "description": "Match the exact earned week and stage.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "territoryWatch",
+      "page": "family",
+      "label": "Watch Territory",
+      "description": "City-scoped ownership, season, bonus and fortification context.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "station",
+      "page": "family",
+      "label": "Station my Crew",
+      "description": "Exact own members, city capacity and home/defense protections.",
+      "policies": [],
+      "custom": [],
+      "sensitive": true
+    },
+    {
+      "id": "residency",
+      "page": "family",
+      "label": "Choose my residence",
+      "description": "Compare effective bonuses and rent rather than nominal district stats.",
+      "policies": [
+        "Income bonus",
+        "Combat bonus",
+        "Custom"
+      ],
+      "custom": [],
+      "limits": "Current top-two bonuses, city rules and rent cap."
+    },
+    {
+      "id": "contracts",
+      "page": "goals",
+      "label": "Claim completed contracts",
+      "description": "Earned daily/weekly entries only.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "bonuses",
+      "page": "goals",
+      "label": "Claim contract bonuses",
+      "description": "Separate because some rewards immediately refill resources.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "trophies",
+      "page": "goals",
+      "label": "Claim earned trophies",
+      "description": "Claim eligible rewards without consuming items for trade-ins.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "skills",
+      "page": "goals",
+      "label": "Allocate skill points",
+      "description": "Chosen native skill, batch and allocation cap.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "playtime",
+      "page": "goals",
+      "label": "Claim playtime rewards",
+      "description": "Resolve level, weekday/weekend and actual Mystery rewards before claiming.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "groupBonus",
+      "page": "goals",
+      "label": "Claim group bonus",
+      "description": "Existing verified members only; never join automatically.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "monthlyRewards",
+      "page": "goals",
+      "label": "Claim monthly reward",
+      "description": "One earned native UTC-day claim. No catch-up purchase.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "autoContracts",
+      "page": "goals",
+      "label": "Work on Contracts",
+      "description": "Use the same ordinary feature planners and explicit borrowing policy.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "trophyFocus",
+      "page": "goals",
+      "label": "Work toward a trophy",
+      "description": "Choose a supported goal; show precise blockers for manual routes.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "globalBossAttack",
+      "page": "events",
+      "label": "Fight the Global Boss",
+      "description": "Only an accessible live event, within health, stamina and sent-hit limits.",
+      "policies": [],
+      "custom": [],
+      "combat": true
+    },
+    {
+      "id": "globalBossClaim",
+      "page": "events",
+      "label": "Claim Global Boss drops",
+      "description": "Match participation and settlement; reconcile rewards already auto-claimed.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "briefcases",
+      "page": "events",
+      "label": "Use free Briefcase picks",
+      "description": "Owned-key spending stays separately permissioned.",
+      "policies": [],
+      "custom": []
+    },
+    {
+      "id": "eventShop",
+      "page": "events",
+      "label": "Buy selected Event rewards",
+      "description": "Separate medal budget; native free/paid-origin and account restrictions apply.",
+      "policies": [],
+      "custom": [],
+      "sensitive": true
+    }
+  ]
+}

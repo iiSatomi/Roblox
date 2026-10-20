@@ -1,0 +1,9 @@
+# Local game evidence and dependency inspection inputs must never be published.
+.private/
+__pycache__/
+*.pyc
+*.log
+
+# Generated packages/cache; reviewed release artifacts are published explicitly.
+build/
+.cache/
