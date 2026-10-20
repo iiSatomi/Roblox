@@ -61,6 +61,7 @@ Scope: documentation/evidence only.
 - [x] Inventory all 231 Core.defaults keys and 52 literal control IDs with proposed dispositions.
 - [ ] Finish dynamic-control, special permission, profile-field and transaction binding maps against the simpler schema.
 - [x] Extract updated user-supplied place as inert data: native 0.26.487.1, 260 script-source records, 40/48 old selected sources changed, 42 checked anchors and 852 unique city districts. Runtime response shapes remain unverified.
+- [x] Audit all 55 planned controls, six supporting systems and 15 configured pass keys for native replacement/reuse. Record 80 verified source anchors in the [native decision register](native-reuse-decisions.json) and [gear/reuse design](native-reuse-audit.md). Native server internals and runtime effects remain unverified.
 - [ ] Fetch/review/fingerprint the actual Ember source and dependency terms; test whether the known October 12 discrepancies still apply.
 - [x] Select the existing public `iiSatomi/Roblox` repository and dedicated `idle-mafia-ember/` recode root.
 - [ ] Establish supported HTTP/compilation/hash/cache primitives and a release destination before publishing executable modules; no embedded credentials.
@@ -76,7 +77,7 @@ Proposed source: `ui/EmberAdapter.luau`, `ui/Bindings.luau`, page/panel modules,
 Slices:
 
 - [x] Author local interactive design preview with 25 dedicated system tabs with 55 activity/permission controls including every legacy ID, four Combat Custom overrides and three Property overrides. No game bridge, account files or gameplay transport.
-- [x] Run ten local model/schema tests, including dedicated-tab ownership and JS syntax checks.
+- [x] Run twelve local model/schema tests, including dedicated-tab ownership, mutually exclusive gear strategies, atomic conflicting-profile rejection and JS syntax checks.
 - [ ] Verify actual browser layout, navigation/search, disclosure controls and narrow/wide states. Automated local URL/file navigation is blocked by browser security policy; visual checks remain open. Standalone HTML is available.
 - [ ] Prototype the loader with inert modules: one commit/manifest, initialize-once exports, verified complete prefetch/cache, and no partial application startup on failed downloads or compilation.
 - [ ] Resolve actual sidebar scrolling, group density, control search, long catalogs and status visibility at target/minimum viewport sizes.
@@ -97,6 +98,8 @@ Slices:
 
 - [ ] Lock a small typed policy/settings model, shared snapshot/decision/proposal/record contracts and migration semantics.
 - [ ] Establish native server-time, economic/decree/exemption, effective buff and native-automation ownership contexts from the updated source before gameplay. Use the supported native dispatch seam; never hardcode private handshake values.
+- [ ] Distinguish each native entitlement from actual controller activity. Permit owned-native delegation only for a fully compatible goal/limits contract; otherwise retain ordinary permitted-action planning. Unknown ownership/activity cannot be treated as stopped or free access.
+- [ ] Observe the native AFK session-refresh flow before adding duplicate idle protection. Checkpoint uncertain work and validate account/place/release on return; do not assume a loader survives or auto-restarts across teleport.
 - [ ] Prove city/district identity and source-schema compatibility boundaries. Establish explicit module/dependency/checksum manifest, deterministic modular release and source mapping.
 - [ ] Implement a single fake-transport broker, send-time pacing, preflight, early read timeout, state/reply evidence policy and deduplication.
 - [ ] Implement the exact 45-second skip/cooldown, immutable first-send time, bounded late-result records and callback/session fencing.
@@ -166,7 +169,7 @@ Slices:
 - [ ] Catalog-driven Global Boss state watcher and separate live attack/settled claim: scheduled starts, public/access checks, time-decay HP versus player damage, changing medal rules and already-auto-settled rewards.
 - [ ] Family Takedown reads and exact reward claims, then separately enabled free attacks with current HP-scaled hit-back, Ticket protection and rank strategy.
 
-Acceptance: no city/player/global/Family identity mixing; stale event/run cannot act or claim; no intended Ticket spending; Combat mirror updates the same Takedown setting without recursive callbacks.
+Acceptance: no city/player/global/Family identity mixing; stale event/run cannot act or claim; no intended Ticket spending; Combat owns the Takedown controls; related pages link there without editable mirrors.
 
 ## M8 — player Combat and persistent history
 
@@ -188,13 +191,13 @@ Execute as separate domain slices:
 - [ ] Separately enabled owned health-item healing, recall-versus-injury checks, bound-first/optional tradable stacks and its own three-second sequence/cooldown.
 - [ ] Training, contract empty-slot hire and reservations of available home Crew.
 - [ ] Current normal dismiss/hire reroll rules, rarity/quality/worst-first/luck controls and durable funded continuation.
-- [ ] Native auto-equip with no-op suppression; read-only joint player/Crew/Collection/set outlook.
-- [ ] Safe one-step gear and cosmetic transactions, then separately enabled complete-set multi-step plans.
+- [ ] Native set-aware Auto Equip as the default operation, coalesced relevant-change triggers, no-op suppression, scope/custody validation and exact state proof. Native already claims two- and three-piece sets; do not build a second default optimizer.
+- [ ] Read-only constrained-goal comparison against the native baseline. Implement custom swaps/complete-set plans only for a demonstrated objective gap with ownership, exact per-step proof and recovery. Keep cosmetics separate until native coverage is established. Never enable native and custom loadout owners together.
 - [ ] Safe surplus Collection deposit with all seven native thresholds, variant/base-ID/bound custody, worn-cosmetic display/ownership separation and detailed unsupported-item reasons.
 - [ ] Unbound chest opening with current native luck, batch/selection/cap and separate luck-only condition.
 - [ ] All nine player restoratives, compact recovery policy/useful thresholds, independent three-second player clock, exact stack/sequence proof and separately enabled tradable use.
 
-Acceptance: shared ownership/item reservations prevent competing gear/donation/equip operations; bound/equipped/training/stationed/recovering state stays protected; reroll never dismisses before durable funding/intent checks; the theoretical report never becomes automatic permission to execute a multi-swap plan.
+Acceptance: native operation reuse removes duplicate optimization/sort work; unsupported native custody guarantees remain a blocker rather than an assumption. Shared ownership/item reservations prevent competing gear/donation/equip operations; bound/equipped/training/stationed/recovering state stays protected; reroll never dismisses before durable funding/intent checks; the comparison report never becomes automatic permission to execute a multi-swap plan. Native controller use requires real ownership; ordinary hire/replacement remains separately bounded.
 
 ## M10 — Shop, Market, Family and Territory
 

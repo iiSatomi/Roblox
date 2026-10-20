@@ -8,7 +8,7 @@ Authorized 2026-10-20 by the user's request to start, update from the supplied s
 - `preview/model.mjs`: `createState(features)`, `setEnabled(state,id,on)`, `setPolicy(state,id,value)`, `applyValues(state,values)`, `pause(state)`, `resume(state)`, `stop(state)`, `featureStatus(state,feature)`. All return local state/results and have no transport, timers, storage or browser dependencies.
 - `preview/app.mjs`: DOM rendering and local event bindings only.
 - `preview/index.html`, `preview/styles.css`: accessible layout with 25 dedicated system tabs, persistent simulated-data notice, concise status, normal controls and bounded Custom disclosures.
-- `tests/preview-model.test.mjs`: Node's built-in test runner, meaningful false-value, stop-latch, policy validation, external ownership, resource wait and feature-coverage and dedicated-tab ownership cases.
+- `tests/preview-model.test.mjs`: Node's built-in test runner, meaningful false-value, stop-latch, policy validation, external ownership, resource wait and feature coverage, dedicated-tab ownership, exclusive gear strategies and conflicting-profile cases.
 
 ## Ordered tasks
 

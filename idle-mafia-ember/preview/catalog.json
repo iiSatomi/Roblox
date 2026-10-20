@@ -1,5 +1,5 @@
 {
-  "version": "preview-0.2",
+  "version": "preview-0.3",
   "evidenceBuild": "0.26.487.1",
   "pages": [
     {
@@ -317,19 +317,26 @@
     {
       "id": "crew",
       "page": "crew",
-      "label": "Native auto-equip",
-      "description": "Use the game’s equip function; yield when custom gear planning owns the loadout.",
+      "label": "Use game Auto Equip",
+      "description": "Use the game's set-aware Auto Equip for you and available Crew.",
       "policies": [],
-      "custom": []
+      "custom": [],
+      "exclusiveGroup": "loadout",
+      "limits": "Stationed and auto-rolling members keep their gear. Selecting Custom gear turns this off."
     },
     {
       "id": "crewGear",
       "page": "crew",
-      "label": "Improve player and Crew gear",
-      "description": "Choose safe upgrades or a confirmed complete-set plan.",
-      "policies": ["Safe improvements", "Build complete sets", "Custom"],
+      "label": "Custom gear strategy",
+      "description": "Optional constraints where the game's gear selection does not match your goal. A stronger result is not yet established.",
+      "policies": [
+        "Constrained improvements",
+        "Compare set alternatives",
+        "Custom"
+      ],
       "custom": [],
-      "limits": "One exact confirmed step. Bound/protected copies stay fixed."
+      "limits": "One gear strategy at a time. Custom plans need comparison with native results; protected copies stay fixed.",
+      "exclusiveGroup": "loadout"
     },
     {
       "id": "crewRoll",

@@ -6,6 +6,8 @@ Baseline: feature-label registry and feature controls in `mafia/runtime/Interfac
 
 Every row is pending fresh implementation and current-native contract validation. Owners below are proposed new domains under `idle-mafia-ember/src/features/`; rows may share domain files without sharing run switches. Evidence needed for a mutation always includes its exact action-specific outcome, not merely an invocation return.
 
+The [native reuse audit](native-reuse-audit.md) now assigns every one of the 55 planned controls a native-operation/controller decision. Preserve useful outcomes, not duplicate legacy algorithms. In particular, native Auto Equip already claims two- and three-piece set support; the custom gear path is optional and must demonstrate a distinct goal/constraint gap before execution.
+
 ## Current feature IDs
 
 | Old ID | New domain / page | Behavior and protections to carry forward |
@@ -23,8 +25,8 @@ Every row is pending fresh implementation and current-native contract validation
 | `bossShop` | bosses / Combat | Separate chosen Boss Token item/quantity/reserve, per-load send cap, native eligibility and exact token/reward confirmation. |
 | `globalBossAttack` | globalBoss / Combat | Separate OFF default; event/run identity, live window, participation, health + hit-back buffer, stamina reserve, pacing, sent-attempt run cap, immediate preflight. |
 | `globalBossClaim` | globalBoss / Combat | Separate OFF default; exact settled run, player participation, unclaimed window, attempt cap and claim/reward proof. |
-| `crew` | crewGear / Crew & Gear | Native best-gear equip after relevant changes; no repeated no-op requests, protected/unavailable members, coordination with custom optimizer. |
-| `crewGear` | crewGear / Crew & Gear | Player + Crew + Collection scoring; sets/bound/equipped protection; safe swaps and guarded multi-step complete sets, exact per-step proof, interrupted-plan recovery, read-only outlook. Do not claim a globally reachable optimum. |
+| `crew` | crewGear / Crew & Gear | Prefer native set-aware Auto Equip after relevant changes; no repeated no-op requests. The UI covers player/available Crew and says stationed/rolling members keep gear; verify server custody/protection scope before use. Exactly one native/custom loadout owner. |
+| `crewGear` | crewGear / Crew & Gear | Optional constrained player/Crew/Collection goal and read-only comparison against native results. Preserve meaningful goals while reusing native set-aware equip where sufficient. Custom swaps/complete-set execution needs a demonstrated gap, protected identities, per-step proof and recovery; no stronger/global-optimum claim. |
 | `crewRoll` | crewReroll / Crew & Gear | Current hub-managed normal dismiss/hire; empty slots first; tier/rarity/base-stat-quality rules, worst-first choice, cash reserve/purpose-specific bank funding, recruitment-luck gate; protect trained/assigned/injured/recovering/rolling Crew. Current source does not require the old Auto Roll entitlement. |
 | `crewSort` | crew / Crew & Gear | Separate native sort after composition/training/gear changes; stable fingerprints; pinned/stationed/rolling members remain protected. |
 | `crewHeal` | crew / Crew & Gear | Separate stamina healing of the exact stable member/injury identity, longest injury ordering, stamina reserve and exact recovery-state proof. Owned-item healing is a new separate permission. |
@@ -75,7 +77,7 @@ Every row is pending fresh implementation and current-native contract validation
 | Market memory | Confirmed buy/list/sale/earnings ledger, research freshness, aging listing suggestions, restart reconciliation. Automatic bot-check answers are deliberately excluded; native manual resolution/pause remains. |
 | Profiles | Create/save/select/load-now/next-run/autoload/off/delete/account overview, active-profile sync, themes/layout, schema migration/import preview. Preserve data without silent action on first import. |
 | Session reliability | Place/account guard, one sender, one-second minimum/quarter-second planning, exact 45-second skip with duplicate-risk log and cooldown, late proof, bounded failure backoff, heartbeat independent of stale UI/state, stop/unload/teleport checkpoint. |
-| Idle protection | Separate opt-in, capability-aware non-click input method and input/idle observations, clean stop; no forced game mutation or anti-cheat claim. |
+| Idle protection | Prefer observing the existing native AFK refresh and checkpoint/revalidate the hub across teleport. Native refresh does not establish loader survival. Add an independently enabled fallback only for a demonstrated gap; no forced refresh, suppressed stay choice or anti-cheat claim. |
 | Diagnostics | Native compatibility, precise blockers, bounded action journal, send/response/confirmation pacing, state/UI/storage health, redacted export/copy and bot-check evidence capture. |
 | Shared settings | Health/stamina/energy floors, bank funding permissions, reserves, purchase limits, stable catalog selectors, per-feature caps and sensitive-action permissions; shared values synchronized without callback loops. |
 

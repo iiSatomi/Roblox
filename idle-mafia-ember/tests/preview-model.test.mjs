@@ -211,3 +211,40 @@ test("each system owns its tab and all related fights stay in Combat", () => {
     assert.equal(pages[id].label, label);
   }
 });
+
+test("native and custom gear strategies cannot own the loadout together", () => {
+  const catalog = JSON.parse(
+    readFileSync(new URL("../preview/catalog.json", import.meta.url), "utf8"),
+  );
+  const initial = createState(catalog.features);
+  const native = setEnabled(initial, "crew", true);
+  const custom = setEnabled(native, "crewGear", true);
+  assert.equal(custom.enabled.crew, false);
+  assert.equal(custom.enabled.crewGear, true);
+  assert.equal(native.enabled.crew, true);
+  assert.equal(initial.enabled.crewGear, false);
+  const off = setEnabled(custom, "crewGear", false);
+  assert.equal(off.enabled.crew, false);
+  assert.equal(off.enabled.crewGear, false);
+  assert.equal(setEnabled(custom, "crew", true).enabled.crewGear, false);
+});
+
+test("profile hydration rejects conflicting gear owners atomically", () => {
+  const catalog = JSON.parse(
+    readFileSync(new URL("../preview/catalog.json", import.meta.url), "utf8"),
+  );
+  const initial = createState(catalog.features);
+  assert.throws(
+    () => applyValues(initial, { jobs: true, crew: true, crewGear: true }),
+    /conflicting/i,
+  );
+  assert.equal(initial.enabled.jobs, false);
+  const native = setEnabled(initial, "crew", true);
+  const custom = applyValues(native, { crewGear: true });
+  assert.equal(custom.enabled.crew, false);
+  assert.equal(custom.enabled.crewGear, true);
+  assert.deepEqual(
+    applyValues(initial, { crew: false, crewGear: true }).enabled,
+    applyValues(initial, { crewGear: true, crew: false }).enabled,
+  );
+});

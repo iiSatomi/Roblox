@@ -16,6 +16,11 @@ export function createState(features) {
     choices: Object.fromEntries(
       features.map((feature) => [feature.id, feature.policies ?? []]),
     ),
+    exclusiveGroups: Object.fromEntries(
+      features
+        .filter((feature) => feature.exclusiveGroup)
+        .map((feature) => [feature.id, feature.exclusiveGroup]),
+    ),
     paused: false,
     stopped: false,
     scenario: "normal",
@@ -25,7 +30,14 @@ export function createState(features) {
 export function setEnabled(state, id, on) {
   known(state, id);
   if (typeof on !== "boolean") throw new Error("Switch value must be boolean");
-  return { ...state, enabled: { ...state.enabled, [id]: on } };
+  const enabled = { ...state.enabled, [id]: on };
+  const group = state.exclusiveGroups[id];
+  if (on && group) {
+    for (const [peer, peerGroup] of Object.entries(state.exclusiveGroups)) {
+      if (peer !== id && peerGroup === group) enabled[peer] = false;
+    }
+  }
+  return { ...state, enabled };
 }
 
 export function setPolicy(state, id, value) {
@@ -36,12 +48,22 @@ export function setPolicy(state, id, value) {
 }
 
 export function applyValues(state, values) {
+  const selectedGroups = new Set();
   for (const [id, on] of Object.entries(values)) {
     known(state, id);
     if (typeof on !== "boolean")
       throw new Error("Switch value must be boolean");
+    const group = state.exclusiveGroups[id];
+    if (on && group) {
+      if (selectedGroups.has(group))
+        throw new Error(`Conflicting owners for ${group}`);
+      selectedGroups.add(group);
+    }
   }
-  return { ...state, enabled: { ...state.enabled, ...values } };
+  return Object.entries(values).reduce(
+    (next, [id, on]) => setEnabled(next, id, on),
+    state,
+  );
 }
 
 export function pause(state) {

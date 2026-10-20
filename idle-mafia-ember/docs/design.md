@@ -6,7 +6,7 @@ Date: 2026-10-20. Status: recode start authorized; updated-place audit completed
 
 Build a fresh Idle Mafia hub with Ember, preserving the current hub's useful functions while replacing its implementation. The user explicitly requested a full recode, clear organization, UI planning before gameplay scripts, maintainability, stability, reliability, and preparation for future game changes. Do not copy/paste, rename, wrap, or import the old production modules into the new application.
 
-The user selected **grouped pages with clear summaries** and then explicitly requested much simpler menus and implementation while keeping the same functions. The [simplification design](ui-simplification.md) is authoritative for the control surface: small presets/policies, automatic native facts, no recreation of 231 old options, and a tightly bounded Custom section. The user also requested local UI testing; the browser preview is a local design tool, not an actual Ember renderer.
+The user selected clear summaries, then requested **dedicated tabs per system** and much simpler menus and implementation while keeping the same functions. The [simplification design](ui-simplification.md) is authoritative for the control surface: small presets/policies, automatic native facts, no recreation of 231 old options, and a tightly bounded Custom section. The user also requested local UI testing; the browser preview is a local design tool, not an actual Ember renderer.
 
 Follow-up preference: the user authorized GitHub hosting if useful and prefers separate modules loaded by a short main UI/entry script. The primary delivery design is now a GitHub-hosted modular release with a small loader. The user selected the existing public `iiSatomi/Roblox` repository and requested a dedicated `idle-mafia-ember/` folder containing only the new recode. This folder is the canonical recode root; the surrounding workspace and legacy scripts are outside its publication scope.
 
@@ -38,6 +38,8 @@ No live client was inspected, no gameplay request was sent, no account settings 
 
 ### Updated game requirements that must land before gameplay
 
+- Follow the [native reuse audit](native-reuse-audit.md) and [55-feature decision register](native-reuse-decisions.json) before recreating any legacy algorithm. Native set-aware Auto Equip and Crew sorting are the preferred operations. Custom gear execution needs a demonstrated constrained-goal gap; native already claims two- and three-piece set support. Native batches, rule helpers, session refresh and Global Boss settlement reduce custom work. No hidden server algorithm or live outcome is verified by this audit.
+- Owned Jobs/Buy/Roll/city-Boss controllers are optional delegates only when their policy and limits match. Observe ownership separately from running state, yield competing hub work and never imply a hub gate constrains external native sends. Ordinary available-action automation remains separate from paid controller access; do not bypass passes, forge ownership or promise unavailable stats/slots/offline operation.
 - Native Auto Jobs/Auto Buy, native Crew rolling and native Boss automation are external owners. Detect and display them; default to yielding the matching hub routine, never silently disable them or buy/bypass a gamepass. The broker controls hub sends, not independent native/server actions. Add external resource/ownership changes to preflight and attribution tests.
 - Every quote/planner uses a shared native economic context for decree-adjusted cash Shop prices, hire cost, Market fees and ruling-Family exemptions. The Gold Shop call's formerly missing arguments are now visible; its response/state proof and explicit opt-in are still required.
 - Use native server-time context for resets, buffs, cooldowns, events, injuries and lockouts, with freshness checks. Use monotonic elapsed time for the exact 45-second uncertainty deadline; wall-clock changes cannot shorten or extend it.
@@ -401,7 +403,7 @@ Use newly authored tests and fixtures. Old tests are useful for identifying requ
 | Ember adapter | False-value restore, setter refusal, delayed startup callbacks, silent hydration, large catalog filtering, destroy/recreate, hidden window, display failure |
 | Build/static | Deterministic modular release/manifest, dependency provenance, strict type/static checks where supported, every module and optional fallback Luau compile/parse including function/local/register limits, source mapping, no old runtime import |
 | Module delivery | One commit across every fetch, partial/missing/corrupt downloads, syntax/export failure, bounded retries, cycles/duplicate IDs, verified complete cache only, initialize once, no sends before complete startup or during update |
-| Local UI | Ten state/schema checks currently pass, including dedicated-tab ownership; browser navigation is blocked by local URL/file security policy, so screenshots/layout checks are pending. `preview/standalone.html` has no network dependencies. |
+| Local UI | Twelve state/schema checks currently pass, including dedicated-tab ownership; browser navigation is blocked by local URL/file security policy, so screenshots/layout checks are pending. `preview/standalone.html` has no network dependencies. |
 | Actual UI | A later small Ember rendering check in Roblox with all gameplay dispatch disabled; fonts/scaling/pointer/focus/F8/cleanup and representative pages checked |
 | Feature live check | Current native build, exact version/account, narrowly scoped authorization, naturally eligible action, before/after proof, recorded rejection/uncertainty and recovery |
 
@@ -428,7 +430,7 @@ Do not add a generic plugin ecosystem, arbitrary user scripting, a remote update
 ## Design self-review
 
 - Fresh source, separate distribution, and no old production imports satisfy the recode requirement.
-- Dedicated tabs per system and simpler controls are user requirements. The local prototype is authored and ten model/schema tests pass; actual visual rendering and Ember behavior remain unverified.
+- Dedicated tabs per system and simpler controls are user requirements. The local prototype is authored and twelve model/schema tests pass; actual visual rendering and Ember behavior remain unverified.
 - Current source is distinguished from historical Progression and outdated documentation.
 - One local gate, 45-second uncertainty release, and possible lingering remote execution are described consistently.
 - Updated place source is fingerprinted and checked against 42 anchors; native server behavior and inaccessible current Ember bytes remain explicit evidence gaps.
