@@ -21,6 +21,10 @@ html = html
     "</body>",
     `<script>\n{\n${model}\nconst catalog = ${catalog};\n${app.slice(start)}\n}\n</script>\n</body>`,
   );
+html = html
+  .split("\n")
+  .map((line) => line.trimEnd())
+  .join("\n");
 await writeFile(new URL("standalone.html", root), html, "utf8");
 console.log(
   "Built preview/standalone.html · simulated data · no network dependencies",
