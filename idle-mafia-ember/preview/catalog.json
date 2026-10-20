@@ -230,12 +230,14 @@
       "policies": ["Cautious", "Balanced", "Custom"],
       "custom": [
         {
+          "id": "minimumPayout",
           "label": "Minimum payout",
           "type": "number",
           "value": 100000000,
           "min": 0
         },
         {
+          "id": "healthFloor",
           "label": "Health floor (%)",
           "type": "number",
           "value": 50,
@@ -243,12 +245,14 @@
           "max": 100
         },
         {
+          "id": "staminaReserve",
           "label": "Stamina to keep",
           "type": "number",
           "value": 1,
           "min": 0
         },
         {
+          "id": "targetSource",
           "label": "Target source",
           "type": "select",
           "options": ["Saved and new", "Saved only"],
@@ -267,12 +271,14 @@
       "policies": ["Cautious", "Balanced", "Custom"],
       "custom": [
         {
+          "id": "minimumPayout",
           "label": "Minimum payout",
           "type": "number",
           "value": 100000000,
           "min": 0
         },
         {
+          "id": "healthFloor",
           "label": "Health floor (%)",
           "type": "number",
           "value": 50,
@@ -280,12 +286,14 @@
           "max": 100
         },
         {
+          "id": "staminaReserve",
           "label": "Stamina to keep",
           "type": "number",
           "value": 1,
           "min": 0
         },
         {
+          "id": "targetSource",
           "label": "Target source",
           "type": "select",
           "options": ["Saved and new", "Saved only"],
@@ -445,18 +453,21 @@
       "policies": ["Best value", "Most income", "Next tier", "Custom"],
       "custom": [
         {
+          "id": "cashReserve",
           "label": "Cash to keep",
           "type": "number",
           "value": 1000000,
           "min": 0
         },
         {
+          "id": "purchaseCap",
           "label": "Maximum purchase",
           "type": "number",
           "value": 5000000,
           "min": 0
         },
         {
+          "id": "ownedLimit",
           "label": "Owned limit per property",
           "type": "number",
           "value": 10,

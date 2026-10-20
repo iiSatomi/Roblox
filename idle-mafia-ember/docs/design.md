@@ -1,6 +1,12 @@
 # Idle Mafia Ember recode — proposed design
 
-Date: 2026-10-20. Status: recode start authorized; updated-place audit completed, simplified local UI prototype implemented; actual Ember and gameplay implementation have not started.
+Date: 2026-10-20. Status: updated-place audit and simplified browser preview completed; the first inert actual Ember Luau composition is implemented and compiles. Actual Roblox rendering and gameplay remain unverified/unimplemented respectively.
+
+Latest direction: use ordinary native action automation for Jobs, city Bosses
+and similar routines. Paid-controller unlocking is no longer a recode task.
+Observe any matching native controller already running and yield affected work.
+See the [actual Ember prototype](ember-ui-prototype.md) for the new M1 slice and
+its separate offline/compilation/rendering evidence.
 
 ## Brief and decisions
 

@@ -2,6 +2,12 @@
 
 Date: 2026-10-20. Saved client: **0.26.487.1**. Scope: all **55 planned feature controls**, all 50 legacy IDs, six supporting systems and 15 configured pass keys. This updates the recode plan; no gameplay module or paid-access workaround is implemented.
 
+**Resumed implementation direction:** the user chose ordinary native action
+automation for Jobs, city Bosses and similar routines. Treat the owned-controller
+possibilities below as audit findings, not the current implementation default.
+Paid-controller unlocking is no longer a recode task. Continue observing any
+already-active native controller so the hub can yield competing work.
+
 The default is to reuse the game's current operation, rule or controller when it meets the requested scope. Keep a small hub planner only for the user's goal, permission, limits, scheduling and confirmation. Do not rebuild a native operation merely because the legacy script did so.
 
 The [decision register](native-reuse-decisions.json) records every feature, its remaining gap and exact evidence references. Its 80 anchors were checked against the inert extracted source, including normalized source-text SHA-256 fingerprints and one-based extracted-file lines. These are action-surface and rule observations, not a certification of hidden server behavior. Saved server source is unavailable; no live action or ownership test was performed. A release-note claim is labeled separately from client code. No saved source was executed or copied into production modules.

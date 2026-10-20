@@ -63,7 +63,7 @@ Preset names and numeric values are proposals until current-native planner tests
 
 ## Simpler implementation as well as menus
 
-The [native reuse audit](native-reuse-audit.md) governs replacement choices across all 55 controls. Reuse native operations, rules, batches and compatible owned controllers. Keep only the missing goal/limits/scheduling layer. Do not recreate paid stats or bypass ownership; ordinary available-action automation and owned-native delegation are different modes. Native controller activity is visible and the hub yields affected work.
+The [native reuse audit](native-reuse-audit.md) governs replacement choices across all 55 controls. Reuse native operations, rules and batches. The user now chose ordinary available-action automation for Jobs/Bosses/etc.; paid-controller unlocking is outside the current recode task. Keep only the missing goal/limits/scheduling layer. Existing native controller activity remains visible and the hub yields affected work.
 
 Each domain has one readable decision pipeline and one source of truth for limits. Avoid separate nearly identical planners for manual work, contracts, trophies and events. Goals supply an intent to the same planner; they cannot create another sender. Split only meaningful transaction stages; do not build a generic rules language or a compatibility layer that permanently reimplements every legacy knob.
 

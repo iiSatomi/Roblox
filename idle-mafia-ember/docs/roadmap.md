@@ -1,6 +1,11 @@
 # Idle Mafia Ember recode — delivery roadmap
 
-Date: 2026-10-20. Status: start authorized; updated-place audit and first local UI/state prototype completed. Actual Ember/gameplay implementation remains pending.
+Date: 2026-10-20. Status: start authorized; updated-place audit, local browser model and first inert actual Ember Luau slice implemented. Roblox rendering, remote loader and gameplay remain pending.
+
+The resumed direction is ordinary native action automation for Jobs/Bosses/etc.,
+not paid-controller unlocking. The [Ember UI prototype](ember-ui-prototype.md)
+has 20 offline Python/Lupa checks, 12 existing Node checks and real Luau
+compilation. Rendering acceptance remains open; no gameplay was executed.
 
 **Goal:** Replace the current hub with freshly written, maintainable Luau and an Ember interface while preserving the complete reviewed feature set and its protections.
 
@@ -62,7 +67,8 @@ Scope: documentation/evidence only.
 - [ ] Finish dynamic-control, special permission, profile-field and transaction binding maps against the simpler schema.
 - [x] Extract updated user-supplied place as inert data: native 0.26.487.1, 260 script-source records, 40/48 old selected sources changed, 42 checked anchors and 852 unique city districts. Runtime response shapes remain unverified.
 - [x] Audit all 55 planned controls, six supporting systems and 15 configured pass keys for native replacement/reuse. Record 80 verified source anchors in the [native decision register](native-reuse-decisions.json) and [gear/reuse design](native-reuse-audit.md). Native server internals and runtime effects remain unverified.
-- [ ] Fetch/review/fingerprint the actual Ember source and dependency terms; test whether the known October 12 discrepancies still apply.
+- [x] Fetch/review/fingerprint actual Ember bytes: 3.0.0, unchanged October 12 SHA-256; callback, false-value and close-revert discrepancies remain. See [dependency review](ember-dependency-review.md).
+- [ ] Resolve dependency redistribution terms before publishing third-party bytes or a runnable remote release loader. No license found in the served Lua; source remains private.
 - [x] Select the existing public `iiSatomi/Roblox` repository and dedicated `idle-mafia-ember/` recode root.
 - [ ] Establish supported HTTP/compilation/hash/cache primitives and a release destination before publishing executable modules; no embedded credentials.
 
@@ -81,9 +87,9 @@ Slices:
 - [ ] Verify actual browser layout, navigation/search, disclosure controls and narrow/wide states. Automated local URL/file navigation is blocked by browser security policy; visual checks remain open. Standalone HTML is available.
 - [ ] Prototype the loader with inert modules: one commit/manifest, initialize-once exports, verified complete prefetch/cache, and no partial application startup on failed downloads or compilation.
 - [ ] Resolve actual sidebar scrolling, group density, control search, long catalogs and status visibility at target/minimum viewport sizes.
-- [ ] Implement the simplified feature pattern in actual Ember across 25 dedicated system tabs after the local design review, with sample data clearly labeled.
-- [ ] Implement the settings model and inert profile preview with typed false/enum/color/multi-selection handling; no run-on-hydration behavior.
-- [ ] Check delayed callbacks, `Set` rejection, theme subscriptions, destroy/recreate, F8 visibility, appearance save failures and reduced motion.
+- [x] Implement actual Ember methods for 25 dedicated tabs/55 switches with local-only labels, compact goals and bounded Custom inputs. Construction is offline-tested; real layout stays unverified.
+- [x] Implement the current scalar settings schema and inert in-memory profile staging: false/enum/finite-number validation, atomic gear conflicts, paused hydration and validated UI rollback. No color/multi-selection preference is exposed in this slice; typed adapters are required before adding either.
+- [x] Offline-test initial/superseded/unload callbacks, setter rejection/rollback failure, render-failure atomicity and destroy/recreate/partial-startup cleanup. F8 and reduced motion are configured; actual theme painting, input/focus and visibility remain unverified. Appearance persistence is disabled, not tested as successful storage.
 - [ ] Inspect actual Roblox Ember rendering with gameplay dispatch disabled and record screenshots/observations where available.
 
 Acceptance: all current functions have a clear destination; most features expose 2–4 primary controls and Custom has at most six useful overrides; no mirrored settings or giant Advanced dump. Local browser checks and actual Ember rendering are distinct gates. Keep both visual gates open until observed; offline state tests do not establish rendering.
@@ -98,7 +104,7 @@ Slices:
 
 - [ ] Lock a small typed policy/settings model, shared snapshot/decision/proposal/record contracts and migration semantics.
 - [ ] Establish native server-time, economic/decree/exemption, effective buff and native-automation ownership contexts from the updated source before gameplay. Use the supported native dispatch seam; never hardcode private handshake values.
-- [ ] Distinguish each native entitlement from actual controller activity. Permit owned-native delegation only for a fully compatible goal/limits contract; otherwise retain ordinary permitted-action planning. Unknown ownership/activity cannot be treated as stopped or free access.
+- [ ] Distinguish each native entitlement from actual controller activity. Implement ordinary permitted-action planning as the chosen baseline and yield matching work to existing native activity. Unknown activity cannot be treated as stopped. Paid-controller unlocking is outside the current plan.
 - [ ] Observe the native AFK session-refresh flow before adding duplicate idle protection. Checkpoint uncertain work and validate account/place/release on return; do not assume a loader survives or auto-restarts across teleport.
 - [ ] Prove city/district identity and source-schema compatibility boundaries. Establish explicit module/dependency/checksum manifest, deterministic modular release and source mapping.
 - [ ] Implement a single fake-transport broker, send-time pacing, preflight, early read timeout, state/reply evidence policy and deduplication.
