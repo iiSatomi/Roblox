@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "1cd59aaa27679f5a9ddbbf392bde13709b3f42a8",
+  "releaseCommit": "746e174c9914791fefb94448793e6052498b273e",
   "modules": [
     {
       "id": "AutomationRuntime",
@@ -1193,7 +1193,7 @@
     {
       "id": "NativeClientBindings",
       "path": "src/transport/NativeClientBindings.luau",
-      "sha256": "e2c376593ebe8c7fdd75308d53a23dcd85393ca58af9d41fad72911a168f137d",
+      "sha256": "07e8e3dfb7786d0b7842f9943758f900f1f5f4ba14104285e74c31afee1d6f89",
       "deps": []
     },
     {
