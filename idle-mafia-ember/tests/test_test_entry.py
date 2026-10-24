@@ -16,8 +16,11 @@ class TestEntryTests(unittest.TestCase):
         files = {p.relative_to(ROOT).as_posix(): p.read_bytes().decode("utf-8")
                  for p in (ROOT / "src").rglob("*.luau")}
         for name in ("Loader.luau", "Bootstrap.luau", "ReleaseAdapters.luau",
-                     "ExecutorEntry.luau", "manifest.json"):
-            files[name] = (ROOT / name).read_bytes().decode("utf-8")
+                     "ExecutorEntry.luau"):
+            files[name] = subprocess.check_output([
+                "git", "show",
+                "c35cb73533668c930fc1269b70c4630f90a0def9:idle-mafia-ember/" + name,
+            ], cwd=ROOT).decode("utf-8")
         # Raw GitHub serves committed blob bytes, not Windows checkout bytes.
         files["manifest.json"] = subprocess.check_output([
             "git", "show",

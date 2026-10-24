@@ -26,6 +26,8 @@ function ProfilesTab.new(section, callbacks, userOrigin)
         })
         button("Save choices locally", "saveProfile")
         button("Preview saved profile", "previewProfile")
+        button("Autoload this saved profile", "enableAutoload")
+        button("Disable autoload", "disableAutoload")
     end
     button("Stage current choices", "stage")
     button("Apply staged choices", "apply")

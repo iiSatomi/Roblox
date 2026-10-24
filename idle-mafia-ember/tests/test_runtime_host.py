@@ -189,6 +189,8 @@ class RuntimeHostTests(unittest.TestCase):
     def test_current_client_mode_uses_resolved_bindings_and_observer(self):
         self.h.lua.globals().real_folder = self.deps["remotesFolder"]
         self.h.lua.globals().real_state = self.deps["nativeState"]
+        self.deps["nativeState"]["latest"] = self.h.lua.eval(
+            "function() return { cash = 10 } end")
         self.h.lua.globals().real_observer = self.observer
         self.h.lua.globals().real_runtime_api = self.deps["executorRuntimeApi"]
         self.h.lua.globals().real_storage_api = self.deps["executorStorageApi"]
@@ -249,6 +251,9 @@ class RuntimeHostTests(unittest.TestCase):
         self.assertIsNone(reason)
         self.assertIsNotNone(host)
         self.assertIsNotNone(self.events.sync)
+        self.assertEqual(host.app.seen, 0)
+        self.timer.callback()
+        self.assertEqual(host.app.seen, 1)
         self.assertEqual(host.app.rewardsSource.groupId, 123)
         self.assertTrue(host.app.rewardsSource.IsWeekend(
             host.app.rewardsSource, 0))

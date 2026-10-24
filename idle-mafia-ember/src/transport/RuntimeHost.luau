@@ -374,6 +374,19 @@ function RuntimeHost.start(deps)
         return nil, "Changed-state subscription failed"
     end
     handles[#handles + 1] = changed
+
+    if currentClient then
+        local latestOk, latest = pcall(clientBindings.nativeState.latest)
+        if not latestOk or type(latest) ~= "table" then
+            host:Destroy()
+            return nil, "Current client snapshot unavailable"
+        end
+        local seeded, accepted = pcall(reader.ObserveSync, reader, latest)
+        if not seeded or accepted ~= true then
+            host:Destroy()
+            return nil, "Current client snapshot invalid"
+        end
+    end
     if not loop:Start() then
         host:Destroy()
         return nil, "Runtime timer failed"

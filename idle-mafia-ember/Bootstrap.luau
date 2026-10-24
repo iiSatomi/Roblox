@@ -10,6 +10,12 @@ local function hex(value, length)
 end
 
 function Bootstrap.start(release, adapters, activateRuntime)
+    if activateRuntime == true
+        and (type(release) ~= "table"
+            or type(release.allowedFeatures) ~= "table"
+            or next(release.allowedFeatures) == nil) then
+        return nil, "Functional release needs an explicit feature allowlist"
+    end
     if type(release) ~= "table" or type(adapters) ~= "table"
         or not hex(release.commit, 40)
         or not hex(release.fingerprint, 64)
@@ -63,6 +69,8 @@ function Bootstrap.start(release, adapters, activateRuntime)
         expectedGameVersion = release.gameVersion,
         fingerprint = release.fingerprint,
         release = release.commit,
+        allowedFeatures = activateRuntime == true
+            and release.allowedFeatures or nil,
         directory = release.directory,
         Ember = adapters.Ember,
         identity = { place = release.place, account = player.Name },

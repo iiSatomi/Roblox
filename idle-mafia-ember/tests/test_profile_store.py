@@ -78,6 +78,70 @@ class ProfileStoreTests(unittest.TestCase):
             "overflow", self.profile())[0], False)
         self.assertEqual(len(self.store.List(self.store)[0]), 16)
 
+    def test_autoload_is_explicit_and_account_scoped(self):
+        self.assertIsNone(self.store.GetAutoload(self.store)[0])
+        self.assertFalse(self.store.SetAutoload(self.store, "missing")[0])
+        self.assertTrue(self.store.Save(self.store, "main", self.profile())[0])
+        self.assertTrue(self.store.SetAutoload(self.store, "main")[0])
+        self.assertEqual(self.store.GetAutoload(self.store)[0], "main")
+        other = self.module.new(self.storage, self.model,
+                                "user-b", "place-a")
+        self.assertIsNone(other.GetAutoload(other)[0])
+        self.assertTrue(self.store.SetAutoload(self.store, None)[0])
+        self.assertIsNone(self.store.GetAutoload(self.store)[0])
+
+    def test_functional_app_starts_unpaused_and_autoloads_only_selected_profile(self):
+        runtime = self.h.lua.execute("""
+            local runtime = { features = { jobs = true }, resumed = false }
+            function runtime:Status()
+                return { state = 'paused', availableFeatures = {} }
+            end
+            function runtime:Step() return true end
+            function runtime:Pause() self.resumed = false end
+            function runtime:Resume() self.resumed = true end
+            function runtime:Stop() end
+            function runtime:Close() end
+            return runtime
+        """)
+        deps = lua_table(self.h.lua, {
+            "Ember": self.h.load("tests/ember_double.lua")(),
+            "Catalog": self.h.load("src/ui/Catalog.luau"),
+            "Settings": self.h.load("src/storage/Settings.luau"),
+            "EmberAdapter": self.h.load("src/ui/EmberAdapter.luau"),
+            "ProfilesTab": self.h.load("src/tabs/profiles/Module.luau"),
+            "ProfileStore": self.module,
+            "ProfileStorage": self.storage,
+            "identity": self.h.session,
+            "automationRuntimeInstance": runtime,
+            "allowedFeatures": {"jobs": True, "bosses": True},
+        })
+        app_module = self.h.load("src/App.luau")
+        app = app_module.start(deps)
+        self.assertFalse(app.model.paused)
+        self.assertTrue(runtime.resumed)
+        self.assertFalse(app.model["values"]["jobs.enabled"])
+        self.assertFalse(app.Set(app, "shop.enabled", True)[0])
+        self.assertFalse(app.model["values"]["shop.enabled"])
+        self.assertTrue(app.Set(app, "jobs.enabled", True)[0])
+        self.assertTrue(app.SaveProfile(app, "main")[0])
+        self.assertTrue(app.SetAutoload(app, "main")[0])
+        app.Destroy(app)
+
+        runtime.resumed = False
+        deps.Ember = self.h.load("tests/ember_double.lua")()
+        loaded = app_module.start(deps)
+        self.assertFalse(loaded.model.paused)
+        self.assertTrue(loaded.model["values"]["jobs.enabled"])
+        self.assertTrue(runtime.resumed)
+        self.assertTrue(loaded.SetAutoload(loaded, None)[0])
+        loaded.Destroy(loaded)
+
+        deps.Ember = self.h.load("tests/ember_double.lua")()
+        fresh = app_module.start(deps)
+        self.assertFalse(fresh.model.paused)
+        self.assertFalse(fresh.model["values"]["jobs.enabled"])
+        fresh.Destroy(fresh)
+
     def test_app_preview_requires_separate_paused_apply(self):
         ember = self.h.load("tests/ember_double.lua")()
         deps = lua_table(self.h.lua, {

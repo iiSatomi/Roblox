@@ -20,6 +20,7 @@ function Adapter.new(ember, catalog, callbacks)
     local self = setmetatable({
         handles = {}, features = {}, numeric = {}, order = {}, alive = true,
         degraded = false, lastError = nil,
+        allowedFeatures = callbacks.allowedFeatures,
     }, Adapter)
     ember.Configure({
         Storage = false,
@@ -31,7 +32,9 @@ function Adapter.new(ember, catalog, callbacks)
         Size = Vector2.new(920, 620), MinSize = Vector2.new(640, 420), Rail = 184,
         Keybind = Enum.KeyCode.F8, Search = true, SaveLayout = false,
         ReapplyOnRespawn = false, ReplaceExisting = true,
-        StatusBar = { Text = "UI prototype only — no gameplay connected" },
+        StatusBar = { Text = callbacks.runtimeConnected
+            and "Runtime connected — features off until enabled"
+            or "UI prototype only — no gameplay connected" },
     })
     -- Register teardown before constructing any value controls.
     self.window:OnDestroy(function()
@@ -74,7 +77,9 @@ function Adapter.new(ember, catalog, callbacks)
                 callbacks, userOrigin)
             self.sessionStatus = self.overview.sessionStatus
         else
-            overview:Description({ Text = "Local UI preview. Feature choices do not start Jobs, fights or purchases." })
+            overview:Description({ Text = callbacks.runtimeConnected
+                and "Runtime connected. Feature switches start off; enabled actions run automatically."
+                or "Local UI preview. Feature choices do not start Jobs, fights or purchases." })
             self.sessionStatus = overview:Status({ Text = "Session", Default = "Paused — UI only" })
             button(overview, "Pause", "pause")
             button(overview, "Resume", "resume")
@@ -285,7 +290,10 @@ function Adapter:Render(model)
         local selected = model.values[id .. ".enabled"]
         local label = "Off"
         if selected then label = model.stopped and "Stopped" or (model.paused and "Paused" or "Selected") end
-        if row.blockedReason then
+        if type(self.allowedFeatures) == "table"
+            and self.allowedFeatures[id] ~= true then
+            row.status:Set("Unavailable in this runtime preview", true)
+        elseif row.blockedReason then
             row.status:Set("Blocked — " .. row.blockedReason, true)
         elseif model.automationRuntime
             and type(model.automationRuntime.availableFeatures) == "table"

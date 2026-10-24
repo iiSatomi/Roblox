@@ -31,9 +31,10 @@ local function accepts(spec, value)
     return false
 end
 
-function Settings.new(catalog)
+function Settings.new(catalog, runByDefault)
     local self = setmetatable({
-        values = {}, specs = {}, groups = {}, paused = true, stopped = false,
+        values = {}, specs = {}, groups = {},
+        paused = runByDefault ~= true, stopped = false,
     }, Model)
     local function add(key, value, spec)
         assert(not self.specs[key], "Duplicate preference: " .. key)

@@ -8,7 +8,9 @@ function OverviewTab.new(section, callbacks, userOrigin)
         and type(callbacks.command) == "function"
         and type(userOrigin) == "function",
         "Missing Overview UI dependencies")
-    section:Description({ Text = "Local UI preview. Feature choices do not start Jobs, fights or purchases." })
+    section:Description({ Text = callbacks.runtimeConnected
+        and "Runtime connected. Feature switches start off; enabled actions run automatically."
+        or "Local UI preview. Feature choices do not start Jobs, fights or purchases." })
     local self = setmetatable({
         sessionStatus = section:Status({ Text = "Session", Default = "Paused — UI only" }),
         requestStatus = section:Status({ Text = "Request health", Default = "Unavailable — no gameplay adapter" }),

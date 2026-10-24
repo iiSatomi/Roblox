@@ -34,6 +34,7 @@ class BootstrapTests(unittest.TestCase):
             "gameVersion": "0.26.530",
             "fingerprint": "b" * 64,
             "directory": "IdleMafiaEmber",
+            "allowedFeatures": {"jobs": True, "bosses": True},
         })
         self.adapters = lua_table(self.h.lua, {
             "Loader": self.h.lua.globals().fakeLoader,
@@ -78,6 +79,16 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(deps.expectedGameVersion, "0.26.530")
         self.assertEqual(deps.fingerprint, "b" * 64)
         self.assertEqual(deps.release, "a" * 40)
+        self.assertTrue(deps.allowedFeatures.jobs)
+        self.assertTrue(deps.allowedFeatures.bosses)
+
+    def test_active_release_requires_explicit_allowlist(self):
+        self.release["allowedFeatures"] = None
+        app, reason = self.bootstrap.start(self.release, self.adapters, True)
+        self.assertIsNone(app)
+        self.assertEqual(reason,
+                         "Functional release needs an explicit feature allowlist")
+        self.assertIsNone(self.h.lua.globals().seen)
 
     def test_wrong_place_or_manifest_pin_never_calls_loader(self):
         self.h.lua.globals().fakeGame.PlaceId = 1

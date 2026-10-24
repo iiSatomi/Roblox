@@ -40,6 +40,37 @@ function Methods:ScopeKey()
     return self.key
 end
 
+function Methods:GetAutoload()
+    local ok, data = pcall(self.storage.Read, self.storage,
+        self.key .. ":autoload")
+    if not ok then return nil, "Autoload read failed" end
+    if data == nil then return nil, nil end
+    if type(data) ~= "table" or data.version ~= 1
+        or data.account ~= self.account or data.place ~= self.place
+        or type(data.name) ~= "string"
+        or (data.name ~= "" and not validName(data.name)) then
+        return nil, "Corrupt autoload setting"
+    end
+    return data.name ~= "" and data.name or nil, nil
+end
+
+function Methods:SetAutoload(name)
+    if name ~= nil then
+        if not validName(name) then return false, "Invalid profile name" end
+        local profile, reason = self:Load(name)
+        if not profile then return false, reason end
+    end
+    local ok, result = pcall(self.storage.Write, self.storage,
+        self.key .. ":autoload", {
+            version = 1, account = self.account,
+            place = self.place, name = name or "",
+        })
+    if not ok or result == false then
+        return false, "Autoload write failed"
+    end
+    return true, nil
+end
+
 function Methods:ReadAll()
     local ok, data = pcall(self.storage.Read,
         self.storage, self.key)

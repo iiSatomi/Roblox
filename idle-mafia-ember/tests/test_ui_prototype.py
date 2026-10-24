@@ -257,6 +257,7 @@ class PrototypeTests(unittest.TestCase):
         deps.JobsTab = self.module("src/tabs/jobs/Module.luau")
         deps.AutomationRuntime = runtime
         app = self.module("src/App.luau").start(deps)
+        self.assertIn("Runtime connected", app.ui.window.options.StatusBar.Text)
         app.Set(app, "jobs.policy", "Selected job")
         app.Set(app, "jobs.custom.selectedJobId", "j_tag")
         app.Set(app, "jobs.enabled", True)
@@ -279,6 +280,7 @@ class PrototypeTests(unittest.TestCase):
         self.assertIsNone(app.automationRuntime)
         self.assertIsNone(app.profileStore)
         self.assertIn("UI only", app.ui.sessionStatus.Get(app.ui.sessionStatus))
+        self.assertIn("UI prototype only", app.ui.window.options.StatusBar.Text)
         app.Destroy(app)
 
     def test_explicit_runtime_activation_fails_before_ui_if_assembly_is_incomplete(self):

@@ -48,7 +48,20 @@ function App.start(dependencies)
     assert(not (automation and jobs),
         "Use one automation runtime")
     local runtime = automation or jobs
-    local self = { alive = true, model = dependencies.Settings.new(dependencies.Catalog),
+    local allowedFeatures = runtime and dependencies.allowedFeatures or nil
+    local function allowed(values)
+        if type(allowedFeatures) ~= "table" then return true end
+        for key, value in pairs(values) do
+            if value == true and type(key) == "string"
+                and key:sub(-8) == ".enabled"
+                and allowedFeatures[key:sub(1, -9)] ~= true then
+                return false
+            end
+        end
+        return true
+    end
+    local self = { alive = true,
+        model = dependencies.Settings.new(dependencies.Catalog, runtime ~= nil),
         ui = nil, staged = nil, jobsRuntime = jobs,
         automationRuntime = automation }
     if dependencies.ProfileStorage then
@@ -59,6 +72,26 @@ function App.start(dependencies)
         self.profileStore = dependencies.ProfileStore.new(
             dependencies.ProfileStorage, self.model,
             dependencies.identity.account, dependencies.identity.place)
+    end
+    local startupNote = runtime and "Runtime attached; all features off"
+        or "Created inert UI"
+    if runtime and self.profileStore then
+        local name, autoloadReason = self.profileStore:GetAutoload()
+        if autoloadReason then
+            startupNote = autoloadReason .. "; all features off"
+        elseif name then
+            local profile, loadReason = self.profileStore:Load(name)
+            local prepared, validationReason = profile
+                and self.model:Validate(profile)
+            if prepared and allowed(prepared) then
+                self.model:Commit(prepared, false)
+                startupNote = "Autoloaded profile: " .. name
+            else
+                startupNote = (loadReason or validationReason
+                    or "Autoload profile exceeds this runtime preview")
+                    .. "; all features off"
+            end
+        end
     end
 
     local function closed()
@@ -121,6 +154,9 @@ function App.start(dependencies)
         if not self.alive then return false, "Prototype is closed" end
         local prepared, reason = self.model:Validate(profile)
         if not prepared then return false, reason end
+        if not allowed(prepared) then
+            return false, "Profile enables unavailable runtime features"
+        end
         return applyPrepared(prepared, true, "Applied choices; session paused")
     end
 
@@ -145,11 +181,27 @@ function App.start(dependencies)
         return true, nil
     end
 
+    function self:SetAutoload(name)
+        if not self.alive or not self.profileStore then
+            return false, "Profile storage unavailable"
+        end
+        local saved, reason = self.profileStore:SetAutoload(name)
+        if saved then
+            self.ui.profileStatus:Set(name
+                and ("Autoload on: " .. name)
+                or "Autoload off", true)
+        end
+        return saved, reason
+    end
+
     function self:Set(key, value)
         if not self.alive then return false, "Prototype is closed" end
         if not self.model.specs[key] or value == nil then return false, "Invalid preference: " .. tostring(key) end
         local prepared, reason = self.model:Validate({ schema = 1, values = { [key] = value } })
         if not prepared then return false, reason end
+        if not allowed(prepared) then
+            return false, "Feature unavailable in this runtime preview"
+        end
         return applyPrepared(prepared, false, "Changed " .. key)
     end
 
@@ -245,6 +297,11 @@ function App.start(dependencies)
                     settings[id] = feature
                 end
             end
+            if type(allowedFeatures) == "table" then
+                for id, feature in pairs(settings) do
+                    if allowedFeatures[id] ~= true then feature.enabled = false end
+                end
+            end
         else
             settings = { enabled = enabled
                 and self.model.values["jobs.enabled"] == true,
@@ -293,7 +350,12 @@ function App.start(dependencies)
         elseif name == "apply" then
             local ok, reason = self:ApplyProfile(self.staged)
             if not ok then self.ui.lastError = reason; self:Refresh("Profile not applied") end
-        elseif name == "saveProfile" or name == "previewProfile" then
+        elseif name == "disableAutoload" then
+            local ok, reason = self:SetAutoload(nil)
+            if not ok then self.ui.lastError = reason
+                self:Refresh("Autoload setting rejected") end
+        elseif name == "saveProfile" or name == "previewProfile"
+            or name == "enableAutoload" then
             if not self.ui.profileName then return end
             local read, profileName = pcall(self.ui.profileName.Get,
                 self.ui.profileName)
@@ -302,8 +364,10 @@ function App.start(dependencies)
                 ok, reason = false, "Profile name unavailable"
             elseif name == "saveProfile" then
                 ok, reason = self:SaveProfile(profileName)
-            else
+            elseif name == "previewProfile" then
                 ok, reason = self:PreviewProfile(profileName)
+            else
+                ok, reason = self:SetAutoload(profileName)
             end
             if not ok then self.ui.lastError = reason
                 self:Refresh("Profile operation rejected") end
@@ -314,6 +378,8 @@ function App.start(dependencies)
         dependencies.Ember, dependencies.Catalog, {
         change = change, command = command, destroy = closed,
         profileStorage = self.profileStore ~= nil,
+        runtimeConnected = runtime ~= nil,
+        allowedFeatures = allowedFeatures,
         overviewModule = dependencies.OverviewTab,
         heistsModule = dependencies.HeistsTab,
         jobsModule = dependencies.JobsTab,
@@ -342,8 +408,12 @@ function App.start(dependencies)
     })
     if not created then closed(); error(uiOrReason, 0) end
     self.ui = uiOrReason
-    local ok, reason = self:Refresh("Created inert UI")
+    local ok, reason = self:Refresh(startupNote)
     if not ok then self:Destroy(); error(reason, 0) end
+    if runtime then runtime:Resume() end
+    if self.profileStore and runtime then
+        self.ui.profileStatus:Set(startupNote, true)
+    end
     return self
 end
 

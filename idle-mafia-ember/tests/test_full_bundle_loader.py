@@ -161,7 +161,7 @@ class FullBundleLoaderTests(unittest.TestCase):
         host, reason = loader.start(fetch, cache, compile_,
                                     manifest, deps)
         self.assertIsNone(host)
-        self.assertEqual(reason, "App startup failed")
+        self.assertEqual(reason, "App startup failed: Missing explicit runtime host capabilities")
 
 
 if __name__ == "__main__":
