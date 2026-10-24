@@ -2,6 +2,7 @@
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 import unittest
 
 from engine_harness import Harness, lua_table
@@ -17,6 +18,11 @@ class TestEntryTests(unittest.TestCase):
         for name in ("Loader.luau", "Bootstrap.luau", "ReleaseAdapters.luau",
                      "ExecutorEntry.luau", "manifest.json"):
             files[name] = (ROOT / name).read_bytes().decode("utf-8")
+        # Raw GitHub serves committed blob bytes, not Windows checkout bytes.
+        files["manifest.json"] = subprocess.check_output([
+            "git", "show",
+            "132a2917af8a8bc01f51669c672fee8c76d30ac5:idle-mafia-ember/manifest.json",
+        ], cwd=ROOT).decode("utf-8")
         # Lupa has no Roblox GUI services; substitute the existing UI double.
         # The Ember fixture hash stands in for the independently reviewed pin.
         ember_bytes = "offline Ember fixture"

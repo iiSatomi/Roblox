@@ -26,7 +26,7 @@ local function pinnedModule(path, digest)
 end
 
 local manifestBytes = fetch(root .. manifestCommit .. project .. "manifest.json",
-    "647fe1192809d067d35824ce09702744550709c07f77d3afc1ff6eace39c0782", "manifest")
+    "21be08e4bb13ac2c7f8fac8eb62e0cf8fe033a0b8127ba7bd47a20ad630dff86", "manifest")
 local manifest = game:GetService("HttpService"):JSONDecode(manifestBytes)
 assert(manifest.releaseCommit == sourceCommit, "Manifest pin mismatch")
 
