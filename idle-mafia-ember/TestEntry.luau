@@ -1,6 +1,6 @@
 -- Pinned UI smoke test. Runtime/gameplay activation is always false.
-local sourceCommit = "9bce86fad8f774c17496f2098b69352fbf7fcc69"
-local manifestCommit = "9adb40fcfe459d65bd615161b19e753e72c04c27"
+local sourceCommit = "5ddbb9e1b04242bde62dd8a32abe5bc4a28f5857"
+local manifestCommit = "06ac5c2b5d096a5042a5e457bb60dd75aa982a77"
 local root = "https://raw.githubusercontent.com/iiSatomi/Roblox/"
 local project = "/idle-mafia-ember/"
 local hashApi = crypt or (syn and syn.crypt)
@@ -26,14 +26,14 @@ local function pinnedModule(path, digest)
 end
 
 local manifestBytes = fetch(root .. manifestCommit .. project .. "manifest.json",
-    "86a280cba6b5b3c61bb313cf6d648c36867ef995ae4955ebbd4334623d9dc7ea", "manifest")
+    "dee91827a8602d7a814e53e43948819547dda49bd1481c9502f3122c7f218398", "manifest")
 local manifest = game:GetService("HttpService"):JSONDecode(manifestBytes)
 assert(manifest.releaseCommit == sourceCommit, "Manifest pin mismatch")
 
-local Loader = pinnedModule("Loader.luau", "a39df0bc554eee950c64d8d147e33a22698cd86f5376520c4b1086663f9298ba")
+local Loader = pinnedModule("Loader.luau", "2bd90f28042eccb649fb02d2617ff2d5770f2c74cba97b4968bbac629340fbb4")
 local Manifest = pinnedModule("src/loader/Manifest.luau", "cbbe6d580c1fab36bf8c9cd4d9e93830dee7c091a32a6fd9bf2a30868712822b")
 local Bootstrap = pinnedModule("Bootstrap.luau", "8e532b4bb2e45255b75f66f249423a7f2e70d3ff954fd08f2780fb28c1237c99")
-local ReleaseAdapters = pinnedModule("ReleaseAdapters.luau", "f830b6379ff3eeff3d0ad7942fbc9497f2a9989fcc0c212f744c66eed0494c8c")
+local ReleaseAdapters = pinnedModule("ReleaseAdapters.luau", "83e94688a7b2262e43e764ea36ef1271afda91d8f9f7808fd1aa347622eb4b3c")
 local ExecutorEntry = pinnedModule("ExecutorEntry.luau", "6defd52943d4db8168be6f882abef9a12616b53c2bd0cc187ed21234b9cfc0e5")
 
 -- Official Ember URL is mutable. Reject an update until its bytes are reviewed.
