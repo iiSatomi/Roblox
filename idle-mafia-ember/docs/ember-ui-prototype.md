@@ -1,4 +1,4 @@
-# Actual Ember UI prototype 0.1
+# Actual Ember UI prototype 0.1.1
 
 This is the first fresh Luau composition for the recode: 25 dedicated tabs,
 55 independently selectable activities/permissions, compact goals and bounded
@@ -7,9 +7,10 @@ module, account file, timer or network loader exists in this application.
 
 ## Local executor file
 
-The local build is `.private/IdleMafia-Ember-UI-0.1.lua`. Paste its contents into
-the executor to inspect the UI. It creates only the prototype; no test has
-executed it in Roblox yet. F8 shows/hides it. Unload closes it and invalidates
+The local build is `.private/IdleMafia-Ember-UI-0.1.1.lua`. Paste its contents into
+the executor to inspect the UI. It creates only the prototype. The user ran 0.1
+and reported that it worked, with editor Problems and icon warnings. Version
+0.1.1 was then user-tested with no console errors or executor Problems. F8 shows/hides it. Unload closes it and invalidates
 pending local callbacks. Re-running replaces the same-identity prototype.
 
 All feature choices start off and paused. Resume only changes prototype session
@@ -48,7 +49,7 @@ the bundled Python and `PYTHONPATH=.local-deps`):
 
 ```powershell
 $env:PYTHONPATH = '.local-deps'
-$py = 'C:\Users\asato\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe'
+$py = 'python'
 & $py -m unittest discover -s idle-mafia-ember/tests -p test_ui_prototype.py -v
 node --test idle-mafia-ember/tests/preview-model.test.mjs
 python idle-mafia-ember/tools/build_ui_prototype.py --check
@@ -59,7 +60,7 @@ only from the exact reviewed Ember source:
 
 ```powershell
 python idle-mafia-ember/tools/build_ui_prototype.py --ember idle-mafia-ember/.private/ember-2026-10-20.lua
-& 'idle-mafia-ember/.private/luau-compiler/luau-compile.exe' --null idle-mafia-ember/.private/IdleMafia-Ember-UI-0.1.lua
+& 'idle-mafia-ember/.private/luau-compiler/luau-compile.exe' --null idle-mafia-ember/.private/IdleMafia-Ember-UI-0.1.1.lua
 ```
 
 The builder never downloads or executes dependency source. See
@@ -67,16 +68,37 @@ The builder never downloads or executes dependency source. See
 private-source policy and compiler provenance. A fresh checkout must supply
 reviewed bytes itself; no mutable-URL executor loader is published.
 
+Version 0.1.1 embeds sources as separate local chunks rather than inline
+functions, keeping their type-inference boundaries intact. It requires the
+executor's `loadstring`, precompiles the entire set before executing a module,
+names compilation errors by module, then initializes exports once in order.
+Missing compilation support or invalid exports stop startup. The App declares
+its UI/profile fields before creating callbacks, fixing old-solver field errors.
+Sidebar icons use distinct names verified against the pinned Ember catalog:
+Overview `home`, Safehouse `shield`, Crew `users`, Family `users-round`.
+
+Compiler checks must include every original source separately, since source
+strings are not parsed as code by the wrapper's static analyzer:
+
+```powershell
+& 'idle-mafia-ember/.private/luau-compiler/luau-compile.exe' --null idle-mafia-ember/.private/ember-2026-10-20.lua idle-mafia-ember/src/App.luau idle-mafia-ember/src/storage/Settings.luau idle-mafia-ember/src/ui/EmberAdapter.luau idle-mafia-ember/src/ui/Catalog.luau idle-mafia-ember/.private/IdleMafia-Ember-UI-0.1.1.lua
+```
+
 ## Evidence and remaining checks
 
-Twenty offline Python/Lupa checks cover local state, typed profile rejection,
+Twenty-six offline Python/Lupa/Luau-analysis checks cover local state, typed profile rejection,
 false hydration, gear exclusion, stop latch, superseded/initial callbacks,
 construction/recreation, failed setters, rollback failure, render-failure
 atomicity, initial-render cleanup and dependency/generation guards. Twelve
 existing Node preview tests remain applicable. Official Luau compilation checks
-the real dependency and assembled file; it does not execute them.
+the real dependency, application source modules and assembled wrapper; it does
+not execute them. New checks cover module delimiter safety, full precompilation,
+missing compiler/invalid exports, valid/distinct sidebar icons and App analysis
+under both old/new solvers. The analysis regression requires `LUAU_ANALYZE` or
+the private official analyzer and explicitly skips when unavailable.
 
-Actual Roblox layout, focus, nested group/search interaction, F8, 25-tab sidebar
-scrolling, theme painting and destroy/recreate are **unverified**. Browser layout
+The user confirmed 0.1.1 executes without console errors or executor Problems.
+Detailed Roblox layout, focus, nested group/search interaction, F8, 25-tab sidebar
+scrolling, theme painting and destroy/recreate remain **unverified**. Browser layout
 also remains unverified under the existing local-navigation restriction. Keep
 these acceptance checks open; no gameplay request or account change was made.

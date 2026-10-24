@@ -47,6 +47,24 @@ return function()
                     return true
                 end
                 function handle:SetVisible(on) self.visible = on end
+                function handle:SetOptions(options, silent)
+                    self.options.Options = options
+                    if self.kind == "Dropdown" then
+                        local found = false
+                        for _, option in ipairs(options) do
+                            if option == self.value then found = true; break end
+                        end
+                        if not found then
+                            self.value = options[1]
+                            if not silent and opts.Callback then
+                                ember.queue[#ember.queue + 1] = function()
+                                    opts.Callback(self.value)
+                                end
+                            end
+                        end
+                    end
+                    return true
+                end
                 function handle:SetDisabled(on) self.disabled = on end
                 function handle:Click()
                     ember.queue[#ember.queue + 1] = opts.Callback
@@ -64,8 +82,9 @@ return function()
             end
             return box
         end
-        function window:Section(label)
+        function window:Section(label, icon)
             local section = container(label)
+            section.icon = icon
             self.sections[#self.sections + 1] = section
             return section
         end

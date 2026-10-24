@@ -1,10 +1,11 @@
 # Idle Mafia Ember recode — feature parity register
 
-Date: 2026-10-20. Status: planning inventory, **not implemented**.
+Date: 2026-10-20. Status: planning inventory with offline slices only;
+**no live feature is implemented**.
 
 Baseline: feature-label registry and feature controls in `mafia/runtime/Interface.inc.lua`, settings/defaults and planners in `mafia/Core.lua`, related domain modules, newest handoff sections, as the legacy behavior baseline. The [October 20 place audit](place-audit-2026-10-20.md), native `0.26.487.1`, now supplies current client evidence. All 50 legacy feature IDs remain registered, but their old tuning knobs are migration inputs rather than controls to recreate. See [simpler UI](ui-simplification.md) and the [231-key inventory](legacy-settings-inventory.json). No gameplay function is implemented yet.
 
-Every row is pending fresh implementation and current-native contract validation. Owners below are proposed new domains under `idle-mafia-ember/src/features/`; rows may share domain files without sharing run switches. Evidence needed for a mutation always includes its exact action-specific outcome, not merely an invocation return.
+Every row is pending live implementation and current-native contract validation. Jobs, ordinary city and Global Boss hits, free-charge Family Takedown attacks, settled Global Boss and current/historical Family Takedown claim paths, selected-item Boss Shop purchases, personal Heist starts, ordinary Favor help, separate Heist sabotage, Operation start/collection, guarded Bank deposits, purpose-specific withdrawals, next-tier Safehouse upgrades, Skills, earned playtime, daily/weekly Contract entry and completion-bonus claims, free Briefcase picks, existing-member Group bonus, the config-gated monthly claim and two Gold-mastery trophy claims now have offline pure/fake-adapter slices only; none has a production transport or observed server outcome. The saved monthly config is disabled. Owners below are proposed new domains under `idle-mafia-ember/src/features/`; rows may share domain files without sharing run switches. Evidence needed for a mutation always includes its exact action-specific outcome, not merely an invocation return.
 
 The [native reuse audit](native-reuse-audit.md) now assigns every one of the 55 planned controls a native-operation/controller decision. Preserve useful outcomes, not duplicate legacy algorithms. In particular, native Auto Equip already claims two- and three-piece set support; the custom gear path is optional and must demonstrate a distinct goal/constraint gap before execution.
 

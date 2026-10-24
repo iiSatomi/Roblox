@@ -6,9 +6,35 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 EMBER_SHA256 = "c6ec2ad2ad732a2ed704d044fd068b685d7e6c2613f60a07c39316666576390a"
+PROTOTYPE_VERSION = "0.1.38"
 MODULES = {
     "Catalog": "src/ui/Catalog.luau",
     "Settings": "src/storage/Settings.luau",
+    "OverviewTab": "src/tabs/overview/Module.luau",
+    "HeistsTab": "src/tabs/heists/Module.luau",
+    "JobsTab": "src/tabs/jobs/Module.luau",
+    "OperationsTab": "src/tabs/operations/Module.luau",
+    "FavorsTab": "src/tabs/favors/Module.luau",
+    "CombatTab": "src/tabs/combat/Module.luau",
+    "CrewTab": "src/tabs/crew/Module.luau",
+    "InventoryTab": "src/tabs/inventory/Module.luau",
+    "CollectionTab": "src/tabs/collection/Module.luau",
+    "MoneyTab": "src/tabs/money/Module.luau",
+    "PropertyTab": "src/tabs/property/Module.luau",
+    "SafehouseTab": "src/tabs/safehouse/Module.luau",
+    "PrestigeTab": "src/tabs/prestige/Module.luau",
+    "ShopTab": "src/tabs/shop/Module.luau",
+    "BlackMarketTab": "src/tabs/blackMarket/Module.luau",
+    "FamilyTab": "src/tabs/family/Module.luau",
+    "TerritoryTab": "src/tabs/territory/Module.luau",
+    "ContractsTab": "src/tabs/contracts/Module.luau",
+    "TrophiesTab": "src/tabs/trophies/Module.luau",
+    "SkillsTab": "src/tabs/skills/Module.luau",
+    "RewardsTab": "src/tabs/rewards/Module.luau",
+    "EventsTab": "src/tabs/events/Module.luau",
+    "ProfilesTab": "src/tabs/profiles/Module.luau",
+    "SettingsTab": "src/tabs/settings/Module.luau",
+    "ActivityTab": "src/tabs/activity/Module.luau",
     "EmberAdapter": "src/ui/EmberAdapter.luau",
     "App": "src/App.luau",
 }
@@ -45,17 +71,51 @@ def catalog_source():
     return "\n".join(lines + ["}", ""])
 
 
+def long_string(source):
+    equals = ""
+    while "]" + equals + "]" in source:
+        equals += "="
+    # Lua removes this added first newline, preserving the source's first line.
+    # Separate the source suffix from the delimiter, even without a final LF.
+    return "[" + equals + "[\n" + source + "\n]" + equals + "]"
+
+
+def assemble_modules(sources):
+    rows = ["    { name = " + lua(name) + ", source = " + long_string(source) + " },"
+            for name, source in sources]
+    chunks = [f"-- Idle Mafia Ember inert UI {PROTOTYPE_VERSION}: no gameplay or account I/O.",
+              "local compile = getfenv().loadstring",
+              'assert(type(compile) == "function", "This executor must provide loadstring; no UI started")',
+              "local sources = {", *rows, "}",
+              "local compiled = {}",
+              "-- Precompile the complete local set before executing any module.",
+              "for _, entry in ipairs(sources) do",
+              '    local chunk, reason = compile(entry.source, "=IdleMafiaEmber/" .. entry.name)',
+              '    assert(chunk, "Compile failed for " .. entry.name .. ": " .. tostring(reason))',
+              "    compiled[entry.name] = chunk",
+              "end",
+              "local modules = {}",
+              "for _, entry in ipairs(sources) do",
+              "    local value = compiled[entry.name]()",
+              '    assert(type(value) == "table", "Invalid module export: " .. entry.name)',
+              "    modules[entry.name] = value",
+              "end",
+              "return modules.App.start({ Ember = modules.Ember, Catalog = modules.Catalog, "
+              "Settings = modules.Settings, OverviewTab = modules.OverviewTab, "
+              "HeistsTab = modules.HeistsTab, JobsTab = modules.JobsTab, "
+              "OperationsTab = modules.OperationsTab, FavorsTab = modules.FavorsTab, "
+            "CombatTab = modules.CombatTab, CrewTab = modules.CrewTab, InventoryTab = modules.InventoryTab, CollectionTab = modules.CollectionTab, MoneyTab = modules.MoneyTab, PropertyTab = modules.PropertyTab, SafehouseTab = modules.SafehouseTab, PrestigeTab = modules.PrestigeTab, ShopTab = modules.ShopTab, BlackMarketTab = modules.BlackMarketTab, FamilyTab = modules.FamilyTab, TerritoryTab = modules.TerritoryTab, ContractsTab = modules.ContractsTab, TrophiesTab = modules.TrophiesTab, SkillsTab = modules.SkillsTab, RewardsTab = modules.RewardsTab, EventsTab = modules.EventsTab, ProfilesTab = modules.ProfilesTab, "
+              "SettingsTab = modules.SettingsTab, ActivityTab = modules.ActivityTab, EmberAdapter = modules.EmberAdapter })"]
+    return "\n".join(chunks) + "\n"
+
+
 def prototype_source(ember):
     if hashlib.sha256(ember).hexdigest() != EMBER_SHA256:
         raise ValueError("Ember fingerprint differs from reviewed bytes; review before building")
-    chunks = ["-- Idle Mafia Ember inert UI 0.1: no gameplay transport or account I/O.",
-              "local modules = {}", "local Ember = (function()\n" + ember.decode("utf-8") + "\nend)()"]
-    for name, relative in MODULES.items():
-        source = (ROOT / relative).read_text(encoding="utf-8")
-        chunks.append(f"modules.{name} = (function()\n{source}\nend)()")
-    chunks.append("return modules.App.start({ Ember = Ember, Catalog = modules.Catalog, "
-                  "Settings = modules.Settings, EmberAdapter = modules.EmberAdapter })")
-    return "\n".join(chunks) + "\n"
+    sources = [("Ember", ember.decode("utf-8"))]
+    sources.extend((name, (ROOT / relative).read_text(encoding="utf-8"))
+                   for name, relative in MODULES.items())
+    return assemble_modules(sources)
 
 
 def main():
@@ -74,7 +134,7 @@ def main():
         target.write_text(expected, encoding="utf-8", newline="\n")
         print("Generated src/ui/Catalog.luau")
     if args.ember:
-        output = ROOT / ".private/IdleMafia-Ember-UI-0.1.lua"
+        output = ROOT / f".private/IdleMafia-Ember-UI-{PROTOTYPE_VERSION}.lua"
         source = prototype_source(args.ember.read_bytes())
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(source, encoding="utf-8", newline="\n")

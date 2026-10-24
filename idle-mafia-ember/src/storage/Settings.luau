@@ -16,11 +16,17 @@ local function accepts(spec, value)
             and value > -math.huge and value < math.huge
             and (spec.min == nil or value >= spec.min)
             and (spec.max == nil or value <= spec.max)
+            and (not spec.integer or value % 1 == 0)
     end
     if spec.kind == "enum" then
         for _, option in ipairs(spec.options) do
             if value == option then return true end
         end
+    end
+    if spec.kind == "text" then
+        return type(value) == "string" and #value > 0
+            and #value <= (spec.maxLength or 120)
+            and value:match("^[%w_%-]+$") ~= nil
     end
     return false
 end
@@ -44,8 +50,10 @@ function Settings.new(catalog)
         for _, field in ipairs(feature.custom) do
             assert(type(field.id) == "string", "Custom preference needs a stable ID")
             add(feature.id .. ".custom." .. field.id, field.value, {
-                kind = field.type == "select" and "enum" or "number",
+                kind = field.type == "select" and "enum"
+                    or field.type == "text" and "text" or "number",
                 options = field.options, min = field.min, max = field.max,
+                integer = field.integer, maxLength = field.maxLength,
             })
         end
     end

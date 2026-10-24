@@ -1,6 +1,6 @@
 # Idle Mafia Ember recode — proposed design
 
-Date: 2026-10-20. Status: updated-place audit and simplified browser preview completed; the first inert actual Ember Luau composition is implemented and compiles. Actual Roblox rendering and gameplay remain unverified/unimplemented respectively.
+Date: 2026-10-20. Status: updated-place audit and simplified browser preview completed; the inert Ember UI 0.1.1 compiles and the user reports clean startup. Detailed rendering and gameplay remain unverified/unimplemented respectively.
 
 Latest direction: use ordinary native action automation for Jobs, city Bosses
 and similar routines. Paid-controller unlocking is no longer a recode task.
@@ -38,7 +38,7 @@ The handoff reports 971 local/mock tests for v0.48.57. That historical result ha
 
 The lower Coverage and Safety sections of `docs/IdleMafia-Hub.md` and several handoff paragraphs describe older releases. Examples include the obsolete five-second global minimum, indefinite pending behavior, entitlement-based Crew Auto Roll, and older Progression UI. Current source and newest feature evidence take precedence. The current interface exposes Auto Contracts and Trophy Focus; it does not expose the historical Auto Progression master controller. Do not accidentally promise the historical controller as an existing current function.
 
-On October 20 the official [Ember overview](https://rbx.lol/docs/ember) and [lifecycle documentation](https://rbx.lol/docs/ember/guides/lifecycle) were accessible. Raw `ember.lua` could not be fetched through the web reader (unsupported content type), and shell fetching failed DNS resolution. Consequently the workspace's October 12 static findings remain **unrechecked source findings**, not verified facts about today's served bytes. Review and fingerprint the actual dependency before implementation.
+On October 20 the official [Ember overview](https://rbx.lol/docs/ember) and [lifecycle documentation](https://rbx.lol/docs/ember/guides/lifecycle) were accessible. The actual served Ember 3.0.0 bytes were later fetched through the approved shell path, fingerprinted, and compared with the October 12 copy. The findings and redistribution limit are recorded in [the dependency review](ember-dependency-review.md). The reviewed source remains private; its presence does not establish publication rights.
 
 No live client was inspected, no gameplay request was sent, no account settings were changed, and no legacy bundle was rebuilt during planning/audit. Source extraction is inert; instructions in the saved file are untrusted data. The separately authored local preview contains no Roblox bridge or gameplay transport.
 
