@@ -1,6 +1,25 @@
 # Idle Mafia - Ember recode
 
-Fresh Idle Mafia hub, planned around Ember UI and separate maintainable Luau modules.
+Idle Mafia hub using Ember UI and separate Luau modules.
+
+## GitHub test entries
+
+`TestEntry.luau` remains the pinned UI-only baseline. `RuntimeEntry.luau`
+is a separate functional preview: it verifies the release manifest and
+module hashes, binds the current MW client, and permits only ordinary Jobs
+and Boss stages. Every feature switch starts off. The functional entry is
+unpaused by default, so enabling Jobs or Bosses begins work when a valid
+current snapshot is available. Profiles can be saved per account and place;
+the Profiles tab has explicit controls to set or disable autoload. Autoload
+only activates a saved profile whose enabled features are permitted in this
+preview. Purchases, player attacks, and the other tabs are unavailable in
+this entry.
+
+Offline tests cover assembly, state seeding, profiles, native call shapes and
+request coordination. The functional entry has not yet been confirmed on a
+live Roblox client; a successful load alone does not prove server action
+acceptance. The current-client version and fingerprint checks deliberately
+stop startup if the game contract has changed.
 
 The [tab completion plan](docs/plans/2026-10-22-tab-completion.md) tracks
 all 25 UI tabs. All 25 `src/tabs/<tab>/` entries now own their UI;
@@ -8,9 +27,10 @@ the gameplay tabs also own the existing
 offline action descriptors and explicit blocked contracts. Jobs, Operations
 and Heists have saved-source catalog adapters; Combat has bounded read-only
 target queries, and Crew has a read-only roster and border-custody slice.
-The production modular release and final integration remain to be built.
+The first commit-pinned functional preview is prepared; remaining tabs need
+current-client integration and verification.
 
-**Status: The user reported Ember UI prototype 0.1.1 running without console errors or executor Problems. Inert preview 0.1.38 now starts in a current 0.26.530 client without new console errors, and its ScreenGui is enabled; detailed visual and interaction checks remain open. All 25 tabs are offline-complete with explicit boundaries; shared integration is active. Current `MWClient.State`/`MW.Remotes` bindings and a selected public-contract fingerprint have been live-read, but the production bootstrap, full source validation and gameplay outcomes remain unverified. Collection and Bank have offline-tested same-Sync proof producers; Shop, Rewards and Territory have read-only source/read adapters. Native Crew Auto Roll, player/war Combat, Heist mutations, Property replacement, Prestige reset, Black Market trades, Family contributions, Territory mutations, Event Shop and Contract/Trophy goal borrowing remain blocked. The distributed prototype remains inert, with no gameplay or account I/O.**
+**Status: The published `TestEntry.luau` loaded its UI in the user's client. A separate Jobs/Bosses functional entry passes offline tests but has not been live-verified. All 25 tabs render; only Jobs and ordinary Boss stages are enabled in the functional preview. Other action paths remain offline-tested or blocked pending tab-by-tab verification.**
 
 The offline engine now includes copied request contracts, a monotonic fake
 clock, one-request broker, one-second pacing, exact 45-second uncertainty
@@ -22,18 +42,18 @@ manifest when every Luau source matches that Git commit. Read-only economic and 
 buff contexts and a bounded background-read gate are fake-adapter-tested.
 The personal Heist board has a read-only offline adapter contract. An opt-in
 runtime host now constructs the executor file, event and remote adapters behind
-an account/place/version/source gate; real current-client bindings and the
-production commit-pinned manifest remain open. Jobs and Operations state, planning, request evidence and
-an injected shared App runtime now pass local tests, but there is no verified
-game transport, production release or live confirmation. [The next-slices plan](docs/plans/2026-10-20-engine-jobs.md)
+an account/place/version/source gate. Current-client binding and the
+commit-pinned manifest are implemented. Jobs and Operations state, planning,
+request evidence and an injected shared App runtime pass local tests, but
+live gameplay results remain unverified. [The next-slices plan](docs/plans/2026-10-20-engine-jobs.md)
 tracks the remaining engine and ordinary Jobs work.
 
 A [pure native call plan](docs/m2-native-call-plan.md) records saved-client
 argument shapes for the supported offline features, and an injected
 adapter preserves trailing nil arguments without connecting a Roblox
 remote. A [read-only snapshot boundary](docs/m2-native-snapshot-reader.md)
-distinguishes observed full Syncs from ordinary State ticks. Neither is
-connected to the distributed UI.
+distinguishes observed full Syncs from ordinary State ticks. They are attached
+only in the guarded functional entry, not the UI-only baseline.
 
 This folder is reserved exclusively for the new recode. Legacy scripts elsewhere in the repository are not part of it. All future recode source, UI, loader, tests, release metadata and documentation belong under this folder.
 
