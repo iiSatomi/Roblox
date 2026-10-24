@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "9bce86fad8f774c17496f2098b69352fbf7fcc69",
+  "releaseCommit": "5ddbb9e1b04242bde62dd8a32abe5bc4a28f5857",
   "modules": [
     {
       "id": "AutomationRuntime",
