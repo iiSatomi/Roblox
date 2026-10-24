@@ -205,7 +205,7 @@ function Adapter.new(ember, catalog, callbacks)
         if callbacks.settingsModule then
             self.settings = callbacks.settingsModule.new(
                 sections.settings, ember, userOrigin,
-                function() return self.alive end)
+                function() return self.alive end, callbacks, self.window)
         else
             sections.settings:Dropdown({ Text = "Theme", Options = ember.ThemeNames(), Default = "Midnight",
                 Save = false, FireOnStart = false, Callback = function(value, _, origin)
@@ -286,6 +286,7 @@ function Adapter:Render(model)
     end
     if self.overview then self.overview:Render(model)
     else self.sessionStatus:Set(session .. sessionDetail, true) end
+    if self.profiles then self.profiles:Render(model) end
     for id, row in pairs(self.features) do
         local selected = model.values[id .. ".enabled"]
         local label = "Off"

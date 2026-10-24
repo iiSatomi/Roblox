@@ -15,7 +15,7 @@ function JobsTab.BuildUI(section, feature, bind, active)
         Description = feature.description, Open = true })
     bind(group, "Toggle", "jobs.enabled", {
         Text = "Allow " .. feature.label,
-        Description = "Select this activity for the prototype.",
+        Description = "Select this activity; the status below shows whether this entry can run it.",
         Default = false, RevertOnClose = true, RevertTo = false,
     })
     bind(group, "Dropdown", "jobs.policy", {

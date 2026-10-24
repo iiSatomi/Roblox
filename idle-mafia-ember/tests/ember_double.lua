@@ -89,6 +89,7 @@ return function()
             return section
         end
         function window:OnDestroy(callback) self.listeners[#self.listeners + 1] = callback end
+        function window:Center() self.centered = true end
         function window:Destroy()
             if self.destroyed then return false end
             self.destroyed = true

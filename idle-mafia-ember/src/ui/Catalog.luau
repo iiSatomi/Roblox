@@ -25,8 +25,8 @@ return {
         {["id"]="skills",["label"]="Skills",["description"]="Allocate earned points toward your chosen stat",["symbol"]="＋"},
         {["id"]="rewards",["label"]="Rewards",["description"]="Earned playtime, group and monthly claims",["symbol"]="✧"},
         {["id"]="events",["label"]="Events",["description"]="Briefcases, effective buffs and Event Shop",["symbol"]="✦"},
-        {["id"]="profiles",["label"]="Profiles",["description"]="Choose settings deliberately",["symbol"]="▤"},
-        {["id"]="settings",["label"]="Settings",["description"]="Shared preferences in one place",["symbol"]="⚙"},
+        {["id"]="profiles",["label"]="Profiles",["description"]="Stage, compare and save feature choices",["symbol"]="▤"},
+        {["id"]="settings",["label"]="Settings",["description"]="Appearance and connection information",["symbol"]="⚙"},
         {["id"]="activity",["label"]="Activity",["description"]="Clear reasons and recent UI changes",["symbol"]="≡"},
     },
     features = {

@@ -15,6 +15,12 @@ only activates a saved profile whose enabled features are permitted in this
 preview. Purchases, player attacks, and the other tabs are unavailable in
 this entry.
 
+Profiles displays selected and staged differences in both entries. Saved
+profile and autoload controls appear only when account/place-scoped storage
+is available. Settings offers session-only theme selection/reset, window
+centering, and a clear connection-mode indicator. Each gameplay row reports
+whether the current entry can run that feature.
+
 Offline tests cover assembly, state seeding, profiles, native call shapes and
 request coordination. The functional entry has not yet been confirmed on a
 live Roblox client; a successful load alone does not prove server action

@@ -1,5 +1,17 @@
 # Idle Mafia tab completion plan
 
+**2026-10-24 UI pass:** Profiles separates session choices from saved
+profiles, counts enabled choices and staged differences, and shows saved
+profile/autoload state. Settings groups appearance and window controls,
+shows the active theme and connection mode, and offers theme reset and window
+centering. The UI-only entry keeps profiles in memory; the functional entry
+uses account/place-scoped storage. All 25 tab entry points remain present;
+the 21 gameplay tabs now explain that each row's status determines whether
+the current entry can run it. Offline checks: 606 Python/Lupa tests (one
+skipped), 12 Node tests, 211 unique Luau modules, and changed Luau syntax
+parsing. A current-client visual check and Jobs/Boss server outcomes remain
+pending.
+
 **2026-10-24 functional preview update:** The existing GitHub draft PR branch
 now contains `RuntimeEntry.luau` at `5a5bbe0`, separate from the published
 UI-only `TestEntry.luau`. The entry pins a 211-module source commit and

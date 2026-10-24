@@ -473,11 +473,34 @@ class PrototypeTests(unittest.TestCase):
                       ["blockedReason"])
 
     def test_profiles_tab_owns_staging_controls(self):
-        app, _ = self.app()
+        app, ember = self.app()
         self.assertTrue(app.ui.profiles["tabOwned"])
         self.assertIsNotNone(app.ui.profiles["profileStatus"])
         self.assertEqual(app.ui.profileStatus.Get(app.ui.profileStatus),
                          "None")
+        self.assertEqual(app.ui.profiles.selectionStatus.Get(
+            app.ui.profiles.selectionStatus), "0 selected")
+        self.assertEqual(app.ui.profiles.differenceStatus.Get(
+            app.ui.profiles.differenceStatus), "No staged choices")
+        self.assertEqual(app.ui.profiles.storageStatus.Get(
+            app.ui.profiles.storageStatus), "Memory only")
+        self.assertTrue(app.Set(app, "jobs.enabled", True)[0])
+        self.assertEqual(app.ui.profiles.selectionStatus.Get(
+            app.ui.profiles.selectionStatus), "1 selected")
+        buttons = {handle["options"]["Text"]: handle
+                   for handle in app.ui.window.handles.values()
+                   if handle["kind"] == "Button"}
+        buttons["Stage current choices"].Click(buttons["Stage current choices"])
+        ember.Flush()
+        self.assertEqual(app.ui.profiles.differenceStatus.Get(
+            app.ui.profiles.differenceStatus), "0 changes from current")
+        self.assertTrue(app.Set(app, "jobs.enabled", False)[0])
+        self.assertEqual(app.ui.profiles.differenceStatus.Get(
+            app.ui.profiles.differenceStatus), "1 change from current")
+        buttons["Discard staged choices"].Click(buttons["Discard staged choices"])
+        ember.Flush()
+        self.assertEqual(app.ui.profiles.differenceStatus.Get(
+            app.ui.profiles.differenceStatus), "No staged choices")
 
     def test_settings_theme_is_tab_owned_and_ignores_startup_or_closed_callbacks(self):
         app, ember = self.app(forceInitial=True)
@@ -490,9 +513,23 @@ class PrototypeTests(unittest.TestCase):
         self.assertIsNone(ember.theme)
         theme.options.Callback("Dark", None, None)
         self.assertEqual(ember.theme, "Dark")
+        self.assertEqual(app.ui.settings.themeStatus.Get(
+            app.ui.settings.themeStatus), "Dark")
+        self.assertEqual(app.ui.settings.modeStatus.Get(
+            app.ui.settings.modeStatus), "UI only — actions disconnected")
+        buttons = {handle["options"]["Text"]: handle
+                   for handle in app.ui.window.handles.values()
+                   if handle["kind"] == "Button"}
+        buttons["Reset theme"].Click(buttons["Reset theme"])
+        ember.Flush()
+        self.assertEqual(ember.theme, "Midnight")
+        self.assertEqual(theme.Get(theme), "Midnight")
+        buttons["Center window"].Click(buttons["Center window"])
+        ember.Flush()
+        self.assertTrue(app.ui.window.centered)
         app.Destroy(app)
         theme.options.Callback("Slate", None, None)
-        self.assertEqual(ember.theme, "Dark")
+        self.assertEqual(ember.theme, "Midnight")
 
     def test_activity_tab_bounds_local_journal_and_reports_adapter_health(self):
         app, _ = self.app()

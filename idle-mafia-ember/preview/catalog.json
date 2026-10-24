@@ -137,13 +137,13 @@
     {
       "id": "profiles",
       "label": "Profiles",
-      "description": "Choose settings deliberately",
+      "description": "Stage, compare and save feature choices",
       "symbol": "▤"
     },
     {
       "id": "settings",
       "label": "Settings",
-      "description": "Shared preferences in one place",
+      "description": "Appearance and connection information",
       "symbol": "⚙"
     },
     {

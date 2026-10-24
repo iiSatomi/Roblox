@@ -107,7 +107,7 @@ function App.start(dependencies)
     local function render(view, command)
         return pcall(function()
             local projected = { values = view.values, paused = view.paused,
-                stopped = view.stopped,
+                stopped = view.stopped, staged = self.staged,
                 jobsRuntime = self.jobsRuntime and self.jobsRuntime:Status() or nil,
                 automationRuntime = self.automationRuntime
                     and self.automationRuntime:Status() or nil }
@@ -166,7 +166,10 @@ function App.start(dependencies)
         end
         local saved, reason = self.profileStore:Save(
             name, self.model:Snapshot())
-        if saved then self.ui.profileStatus:Set("Saved locally: " .. name, true) end
+        if saved then
+            self.ui.profileStatus:Set("Saved locally: " .. name, true)
+            if self.ui.profiles then self.ui.profiles:RefreshStorage() end
+        end
         return saved, reason
     end
 
@@ -178,7 +181,7 @@ function App.start(dependencies)
         if not profile then return false, reason end
         self.staged = profile
         self.ui.profileStatus:Set("Ready to apply: " .. name, true)
-        return true, nil
+        return self:Refresh("Previewed saved profile")
     end
 
     function self:SetAutoload(name)
@@ -190,6 +193,7 @@ function App.start(dependencies)
             self.ui.profileStatus:Set(name
                 and ("Autoload on: " .. name)
                 or "Autoload off", true)
+            if self.ui.profiles then self.ui.profiles:RefreshStorage() end
         end
         return saved, reason
     end
@@ -344,9 +348,11 @@ function App.start(dependencies)
         elseif name == "stage" then
             self.staged = self.model:Snapshot()
             self.ui.profileStatus:Set("Staged locally", true)
+            self:Refresh("Staged current choices")
         elseif name == "discard" then
             self.staged = nil
             self.ui.profileStatus:Set("None", true)
+            self:Refresh("Discarded staged choices")
         elseif name == "apply" then
             local ok, reason = self:ApplyProfile(self.staged)
             if not ok then self.ui.lastError = reason; self:Refresh("Profile not applied") end
@@ -354,6 +360,8 @@ function App.start(dependencies)
             local ok, reason = self:SetAutoload(nil)
             if not ok then self.ui.lastError = reason
                 self:Refresh("Autoload setting rejected") end
+        elseif name == "refreshProfiles" then
+            self.ui.profiles:RefreshStorage()
         elseif name == "saveProfile" or name == "previewProfile"
             or name == "enableAutoload" then
             if not self.ui.profileName then return end
@@ -378,6 +386,12 @@ function App.start(dependencies)
         dependencies.Ember, dependencies.Catalog, {
         change = change, command = command, destroy = closed,
         profileStorage = self.profileStore ~= nil,
+        profileSummary = self.profileStore and function()
+            local names, listReason = self.profileStore:List()
+            if not names then return nil, nil, listReason end
+            local autoload, autoloadReason = self.profileStore:GetAutoload()
+            return names, autoload, autoloadReason
+        end or nil,
         runtimeConnected = runtime ~= nil,
         allowedFeatures = allowedFeatures,
         overviewModule = dependencies.OverviewTab,

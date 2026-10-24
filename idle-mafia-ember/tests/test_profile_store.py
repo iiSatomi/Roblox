@@ -170,6 +170,10 @@ class ProfileStoreTests(unittest.TestCase):
         })
         app = self.h.load("src/App.luau").start(deps)
         try:
+            self.assertEqual(app.ui.profiles.storageStatus.Get(
+                app.ui.profiles.storageStatus), "No saved profiles")
+            self.assertEqual(app.ui.profiles.autoloadStatus.Get(
+                app.ui.profiles.autoloadStatus), "Off")
             self.assertTrue(app.Set(app, "jobs.enabled", True)[0])
             self.assertIsNotNone(app["ui"]["profileName"])
             buttons = {handle["options"]["Text"]: handle
@@ -178,15 +182,21 @@ class ProfileStoreTests(unittest.TestCase):
             buttons["Save choices locally"].Click(
                 buttons["Save choices locally"])
             ember.Flush()
+            self.assertEqual(app.ui.profiles.storageStatus.Get(
+                app.ui.profiles.storageStatus), "1 saved: main")
             buttons["Autoload this saved profile"].Click(
                 buttons["Autoload this saved profile"])
             ember.Flush()
             self.assertEqual(app.profileStore.GetAutoload(
                 app.profileStore)[0], "main")
+            self.assertEqual(app.ui.profiles.autoloadStatus.Get(
+                app.ui.profiles.autoloadStatus), "main")
             buttons["Disable autoload"].Click(buttons["Disable autoload"])
             ember.Flush()
             self.assertIsNone(app.profileStore.GetAutoload(
                 app.profileStore)[0])
+            self.assertEqual(app.ui.profiles.autoloadStatus.Get(
+                app.ui.profiles.autoloadStatus), "Off")
             self.assertTrue(app.Set(app, "jobs.enabled", False)[0])
             buttons["Preview saved profile"].Click(
                 buttons["Preview saved profile"])
