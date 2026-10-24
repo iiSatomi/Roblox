@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "5ddbb9e1b04242bde62dd8a32abe5bc4a28f5857",
+  "releaseCommit": "b93190d003a06bb5cca9366df6f09e86e522a38b",
   "modules": [
     {
       "id": "AutomationRuntime",
@@ -11,7 +11,7 @@
     {
       "id": "Broker",
       "path": "src/engine/Broker.luau",
-      "sha256": "e807280b86b0df1b839a1497a8e14f680c5d73600641a7d0fa3573577a284ff6",
+      "sha256": "6a118b5bf3503d4de4267e025ab5a4b0a318bb6118f18a2ae0eebee5f800708e",
       "deps": []
     },
     {
@@ -323,7 +323,7 @@
     {
       "id": "MarketReadRuntime",
       "path": "src/features/MarketReadRuntime.luau",
-      "sha256": "f939ef4ed0ac8624bdcbb6742a46f83dd5fec2bed58ecf0281908b69db6a72ff",
+      "sha256": "15c3aa17dac43e571d0a7cfaa57da04303dea64d424001b1bfe76799b3d7695e",
       "deps": []
     },
     {
@@ -1139,7 +1139,7 @@
     {
       "id": "TerritoryReadRuntime",
       "path": "src/tabs/territory/TerritoryReadRuntime.luau",
-      "sha256": "0ff3443376b6aa0e202b2ade27aa08a63e3e93864d7056ae313be71d2ebe9e5f",
+      "sha256": "990d3f1723da5bfbcec1222a48515ef57b60ff6b5f7deb1b38fc12aea7599092",
       "deps": []
     },
     {
@@ -1205,7 +1205,7 @@
     {
       "id": "NativeDispatchAdapter",
       "path": "src/transport/NativeDispatchAdapter.luau",
-      "sha256": "18f974cd6a29781737e9ccf40290492f92521b431f9a5addb3753cdec7c98afc",
+      "sha256": "210c251671e58e8f2c942a484a2ba6271da3c269beaf29243121116b6746ab49",
       "deps": []
     },
     {
