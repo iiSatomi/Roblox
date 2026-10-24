@@ -1,12 +1,18 @@
 # Idle Mafia Ember recode — proposed design
 
-Date: 2026-10-20. Status: planning proposal; gameplay implementation has not started.
+Date: 2026-10-20. Status: updated-place audit and simplified browser preview completed; the inert Ember UI 0.1.1 compiles and the user reports clean startup. Detailed rendering and gameplay remain unverified/unimplemented respectively.
+
+Latest direction: use ordinary native action automation for Jobs, city Bosses
+and similar routines. Paid-controller unlocking is no longer a recode task.
+Observe any matching native controller already running and yield affected work.
+See the [actual Ember prototype](ember-ui-prototype.md) for the new M1 slice and
+its separate offline/compilation/rendering evidence.
 
 ## Brief and decisions
 
 Build a fresh Idle Mafia hub with Ember, preserving the current hub's useful functions while replacing its implementation. The user explicitly requested a full recode, clear organization, UI planning before gameplay scripts, maintainability, stability, reliability, and preparation for future game changes. Do not copy/paste, rename, wrap, or import the old production modules into the new application.
 
-The user selected **grouped pages with clear summaries**, focused feature pages, and collapsed advanced options. Routine layout and architecture decisions in this proposal use that preference. Review this proposal before implementation; approval of the page organization is not approval of every proposed gameplay change.
+The user selected clear summaries, then requested **dedicated tabs per system** and much simpler menus and implementation while keeping the same functions. The [simplification design](ui-simplification.md) is authoritative for the control surface: small presets/policies, automatic native facts, no recreation of 231 old options, and a tightly bounded Custom section. The user also requested local UI testing; the browser preview is a local design tool, not an actual Ember renderer.
 
 Follow-up preference: the user authorized GitHub hosting if useful and prefers separate modules loaded by a short main UI/entry script. The primary delivery design is now a GitHub-hosted modular release with a small loader. The user selected the existing public `iiSatomi/Roblox` repository and requested a dedicated `idle-mafia-ember/` folder containing only the new recode. This folder is the canonical recode root; the surrounding workspace and legacy scripts are outside its publication scope.
 
@@ -18,7 +24,11 @@ Deliverables from this planning milestone:
 
 ## Evidence and limits
 
-The baseline is the source-built **Fluent v0.48.57**, identified in `scripts/build_mafia_hub.py`, with native compatibility target `0.26.253`. The latest local full game-source extraction is `imports/idle-mafia-2026-10-11-full/`; its `GameVersion` returns `0.26.253`. Neither is proof of the current October 20 game contract.
+The legacy behavior baseline is source-built **Fluent v0.48.57**, identified in `scripts/build_mafia_hub.py`, with native compatibility target `0.26.253`. The user supplied an updated place and authorized starting the recode, then specifically requested updating this plan from its findings.
+
+The new saved-client evidence target is **0.26.487.1**, extracted from the October 20 place. Its newest bundled notes are `0.26.454` (October 19). Read the [updated-place audit](place-audit-2026-10-20.md) before implementation; it supersedes the older game assumptions throughout this design. The ignored `.private/place-2026-10-20/` extraction has 260 unique script-source records, with 40 of the 48 previously selected records changed. These are source observations, not live server verification.
+
+The [native evidence register](native-evidence-2026-10-20.json) records the place hash, source fingerprints and 42 checked anchors. The [legacy settings inventory](legacy-settings-inventory.json) assigns a proposed disposition to all **231 Core.defaults keys** and inventories **52 literal control IDs**. Dynamic UI bindings, profile-specific fields and runtime response shapes remain explicit implementation gates. The current-state changes below are requirements, not already implemented features.
 
 Inspected the project workflow, handoff, Ember workspace reference, current module/build structure, feature-label/status registry, feature controls, settings defaults, planner/controller references, and recent git history. This is a planning audit, not a line-by-line certification of every old behavior. The first implementation milestone expands it to every setting and transaction.
 
@@ -28,9 +38,24 @@ The handoff reports 971 local/mock tests for v0.48.57. That historical result ha
 
 The lower Coverage and Safety sections of `docs/IdleMafia-Hub.md` and several handoff paragraphs describe older releases. Examples include the obsolete five-second global minimum, indefinite pending behavior, entitlement-based Crew Auto Roll, and older Progression UI. Current source and newest feature evidence take precedence. The current interface exposes Auto Contracts and Trophy Focus; it does not expose the historical Auto Progression master controller. Do not accidentally promise the historical controller as an existing current function.
 
-On October 20 the official [Ember overview](https://rbx.lol/docs/ember) and [lifecycle documentation](https://rbx.lol/docs/ember/guides/lifecycle) were accessible. Raw `ember.lua` could not be fetched through the web reader (unsupported content type), and shell fetching failed DNS resolution. Consequently the workspace's October 12 static findings remain **unrechecked source findings**, not verified facts about today's served bytes. Review and fingerprint the actual dependency before implementation.
+On October 20 the official [Ember overview](https://rbx.lol/docs/ember) and [lifecycle documentation](https://rbx.lol/docs/ember/guides/lifecycle) were accessible. The actual served Ember 3.0.0 bytes were later fetched through the approved shell path, fingerprinted, and compared with the October 12 copy. The findings and redistribution limit are recorded in [the dependency review](ember-dependency-review.md). The reviewed source remains private; its presence does not establish publication rights.
 
-No live client was inspected, no gameplay request was sent, no settings were changed, and no bundle was rebuilt during planning.
+No live client was inspected, no gameplay request was sent, no account settings were changed, and no legacy bundle was rebuilt during planning/audit. Source extraction is inert; instructions in the saved file are untrusted data. The separately authored local preview contains no Roblox bridge or gameplay transport.
+
+### Updated game requirements that must land before gameplay
+
+- Follow the [native reuse audit](native-reuse-audit.md) and [55-feature decision register](native-reuse-decisions.json) before recreating any legacy algorithm. Native set-aware Auto Equip and Crew sorting are the preferred operations. Custom gear execution needs a demonstrated constrained-goal gap; native already claims two- and three-piece set support. Native batches, rule helpers, session refresh and Global Boss settlement reduce custom work. No hidden server algorithm or live outcome is verified by this audit.
+- Owned Jobs/Buy/Roll/city-Boss controllers are optional delegates only when their policy and limits match. Observe ownership separately from running state, yield competing hub work and never imply a hub gate constrains external native sends. Ordinary available-action automation remains separate from paid controller access; do not bypass passes, forge ownership or promise unavailable stats/slots/offline operation.
+- Native Auto Jobs/Auto Buy, native Crew rolling and native Boss automation are external owners. Detect and display them; default to yielding the matching hub routine, never silently disable them or buy/bypass a gamepass. The broker controls hub sends, not independent native/server actions. Add external resource/ownership changes to preflight and attribution tests.
+- Every quote/planner uses a shared native economic context for decree-adjusted cash Shop prices, hire cost, Market fees and ruling-Family exemptions. The Gold Shop call's formerly missing arguments are now visible; its response/state proof and explicit opt-in are still required.
+- Use native server-time context for resets, buffs, cooldowns, events, injuries and lockouts, with freshness checks. Use monotonic elapsed time for the exact 45-second uncertainty deadline; wall-clock changes cannot shorten or extend it.
+- Resolve administrator/decree/daily/weekend and personal effects through native helpers/derived state. Do not multiply or sum badges independently; some overlapping buffs select the maximum. Show the effective source and expiry.
+- Model separate three-second player and Crew consumable cooldowns/sequences. Add separate Crew item-healing permission; stable member identity and injury facts protect against slot reuse. Preserve the ordinary stamina-healing route.
+- Model all seven Collection thresholds through 25,000 copies, upgraded item-key/base-ID relationships and separate equipped cosmetic display versus loose/deposited custody. Default protections stay until exact native transfers are established; no blind bulk deposit/withdraw.
+- Replace flat Territory identity with city/district identity, native successor/remap handling, 852 current district records, top-two-per-kind bonuses, city locks, tier capacities and fortification/recovery facts. Season/fortification/decree views start read-only. Shared spending, leadership and district sabotage are separate future decisions.
+- Add low-risk monthly earned claims and update seven playtime rungs: level-tier rewards, weekday XP boost versus weekend Gold, Mystery rewards and the 180-minute bound crate. Resolve actual rewards; claims do not authorize opening/using awarded items.
+- Expand native catalogs for event Bosses, medal Shop, gear/sets and new Safehouses. Event spending uses an independent OFF-default policy and native free/paid-origin medal restrictions. Do not add purchases or activity because an item exists in the save.
+- Use the native dispatch boundary; decompiled UI arguments may pass through a wrapper. Never assume they are raw remote arguments, copy private handshake values into code/docs, or bypass native access rules.
 
 ## Approach considered
 
@@ -92,26 +117,37 @@ Desktop target: approximately 900 × 620 with a 210-pixel rail, scalable within 
 
 ### Page map
 
-The following are Ember sections. The groupings inside them are collapsible Ember groups, not a second navigation framework.
+Each system has its own Ember section/tab. Simplify the controls inside each tab; do not merge unrelated systems to reduce the tab count. Related fight routines are grouped within Combat. This replaces the earlier 13-section grouping.
 
-| Page | Visible summary and primary groups |
+| Tab | Controls / summary |
 | --- | --- |
-| Overview | Session health, current action, next choice, active blockers, resources, event summary, pause/resume, Emergency Stop, unload |
-| Goals & Rewards | Auto Contracts, contract-priority preference, objective selection, Trophy Hunter/Focus, contract/bonus/playtime/group claims, Briefcases, skill allocation |
-| Heists & Favors | Personal start and collect, Favor help, sabotage, board/control status, reserves and daily limits |
-| Jobs & Operations | Separate Job and Operation groups; job choice/mastery/city, Operation start and collect, selectors and limits |
-| Combat | Player-attack permission, ordinary mugs, war targets, discovery/scouting, safety, target history and recent outcomes |
-| Bosses & Events | City Boss stages, Boss Token Shop, Global Boss attack and claim, event eligibility and caps |
-| Crew & Gear | Rerolls, healing, sorting, training, native equip, custom gear/sets, read-only whole-loadout outlook, transaction recovery |
-| Inventory & Collection | Cosmetic optimization, safe surplus deposit, chest opening, restoratives, item protection and Collection explanation |
-| Shop & Market | Cash Shop, read-only Market research, owned-item sale, flip, rent, earnings collection, exclusions, active transaction/ledger |
-| Money & Property | Banking and funding permissions, property purchases/replacement, Safehouse, prestige, budgets and reserved cash |
-| Family & Territory | Takedown attacks/rewards, separate cash/stamina/Gold contributions, Territory watcher/station/recall, training/recovery rotation, residency |
-| Profiles | Active versus selected profile, create/save/load/autoload, import preview, account identity, deletion |
-| Settings | Appearance/layout/keybinds, idle protection, event-priority preference, supported timing controls, notification/privacy preferences |
-| Diagnostics | Compatibility, feature health, action history, timing, storage failures, recovery details, redacted export |
+| Overview | Current action, next choice, blockers, pause/stop, shared context and quick links |
+| Heists | Personal Heist start/collect and separately permitted sabotage |
+| Jobs | Selected or automatic Jobs, goal and native ownership status |
+| Operations | Operation start/collect, goal, slots and budget |
+| Favors | Heist help, eligibility, energy reserve and daily usage |
+| Combat | Player permission, Mugs/War, city Bosses, Boss Token Shop, Family Takedown attacks/claims and Global Boss attacks/claims |
+| Crew & Gear | Rerolls, hiring, training, stamina/item healing, native equip, gear/sets and recovery |
+| Inventory | Cosmetics, owned unbound chests and player restoratives |
+| Collection | Safe-surplus deposits, native checkpoints and protected copies |
+| Money | Bank deposits, reserves and purpose-specific shortfall funding |
+| Property | Property buying goal, cash limits and separately permitted replacement |
+| Safehouse | Next eligible Safehouse tier and upgrade budget |
+| Prestige | Native requirements, reset permission and per-load limits |
+| Shop | Native Shop rotation, item choices and purchase budget |
+| Black Market | Research, listing/selling, flipping, rental and sold-earnings collection |
+| Family | Separate Cash, Stamina and Gold contributions |
+| Territory | Holdings, station/recall/residency and read-only city/season/decree/fortification context |
+| Contracts | Auto Contracts, objective/focus choice and earned entry/completion claims |
+| Trophies | Trophy goal/focus, progress and earned claims |
+| Skills | Chosen stat and earned skill-point allocation |
+| Rewards | Earned playtime, monthly and group claims |
+| Events | Briefcases, effective buffs and Event Shop; Global Boss controls belong only to Combat |
+| Profiles | Active versus selected profile, import preview and explicit activation |
+| Settings | Appearance, idle protection, common resource limits and optional event preference |
+| Activity | Current reasons/recent outcomes; compatibility, timing and technical export collapsed |
 
-Shop & Market and Family & Territory use extracted subpanel files so a visually grouped page cannot become another monolithic source file. A future split into additional sections remains possible without changing stable settings IDs.
+The scope uses **25 dedicated tabs**, with at most two to four primary controls per feature and one Custom disclosure of at most six useful overrides. The first browser prototype has four Custom fields for Combat and three for Property. Secondary routines may be collapsed within their owning tab. Keep the rail scrollable and search available; navigation/overflow still needs visual verification and an actual Ember rendering check. Separate tab modules compose shared domain planners without duplicate senders or copied settings.
 
 ### Common feature pattern
 
@@ -120,8 +156,8 @@ Each automation follows the same order:
 1. A one-line purpose and current status/reason.
 2. Its own run toggle and the most common choice or two.
 3. A short effective-limits summary, including limits hidden in collapsed groups.
-4. Collapsed **Selection**, **Limits**, and **Advanced** groups when applicable.
-5. A compact last-result line with timestamp, and a link/button to its filtered Diagnostics view.
+4. One small **Custom** disclosure only for useful overrides. Native facts and engine internals are automatic, not configurable fields.
+5. A compact last-result line with timestamp and a link to Activity; technical diagnostics are secondary.
 
 Disabled controls explain their missing requirement. Turning a control off changes backend eligibility immediately; disabling an Ember row by itself is not a stop mechanism. Hiding an advanced group does not disable its saved limits. Missing access/unlock and absent compatible state are distinct from feature errors.
 
@@ -136,14 +172,14 @@ Idle Mafia                         [Search controls] [Hide]
 Account / native build / hub build
 -----------------------------------------------------------
 Overview             Session: Running   State: fresh 0.2s
-Goals & Rewards      Current: Collect Operation  [3s elapsed]
-Heists & Favors       Next: Best eligible Job
-Jobs & Operations    [Pause] [Emergency Stop · F8] [Unload]
+Heists               Current: Collect Operation  [3s elapsed]
+Jobs                 Next: Best eligible Job
+Operations           [Pause] [Emergency Stop · F8] [Unload]
 Combat               -------------------------------------
-Bosses & Events      Resources   Cash / Energy / Stamina / HP
+Collection           Resources   Cash / Energy / Stamina / HP
 Crew & Gear          Attention   Crew: waiting for recovery
 Inventory ...        Activities  Jobs: Ready
-Shop & Market                    Favors: Waiting · daily cap
+Events                           Favors: Waiting · daily cap
 ...                  Last result Operation collected · 12:41
                      [Show feature] [View recent activity]
 -----------------------------------------------------------
@@ -211,6 +247,10 @@ idle-mafia-ember/
     engine/Recovery.luau            journals, startup reconciliation
     game/StateReader.luau           normalize native state into snapshots
     game/CatalogReader.luau         native catalogs and helper metadata
+    game/ServerTime.luau            native epoch/reset clock and freshness
+    game/EconomyContext.luau        decree-aware prices, fees and exemptions
+    game/BuffContext.luau           native derived effective bonuses/expiry
+    game/NativeAutomation.luau      external controller ownership and conflicts
     game/Compatibility.luau         feature capability/shape checks
     game/adapters/<domain>.luau     exact request and response contracts
     features/<domain>/              focused planners, rules, confirmers
@@ -265,7 +305,7 @@ Conceptual contracts to lock before implementation:
 
 | Contract | Required information and rule |
 | --- | --- |
-| Snapshot | Account/place/server identity, native build, revision, observed time, freshness per subsystem, normalized state; no missing-number-to-zero conversion |
+| Snapshot | Account/place/server/city identity, native build, revision, observed time, freshness per subsystem, normalized state, economic/buff revisions and native automation ownership; no missing-number-to-zero conversion |
 | FeatureDecision | Ready proposal or state `off/waiting/blocked/degraded`, stable reason code, user text, optional next check time |
 | ActionProposal | Feature/action IDs, origin (manual/contract/trophy), exact target identity, snapshot revision, expiry, authorization requirements, costs, resource/item reservations, adapter action ID |
 | ActionRecord | Unique local ID, session generation, state, first-send timestamp, evidence policy, before-state facts, attempt/exposure counters, outcome; no secret data |
@@ -306,6 +346,7 @@ Actions involving a partly completed multi-step transaction may require manual r
 - Preflight immediately before send checks current identity, policy, resource/item ownership, native unlock/cost, target, timers, cooldown, attempt cap, quote/luck freshness, and transaction stage.
 - Event priority only reorders already-permitted work. It cannot enable crates, hires, spending, attacks, or Family mutations.
 - A feature exception yields a typed error/backoff for that feature. Shared adapter failure cools its dependents; a missing global state source stops sends globally while health display continues.
+- Native controller ownership is checked before hub selection and again before send. The shared context records external resource changes without assigning them to hub-confirmed spend/XP/cash. The one-request invariant applies only to hub-owned requests.
 - Do not permit watchdogs to start a second scheduler when a loop or network request is slow. Monitor scheduler heartbeat, native-state freshness, broker progress, and UI rendering separately.
 
 ### Resources, inventory, and transactions
@@ -323,6 +364,7 @@ Uncertain native heist sequence ownership cannot be fixed by inventing the next 
 - Capability detection covers filesystem, clipboard, HTTP/dependency loading, input provider, clocks, and supported runtime APIs. Read-only UI can work without file saving; risky workflows requiring durable journals stay unavailable with a clear reason.
 - Use per-subsystem freshness, revision, and shape validation. Invalid required fields block only dependent actions. Native helpers/catalogs are preferred to hardcoded reward/unlock/price assumptions.
 - Global native version mismatch is visible; feature-level contract evidence decides availability. An unknown request/response shape fails closed for that feature without disabling known compatible functions.
+- The saved-client target for new adapters is `0.26.487.1`. Client build, latest release note, and server contract evidence are separate values. Recheck native version/state in the actual session before claiming live compatibility.
 - Choose account storage by place ID and stable user ID; retain display name as metadata. Separate new files under `IdleMafiaEmber/<placeId>/<userId>/`. Never merge accounts by a display-name match.
 - Files use schema version, bounded size, serialized writes, backups, and write/read-back checks. Use temp/replace only if actual filesystem primitives support it; do not advertise atomic replacement on executors that lack rename.
 - A corrupt file is quarantined and explained; defaults do not silently authorize automation. Memory-only mode states that recovery does not survive session termination.
@@ -332,9 +374,9 @@ Uncertain native heist sequence ownership cannot be fixed by inventing the next 
 
 ## Feature preservation and behavior changes
 
-The companion parity register covers all **50 IDs** in the current feature-label registry plus controllers, settings, observations, profiles and recovery. Every row gets a new-source owner, UI control mapping, current-native evidence, offline tests, and live evidence before it can be called complete. A registry ID is not necessarily an independent toggle: `withdraw` is a funding permission, `crewHire` is contract-owned, and sabotage uses its own saved option.
+The companion parity register covers all **50 IDs** in the legacy feature-label registry plus controllers, settings, observations, profiles and recovery. Its October 20 amendments and separate new-coverage section add the saved-client changes without pretending the old hub implemented them. Every row gets a new-source owner, UI control mapping, current-native evidence, offline tests, and live evidence before it can be called complete. A registry ID is not necessarily an independent toggle: `withdraw` is a funding permission, `crewHire` is contract-owned, and sabotage uses its own saved option.
 
-Preserve outcomes and safeguards, not bugs, old implementation structure, obsolete API calls, or unsupported toggles. All user-visible settings need a disposition: preserved, renamed/mapped, merged with equivalent semantics, unavailable due to missing current evidence, or deliberately excluded with explanation. The next audit must extract every control/default and record its disposition; 50 feature IDs alone are not proof of all-setting parity.
+Preserve outcomes and safeguards, not bugs, old implementation structure, obsolete API calls, or unsupported toggles. All user-visible settings need a disposition: preserved, renamed/mapped, merged with equivalent semantics, unavailable due to missing current evidence, or deliberately excluded with explanation. The 231-key inventory records proposed simplification/migration dispositions; it is not a new 231-field settings schema. Implementation must finish dynamic-control, special permission and profile mapping. Fifty feature IDs alone are not proof of all-setting parity.
 
 Explicit proposed differences requiring review with the design:
 
@@ -362,11 +404,13 @@ Use newly authored tests and fixtures. Old tests are useful for identifying requ
 | Pure logic | Boundary values, missing fields, stale facts, filters/reserves, exact IDs, no-goal permission escalation, deterministic tie-breaking |
 | Lifecycle scenarios | Fake monotonic clock, transport replies, replication order, 44.999/45/late-result boundaries, duplicate replies, early read timeout, stop/profile switch/unload/rejoin |
 | Cross-feature scenarios | Banking/property reserve, gear/native-equip exclusion, station/combat/training recovery, goal overlap, heist priority, Market research versus combat fairness |
+| Updated-native scenarios | Native-auto coexistence, decree quote/exemption changes, maximum-versus-stacked buffs, two consumable clocks, member-ID reuse, 10k/25k checkpoint boundary, worn cosmetic custody, city successor IDs, season source/notes discrepancy, auto-settled Boss rewards, monthly/weekday/weekend reward transitions |
 | Persistence | Corrupt/truncated files, unsupported schemas, unavailable writes, interrupted staged write, two-account separation, username change, active versus selected profiles |
 | Ember adapter | False-value restore, setter refusal, delayed startup callbacks, silent hydration, large catalog filtering, destroy/recreate, hidden window, display failure |
 | Build/static | Deterministic modular release/manifest, dependency provenance, strict type/static checks where supported, every module and optional fallback Luau compile/parse including function/local/register limits, source mapping, no old runtime import |
 | Module delivery | One commit across every fetch, partial/missing/corrupt downloads, syntax/export failure, bounded retries, cycles/duplicate IDs, verified complete cache only, initialize once, no sends before complete startup or during update |
-| Actual UI | Ember rendering in Roblox with all gameplay dispatch disabled; size/scroll/search/groups/theme/keybinds and every page checked |
+| Local UI | Twelve state/schema checks currently pass, including dedicated-tab ownership; browser navigation is blocked by local URL/file security policy, so screenshots/layout checks are pending. `preview/standalone.html` has no network dependencies. |
+| Actual UI | A later small Ember rendering check in Roblox with all gameplay dispatch disabled; fonts/scaling/pointer/focus/F8/cleanup and representative pages checked |
 | Feature live check | Current native build, exact version/account, narrowly scoped authorization, naturally eligible action, before/after proof, recorded rejection/uncertainty and recovery |
 
 Engine fault cases must demonstrate: no new send after stop; no success for missing proof; exactly one unconfirmed outcome at 45 seconds; bounded retry and research; no gate release by an old callback; unaffected routines continuing after a scoped failure. Run long fake-clock scenarios with bounded histories/caches and at least a 60-minute observed UI/read-only session before final cutover. Time alone is not acceptance: journals must show health, bounded storage, cleanup, and no duplicate senders.
@@ -392,9 +436,9 @@ Do not add a generic plugin ecosystem, arbitrary user scripting, a remote update
 ## Design self-review
 
 - Fresh source, separate distribution, and no old production imports satisfy the recode requirement.
-- UI grouping is confirmed by the user; detailed palette/layout and behavior differences remain proposed.
+- Dedicated tabs per system and simpler controls are user requirements. The local prototype is authored and twelve model/schema tests pass; actual visual rendering and Ember behavior remain unverified.
 - Current source is distinguished from historical Progression and outdated documentation.
 - One local gate, 45-second uncertainty release, and possible lingering remote execution are described consistently.
-- Source freshness and inaccessible current Ember bytes are explicit evidence gaps, assigned to the first milestone.
+- Updated place source is fingerprinted and checked against 42 anchors; native server behavior and inaccessible current Ember bytes remain explicit evidence gaps.
 - The roadmap covers every parity area without claiming untested scripts exist.
 - This document makes no new gameplay authorization and no claim of guaranteed server reliability.
