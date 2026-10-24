@@ -103,6 +103,14 @@ class TerritoryReadRuntimeTests(unittest.TestCase):
         self.assertEqual(len(self.executor["calls"]), 0)
         self.assertEqual(self.runtime.Step(self.runtime), "closed")
 
+    def test_declined_schedule_releases_territory_read_lane(self):
+        self.executor["Schedule"] = self.h.lua.eval(
+            "function() return false end")
+        self.runtime.QueueMap(self.runtime, "vespera", self.snapshot)
+        self.assertEqual(self.runtime.Step(self.runtime), "schedule_failed")
+        self.assertIsNone(self.runtime.inFlight)
+        self.assertEqual(len(self.executor["queued"]), 0)
+
     def test_timeout_and_new_sync_during_invoke_discard_result(self):
         self.runtime.QueueMap(self.runtime, "vespera", self.snapshot)
         self.assertEqual(self.runtime.Step(self.runtime), "scheduled")

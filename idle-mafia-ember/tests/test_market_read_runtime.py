@@ -88,6 +88,15 @@ class MarketReadRuntimeTests(unittest.TestCase):
         self.assertEqual(len(self.sink), 0)
         self.assertEqual(self.runtime.Step(self.runtime), "closed")
 
+    def test_declined_schedule_releases_market_read_lane(self):
+        self.executor["Schedule"] = self.h.lua.eval(
+            "function() return false end")
+        self.runtime.QueueBrowse(self.runtime,
+            lua_table(self.h.lua, {"kind": "all", "page": 1}))
+        self.assertEqual(self.runtime.Step(self.runtime), "schedule_failed")
+        self.assertIsNone(self.runtime.inFlight)
+        self.assertEqual(len(self.executor["queued"]), 0)
+
     def test_timeout_fences_query_before_delayed_scheduler_runs(self):
         self.runtime.QueueBrowse(self.runtime,
             lua_table(self.h.lua, {"kind": "all", "page": 1}))

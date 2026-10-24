@@ -1,5 +1,10 @@
 # Idle Mafia tab completion plan
 
+**2026-10-24 read-lane scheduler follow-up:** Market and Territory
+read-only lanes now treat an explicit executor scheduling refusal as a
+failure, release their local slot and fence the unsent callback. Focused
+tests reproduce both cases. Live read results remain unverified.
+
 **2026-10-24 Shop source wiring:** The saved 0.26.530 `MW` module paths
 now have optional, fail-closed current-client bindings for read-only cash
 stock and quote calculations. Offline tests cover a complete binding,

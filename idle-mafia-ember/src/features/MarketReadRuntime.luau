@@ -64,7 +64,7 @@ function Methods:Step()
     local reader = id == "marketBrowse" and self.browse or self.prices
     local flight = { token = token, phase = "scheduled" }
     self.inFlight = flight
-    local scheduled = pcall(self.executor.Schedule, self.executor, function()
+    local scheduled, accepted = pcall(self.executor.Schedule, self.executor, function()
         if self.closed or self.inFlight ~= flight
             or not self.budget:Owns(token) then return end
         flight.phase = "invoking"
@@ -83,7 +83,7 @@ function Methods:Step()
             pcall(self.onResult, id, result, reason)
         end
     end)
-    if not scheduled then
+    if not scheduled or accepted == false then
         self.budget:Finish(token, false)
         if self.inFlight == flight then self.inFlight = nil end
         return "schedule_failed"
