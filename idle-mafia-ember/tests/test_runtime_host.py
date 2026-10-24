@@ -226,6 +226,12 @@ class RuntimeHostTests(unittest.TestCase):
         self.deps["currentDailyBuffRules"] = self.h.lua.table()
         self.deps["groupLookup"] = self.h.lua.eval(
             "function() return false end")
+        self.deps["currentShop"] = self.h.lua.table()
+        self.deps["NativeQuoteSource"] = self.h.lua.execute("""return {
+            new = function(_, release, key)
+                return { release = release, catalogKey = key }, nil
+            end,
+        }""")
         self.deps["NativeClientObserver"] = self.h.lua.execute("""return {
             new = function() return real_observer end,
         }""")
@@ -261,6 +267,7 @@ class RuntimeHostTests(unittest.TestCase):
         self.assertEqual(host.app.config.GROUP.id, 123)
         self.assertIsNotNone(host.app.gearSets.slotBonus)
         self.assertEqual(host.app.combatRules.staminaCost, 2)
+        self.assertIsNone(host.app.shopQuoteSource)
         host.Destroy(host)
 
     def test_unbound_native_proof_sources_override_caller_values(self):

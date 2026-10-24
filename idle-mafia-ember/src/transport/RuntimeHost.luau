@@ -72,6 +72,7 @@ function RuntimeHost.start(deps)
     local executorRuntimeApi = deps.executorRuntimeApi
     local executorStorageApi = deps.executorStorageApi
     local clock = deps.clock
+    local currentShop = deps.currentShop
     local currentDailyBuffRules = deps.currentDailyBuffRules
     local groupLookup = deps.groupLookup
     local rewardsConfig = deps.config
@@ -98,6 +99,7 @@ function RuntimeHost.start(deps)
         remotesFolder = bindings.remotesFolder
         nativeState = bindings.nativeState
         sourceObserver = observer
+        currentShop = bindings.currentShop
         currentDailyBuffRules = bindings.currentDailyBuffRules
         groupLookup = bindings.groupLookup
         rewardsConfig = bindings.config
@@ -200,10 +202,10 @@ function RuntimeHost.start(deps)
     appDeps.rewardsSource = nil
     if type(deps.NativeQuoteSource) == "table"
         and type(deps.NativeQuoteSource.new) == "function"
-        and type(deps.currentShop) == "table"
+        and type(currentShop) == "table"
         and type(deps.release) == "string" then
         local ok, source = pcall(deps.NativeQuoteSource.new,
-            deps.currentShop, deps.release, deps.fingerprint)
+            currentShop, deps.release, deps.fingerprint)
         if ok and type(source) == "table"
             and source.release == deps.release
             and source.catalogKey == deps.fingerprint:lower() then
