@@ -79,6 +79,9 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(deps.expectedGameVersion, "0.26.530")
         self.assertEqual(deps.fingerprint, "b" * 64)
         self.assertEqual(deps.release, "a" * 40)
+        self.assertEqual(deps.identity.release, "a" * 40)
+        board = self.h.load("src/tabs/heists/BoardQuery.luau")
+        self.assertEqual(board.new(deps.identity).release, "a" * 40)
         self.assertTrue(deps.allowedFeatures.jobs)
         self.assertTrue(deps.allowedFeatures.bosses)
 

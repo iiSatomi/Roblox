@@ -1,5 +1,13 @@
 # Idle Mafia tab completion plan
 
+**2026-10-24 current-client startup fix:** The diagnostic entry exposed
+`Invalid tab module: heists` before UI creation. The functional bootstrap
+omitted `identity.release`, which `HeistsTab` passes to its read-only
+`BoardQuery` constructor. Bootstrap now supplies the pinned source commit
+as that identity field; a failing-first bootstrap-to-board regression covers
+it. Live UI startup and ordinary-action outcomes still need a new executor
+run after publishing the repinned entry.
+
 **2026-10-24 App startup diagnostic:** The user confirmed that the
 605/0.26.555.1 compatibility repin passes its gate, but the current
 functional entry stops while constructing `App`. The host previously
