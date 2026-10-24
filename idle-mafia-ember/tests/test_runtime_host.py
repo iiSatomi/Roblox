@@ -210,6 +210,7 @@ class RuntimeHostTests(unittest.TestCase):
                 gameData = { JOBS = { { id = 'j_watch' } } },
                 gearSets = { slotBonus = function() end },
                 combatRules = { staminaCost = 2 },
+                currentShop = real_shop_source,
                 groupLookup = function(id) return id == 123 end,
             } end,
         }""")
@@ -228,8 +229,9 @@ class RuntimeHostTests(unittest.TestCase):
             "function() return false end")
         self.deps["currentShop"] = self.h.lua.table()
         self.deps["NativeQuoteSource"] = self.h.lua.execute("""return {
-            new = function(_, release, key)
-                return { release = release, catalogKey = key }, nil
+            new = function(current, release, key)
+                return { current = current, release = release,
+                    catalogKey = key }, nil
             end,
         }""")
         self.deps["NativeClientObserver"] = self.h.lua.execute("""return {
@@ -268,6 +270,14 @@ class RuntimeHostTests(unittest.TestCase):
         self.assertIsNotNone(host.app.gearSets.slotBonus)
         self.assertEqual(host.app.combatRules.staminaCost, 2)
         self.assertIsNone(host.app.shopQuoteSource)
+        host.Destroy(host)
+        native_shop = self.h.lua.table()
+        self.h.lua.globals().real_shop_source = native_shop
+        host, reason = self.host_module.start(self.deps)
+        self.assertIsNone(reason)
+        same = self.h.lua.eval("function(a, b) return a == b end")
+        self.assertTrue(same(host.app.shopQuoteSource.current,
+                             native_shop))
         host.Destroy(host)
 
     def test_unbound_native_proof_sources_override_caller_values(self):

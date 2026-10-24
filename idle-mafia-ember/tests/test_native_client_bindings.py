@@ -29,9 +29,23 @@ class NativeClientBindingsTests(unittest.TestCase):
             mw:Add(node('Config', 'ModuleScript')).Value = {
                 GROUP = { id = 123 }, COMBAT = { staminaCost = 2 } }
             mw:Add(node('GameData', 'ModuleScript')).Value = {
-                JOBS = { { id = 'j_watch' } } }
+                JOBS = { { id = 'j_watch' } },
+                SHOP = { { item = 'w_bat' } },
+                ITEMS_BY_ID = { w_bat = { kind = 'gear' } } }
             mw:Add(node('GearSets', 'ModuleScript')).Value = {
                 slotBonus = function() end }
+            mw:Add(node('Util', 'ModuleScript')).Value = {
+                shopStock = function() end,
+                shopPrice = function() end }
+            mw:Add(node('TerritoryBonusRules', 'ModuleScript')).Value = {
+                fromData = function() end,
+                shopPrice = function() end }
+            mw:Add(node('GlobalBuffKinds', 'ModuleScript')).Value = {
+                sale = function() end }
+            mw:Add(node('DecreeRules', 'ModuleScript')).Value = {
+                pctFor = function() end }
+            mw:Add(node('ServerClock', 'ModuleScript')).Value = {
+                now = function() return 0 end }
             local scripts = node('PlayerScripts', 'PlayerScripts')
             local stateModule = scripts:Add(node('MWClient', 'LocalScript'))
                 :Add(node('State', 'ModuleScript'))
@@ -62,8 +76,19 @@ class NativeClientBindingsTests(unittest.TestCase):
         self.assertEqual(found.gameData.JOBS[1].id, 'j_watch')
         self.assertIsNotNone(found.gearSets.slotBonus)
         self.assertEqual(found.combatRules.staminaCost, 2)
+        self.assertIsNotNone(found.currentShop)
+        self.assertTrue(same(found.currentShop.mw, remotes.Parent))
+        source = h.load("src/tabs/shop/NativeQuoteSource.luau")
+        quote, quote_reason = source.new(found.currentShop,
+            "release-a", "a" * 64)
+        self.assertIsNone(quote_reason)
+        self.assertIsNotNone(quote)
         self.assertTrue(found.groupLookup(123))
         self.assertFalse(found.groupLookup(124))
+        remotes.Parent.children["GlobalBuffKinds"] = None
+        missing, missing_reason = bindings.read(game, require)
+        self.assertIsNone(missing_reason)
+        self.assertIsNone(missing.currentShop)
         state_module.Parent = None
         self.assertIsNone(bindings.read(game, require)[0])
 

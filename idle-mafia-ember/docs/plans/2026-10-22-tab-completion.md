@@ -1,5 +1,12 @@
 # Idle Mafia tab completion plan
 
+**2026-10-24 Shop source wiring:** The saved 0.26.530 `MW` module paths
+now have optional, fail-closed current-client bindings for read-only cash
+stock and quote calculations. Offline tests cover a complete binding,
+missing modules and rejection of a caller-supplied Shop source. The current
+entry still does not allow Shop sends; live module, quote and purchase
+outcomes remain unverified.
+
 **2026-10-24 broker deadline follow-up:** At the 45-second unconfirmed
 deadline, the broker now releases the expired call's local transport lock so
 other features can continue. The timed-out feature retains its cooldown and

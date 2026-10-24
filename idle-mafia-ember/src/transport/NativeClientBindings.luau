@@ -59,6 +59,31 @@ local function resolve(game, requireModule)
         or type(gearSets.slotBonus) ~= "function" then
         return nil
     end
+    local function optionalModule(name)
+        local module = child(mw, name, "ModuleScript")
+        if not module then return nil end
+        local ok, value = pcall(requireModule, module)
+        return ok and type(value) == "table" and value or nil
+    end
+    local util = optionalModule("Util")
+    local territory = optionalModule("TerritoryBonusRules")
+    local globalBuff = optionalModule("GlobalBuffKinds")
+    local decree = optionalModule("DecreeRules")
+    local serverClock = optionalModule("ServerClock")
+    local currentShop
+    if type(gameData.SHOP) == "table"
+        and type(gameData.ITEMS_BY_ID) == "table"
+        and util and type(util.shopStock) == "function"
+        and type(util.shopPrice) == "function"
+        and territory and type(territory.fromData) == "function"
+        and type(territory.shopPrice) == "function"
+        and globalBuff and type(globalBuff.sale) == "function"
+        and decree and type(decree.pctFor) == "function"
+        and serverClock and type(serverClock.now) == "function" then
+        currentShop = { gameData = gameData, util = util,
+            territory = territory, globalBuff = globalBuff,
+            decree = decree, clock = serverClock, mw = mw }
+    end
     local groupLookup
     if type(player.IsInGroup) == "function" then
         groupLookup = function(groupId)
@@ -70,7 +95,7 @@ local function resolve(game, requireModule)
         currentDailyBuffRules = dailyBuffRules,
         config = config, gameData = gameData,
         gearSets = gearSets, combatRules = config.COMBAT,
-        groupLookup = groupLookup }
+        groupLookup = groupLookup, currentShop = currentShop }
 end
 
 function NativeClientBindings.read(game, requireModule)
