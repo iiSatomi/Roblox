@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "c35cb73533668c930fc1269b70c4630f90a0def9",
+  "releaseCommit": "e5daa6421cb24d1cc0795c92f29a368a753c5bba",
   "modules": [
     {
       "id": "AutomationRuntime",
@@ -1193,7 +1193,7 @@
     {
       "id": "NativeClientBindings",
       "path": "src/transport/NativeClientBindings.luau",
-      "sha256": "ac5dfabc04f97263bc947fb5a5f9891b579787482d17c45230cda99ccc7aa8c4",
+      "sha256": "e2c376593ebe8c7fdd75308d53a23dcd85393ca58af9d41fad72911a168f137d",
       "deps": []
     },
     {
@@ -1241,7 +1241,7 @@
     {
       "id": "RuntimeHost",
       "path": "src/transport/RuntimeHost.luau",
-      "sha256": "307f2a6a3ed7f86fe34e66168812774e991a11f28509521df08d16e6b93db1e1",
+      "sha256": "055a2be54b6abe97231534ff7f49aac222a76d242cf26d5d2e167f82a58a5e46",
       "deps": []
     },
     {
