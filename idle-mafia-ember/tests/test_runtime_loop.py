@@ -54,6 +54,44 @@ class RuntimeLoopTests(unittest.TestCase):
         self.assertTrue(driver.closed)
         self.assertEqual(driver.ticks, 0)
 
+    def test_explicit_timer_refusal_closes_driver(self):
+        h = Harness()
+        driver = h.lua.execute("""return {closed = false,
+            Tick = function() end,
+            Close = function(self) self.closed = true end,
+        }""")
+        timer = h.lua.execute("""return {
+            After = function() return false end,
+            Cancel = function() end,
+        }""")
+        loop = h.load("src/transport/RuntimeLoop.luau").new(
+            driver, timer)
+        self.assertFalse(loop.Start(loop))
+        self.assertTrue(driver.closed)
+
+    def test_timer_refusal_after_first_tick_closes_driver(self):
+        h = Harness()
+        driver = h.lua.execute("""return {ticks = 0, closed = false,
+            Tick = function(self) self.ticks = self.ticks + 1 end,
+            Close = function(self) self.closed = true end,
+        }""")
+        timer = h.lua.execute("""return {queued = nil, calls = 0,
+            After = function(self, _, callback)
+                self.calls = self.calls + 1
+                if self.calls > 1 then return false end
+                self.queued = callback
+                return 1
+            end,
+            Cancel = function() end,
+        }""")
+        loop = h.load("src/transport/RuntimeLoop.luau").new(
+            driver, timer)
+        self.assertTrue(loop.Start(loop))
+        timer.queued()
+        self.assertEqual(driver.ticks, 1)
+        self.assertTrue(driver.closed)
+        self.assertFalse(loop.alive)
+
     def test_driver_closure_stops_rescheduling(self):
         h = Harness()
         driver = h.lua.execute("""return {alive = true, closed = false,

@@ -1,5 +1,10 @@
 # Idle Mafia tab completion plan
 
+**2026-10-24 runtime timer follow-up:** An explicit timer refusal now
+fails startup, and a refusal while rescheduling after a tick closes the
+runtime driver instead of leaving an apparently active but inert loop.
+Offline tests cover both transitions; no live scheduler failure was observed.
+
 **2026-10-24 read-lane scheduler follow-up:** Market and Territory
 read-only lanes now treat an explicit executor scheduling refusal as a
 failure, release their local slot and fence the unsent callback. Focused
