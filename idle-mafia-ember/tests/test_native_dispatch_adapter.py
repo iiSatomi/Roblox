@@ -95,6 +95,36 @@ class NativeDispatchAdapterTests(unittest.TestCase):
         finally:
             self.close()
 
+    def test_explicit_schedule_refusal_does_not_leave_unsent_checkpoint(self):
+        try:
+            self.executor["Schedule"] = self.h.lua.eval("""function(self, fn)
+                self.queued[#self.queued + 1] = fn
+                return false
+            end""")
+            proposal = self.h.proposal()
+            proposal["intent"] = lua_table(self.h.lua, {
+                "kind": "job", "targetId": "j_watch"})
+            snapshot = self.h.snapshot()
+            self.assertEqual(self.session.Offer(self.session,
+                proposal, snapshot)[0], "admitted")
+            self.assertEqual(self.session.Tick(self.session, snapshot),
+                             "schedule_failed")
+            self.assertIsNone(self.session.Status(self.session)["active"])
+            self.assertEqual(self.session.Status(self.session)["uncertainCount"], 0)
+            self.executor.Drain(self.executor)
+            self.assertEqual(len(self.executor["calls"]), 0)
+            self.assertEqual(self.session.Offer(self.session,
+                proposal, snapshot)[0], "admitted")
+            self.executor["Schedule"] = self.h.lua.eval("""function(self, fn)
+                self.queued[#self.queued + 1] = fn
+                return true
+            end""")
+            self.assertEqual(self.session.Tick(self.session, snapshot), "sent")
+            self.executor.Drain(self.executor)
+            self.assertEqual(len(self.executor["calls"]), 1)
+        finally:
+            self.close()
+
     def test_no_argument_claim_passes_transport_validation(self):
         try:
             proposal = self.h.proposal(feature="groupBonus", key="group:1")

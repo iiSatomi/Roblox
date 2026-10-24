@@ -97,6 +97,22 @@ class MarketReadRuntimeTests(unittest.TestCase):
         self.assertIsNone(self.runtime.inFlight)
         self.assertEqual(len(self.executor["queued"]), 0)
 
+    def test_malformed_parser_exception_releases_lane_and_reports_failure(self):
+        self.browse["Accept"] = self.h.lua.eval(
+            "function() error('malformed response') end")
+        self.runtime.QueueBrowse(self.runtime,
+            lua_table(self.h.lua, {"kind": "all", "page": 1}))
+        self.runtime.QueuePrices(self.runtime, "w_baton")
+        self.assertEqual(self.runtime.Step(self.runtime), "scheduled")
+        self.executor.Drain(self.executor)
+        self.assertIsNone(self.runtime.inFlight)
+        self.assertEqual(self.sink[1]["kind"], "marketBrowse")
+        self.assertIsNone(self.sink[1]["result"])
+        self.assertEqual(self.sink[1]["reason"], "Market read parse failed")
+        self.assertEqual(self.runtime.Step(self.runtime), "scheduled")
+        self.executor.Drain(self.executor)
+        self.assertEqual(self.sink[2]["kind"], "marketPrices")
+
     def test_timeout_fences_query_before_delayed_scheduler_runs(self):
         self.runtime.QueueBrowse(self.runtime,
             lua_table(self.h.lua, {"kind": "all", "page": 1}))
@@ -126,6 +142,18 @@ class MarketReadRuntimeTests(unittest.TestCase):
         self.assertEqual(len(self.executor["calls"]), 1)
         self.assertEqual(len(self.sink), 0)
         self.assertEqual(self.runtime.Step(self.runtime), "scheduled")
+
+    def test_late_price_reply_does_not_populate_cache(self):
+        self.runtime.QueuePrices(self.runtime, "w_baton")
+        self.h.lua.globals().advance_read_clock = lambda: self.h.at(8)
+        self.executor["Invoke"] = self.h.lua.eval("""function()
+            advance_read_clock()
+            return { ok = true, recent = {}, days = {} }
+        end""")
+        self.assertEqual(self.runtime.Step(self.runtime), "scheduled")
+        self.executor.Drain(self.executor)
+        self.assertIsNone(self.prices.Get(self.prices, "w_baton"))
+        self.assertEqual(len(self.sink), 0)
 
 
 if __name__ == "__main__":

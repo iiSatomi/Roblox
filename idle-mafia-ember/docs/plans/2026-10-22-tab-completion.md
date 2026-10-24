@@ -1,5 +1,16 @@
 # Idle Mafia tab completion plan
 
+**2026-10-24 read and dispatch recovery:** Market and Territory read lanes
+now turn parser/attachment exceptions into bounded failed reads, release
+their local slot, and allow later queued reads. A late Market price reply
+cannot populate its cache after the read deadline. Ordinary-action dispatch
+now recognizes an explicit executor scheduling refusal: it fences a queued
+callback, clears the unsent checkpoint and permits a later retry. An
+ambiguous scheduling exception or invoked call still follows the 45-second
+unconfirmed rule. These are offline-tested reliability fixes; Market and
+Territory UI reads remain unwired, and no gameplay server outcome was
+verified live.
+
 **2026-10-24 release cache follow-up:** The loader now passes each
 manifest digest to a content-addressed module cache. Unchanged modules
 can be reused across new source commits while every cached byte is still

@@ -111,6 +111,18 @@ class TerritoryReadRuntimeTests(unittest.TestCase):
         self.assertIsNone(self.runtime.inFlight)
         self.assertEqual(len(self.executor["queued"]), 0)
 
+    def test_attachment_exception_releases_lane_and_reports_failure(self):
+        self.runtime.attachment["attach"] = self.h.lua.eval(
+            "function() error('malformed attachment') end")
+        self.runtime.QueueMap(self.runtime, "vespera", self.snapshot)
+        self.assertEqual(self.runtime.Step(self.runtime), "scheduled")
+        self.executor.Drain(self.executor)
+        self.assertIsNone(self.runtime.inFlight)
+        self.assertEqual(self.sink[1]["kind"], "territoryMap")
+        self.assertIsNone(self.sink[1]["result"])
+        self.assertEqual(self.sink[1]["reason"], "Territory read parse failed")
+        self.assertEqual(self.runtime.Step(self.runtime), "idle")
+
     def test_timeout_and_new_sync_during_invoke_discard_result(self):
         self.runtime.QueueMap(self.runtime, "vespera", self.snapshot)
         self.assertEqual(self.runtime.Step(self.runtime), "scheduled")

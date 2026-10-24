@@ -170,9 +170,6 @@ function Methods:Tick(rawSnapshot)
     active.sentAt = now -- Immutable first-send time, even if transport raises.
     active.phase = "sent"
     active.latestObservedRevision = snapshot.revision
-    self.lastSendAt = now
-    self.seen[active.proposal.actionKey] = true
-    self:Record("sent", active, now)
     local token = active.token
     local function canDispatch()
         local dispatchAt = self.clock:Now()
@@ -185,7 +182,7 @@ function Methods:Tick(rawSnapshot)
             and (type(self.policy.canSend) ~= "function"
                 or self.policy.canSend())
     end
-    local sendOk = pcall(self.transport.Send, self.transport, active.proposal, function(reply)
+    local sendOk, scheduled = pcall(self.transport.Send, self.transport, active.proposal, function(reply)
         local current = self.active
         local callbackAt = self.clock:Now()
         if not current or current.token ~= token then
@@ -202,6 +199,27 @@ function Methods:Tick(rawSnapshot)
         current.phase = "returned"
         self:Record("returned", current, callbackAt)
     end, canDispatch)
+    if sendOk and scheduled == false then
+        -- The transport explicitly refused scheduling and fenced its callback.
+        -- No native invocation occurred, so clear the write-ahead record.
+        local cleared, resolved = true, true
+        if type(self.policy.afterResolve) == "function" then
+            cleared, resolved = pcall(self.policy.afterResolve,
+                active.proposal, "schedule_failed")
+        end
+        self.active = nil
+        if not cleared or resolved ~= true then
+            self:Record("checkpoint_failed", active, self.clock:Now(),
+                "Unsent checkpoint clear failed")
+            return "checkpoint_failed"
+        end
+        self:Record("schedule_failed", active, self.clock:Now(),
+            "Native scheduling refused")
+        return "schedule_failed"
+    end
+    self.lastSendAt = now
+    self.seen[active.proposal.actionKey] = true
+    self:Record("sent", active, now)
     if not sendOk then self:Record("transport_error", active, self.clock:Now(), "Send raised") end
     return "sent"
 end

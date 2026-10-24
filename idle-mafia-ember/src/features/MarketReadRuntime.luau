@@ -72,8 +72,16 @@ function Methods:Step()
             self.executor, request.remote, request.method,
             table.unpack(request.args, 1, request.arity))
         local result, reason
-        if ok and type(reply) == "table" then
-            result, reason = reader:Accept(request, reply)
+        if ok and type(reply) == "table"
+            and not self.closed and self.inFlight == flight
+            and self.budget:Owns(token) then
+            local parsed, acceptedResult, acceptedReason = pcall(
+                reader.Accept, reader, request, reply)
+            if parsed then
+                result, reason = acceptedResult, acceptedReason
+            else
+                reason = "Market read parse failed"
+            end
         else
             reason = "Market read interrupted"
         end

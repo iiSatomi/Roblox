@@ -48,7 +48,11 @@ function Methods:Send(proposal, onReturn, canDispatch)
     local valid, reason = self:Validate(proposal)
     if not valid then error(reason or "Unsupported native call") end
     local call = self.plan.describe(proposal)
-    self.executor:Schedule(function()
+    local cancelled = false
+    local ran = false
+    local scheduled = self.executor:Schedule(function()
+        if cancelled then return end
+        ran = true
         local owned, allowed = pcall(canDispatch)
         if not owned or allowed ~= true or self.invoking then return end
         local invocation = { proposal = proposal }
@@ -63,6 +67,13 @@ function Methods:Send(proposal, onReturn, canDispatch)
             onReturn(reply)
         end
     end)
+    if scheduled == false and not ran then
+        -- A definite refusal cannot invoke the native call. Fence even an
+        -- executor that queued the callback before returning false.
+        cancelled = true
+        return false
+    end
+    return true
 end
 
 return NativeDispatchAdapter
