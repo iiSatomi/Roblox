@@ -52,17 +52,17 @@ function Loader.start(fetch, cache, compile, manifest, dependencies)
     starting = true
     local bytesByPath, fetched = {}, {}
     for _, entry in ipairs(order) do
-        local fetchedOk, fromFetch = pcall(fetch, manifest.releaseCommit, entry.path)
-        local bytes = fetchedOk and fromFetch or nil
-        if matches(bytes, entry.sha256, dependencies.sha256) then
-            fetched[#fetched + 1] = { path = entry.path, bytes = bytes }
-        else
-            local cachedOk, fromCache = pcall(cache.Read, cache,
+        local cachedOk, fromCache = pcall(cache.Read, cache,
+            manifest.releaseCommit, entry.path)
+        local bytes = cachedOk and fromCache or nil
+        if not matches(bytes, entry.sha256, dependencies.sha256) then
+            local fetchedOk, fromFetch = pcall(fetch,
                 manifest.releaseCommit, entry.path)
-            bytes = cachedOk and fromCache or nil
+            bytes = fetchedOk and fromFetch or nil
             if not matches(bytes, entry.sha256, dependencies.sha256) then
                 return fail("Missing or mismatched module: " .. entry.id)
             end
+            fetched[#fetched + 1] = { path = entry.path, bytes = bytes }
         end
         bytesByPath[entry.path] = bytes
     end

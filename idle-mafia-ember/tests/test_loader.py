@@ -99,6 +99,30 @@ class LoaderTests(unittest.TestCase):
         app, reason = self.start()
         self.assertIsNotNone(app)
         self.assertIsNone(reason)
+        self.assertNotIn("a" * 40 + ":src/A.luau",
+                         list(self.lua.globals().fetchCalls.values()))
+
+    def test_restart_uses_only_verified_cache_without_network(self):
+        app, reason = self.start()
+        self.assertIsNone(reason)
+        self.assertIsNotNone(app)
+        self.assertTrue(self.loader.close())
+        self.lua.globals().fetchCalls = self.lua.table()
+        self.lua.globals().fetchBytes = self.lua.table()
+        restarted, reason = self.start()
+        self.assertIsNone(reason)
+        self.assertIsNotNone(restarted)
+        self.assertEqual(len(self.lua.globals().fetchCalls), 0)
+
+    def test_corrupt_cache_fetches_and_replaces_verified_bytes(self):
+        key = "a" * 40 + ":src/A.luau"
+        self.lua.globals().cacheBytes[key] = "tampered"
+        app, reason = self.start()
+        self.assertIsNone(reason)
+        self.assertIsNotNone(app)
+        self.assertIn(key, list(self.lua.globals().fetchCalls.values()))
+        self.assertEqual(self.lua.globals().cacheBytes[key],
+                         self.bytes["src/A.luau"])
 
     def test_cache_from_another_commit_cannot_rescue_missing_module(self):
         self.lua.globals().fetchBytes["src/A.luau"] = None
