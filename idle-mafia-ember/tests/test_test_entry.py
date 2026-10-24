@@ -9,6 +9,8 @@ from engine_harness import Harness, lua_table
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SOURCE = "5533b4bb247c37300ae349097dd493af74058dd2"
+MANIFEST = "dd7339de54c0192db59cc0eca622151d18739802"
 class TestEntryTests(unittest.TestCase):
     def test_entry_starts_paused_ui_from_verified_local_bytes(self):
         h = Harness()
@@ -19,12 +21,12 @@ class TestEntryTests(unittest.TestCase):
                      "ExecutorEntry.luau"):
             files[name] = subprocess.check_output([
                 "git", "show",
-                "c35cb73533668c930fc1269b70c4630f90a0def9:idle-mafia-ember/" + name,
+                SOURCE + ":idle-mafia-ember/" + name,
             ], cwd=ROOT).decode("utf-8")
         # Raw GitHub serves committed blob bytes, not Windows checkout bytes.
         files["manifest.json"] = subprocess.check_output([
             "git", "show",
-            "132a2917af8a8bc01f51669c672fee8c76d30ac5:idle-mafia-ember/manifest.json",
+            MANIFEST + ":idle-mafia-ember/manifest.json",
         ], cwd=ROOT).decode("utf-8")
         pinned = json.loads(files["manifest.json"])
         for row in pinned["modules"]:
