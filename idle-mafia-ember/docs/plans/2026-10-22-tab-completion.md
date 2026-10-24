@@ -1,5 +1,11 @@
 # Idle Mafia tab completion plan
 
+**2026-10-24 release cache follow-up:** The loader now passes each
+manifest digest to a content-addressed module cache. Unchanged modules
+can be reused across new source commits while every cached byte is still
+verified against that release's pinned manifest. Offline cross-commit and
+corruption tests pass; executor startup time remains to be measured live.
+
 **2026-10-24 runtime timer follow-up:** An explicit timer refusal now
 fails startup, and a refusal while rescheduling after a tick closes the
 runtime driver instead of leaving an apparently active but inert loop.

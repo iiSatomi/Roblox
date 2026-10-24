@@ -10,6 +10,11 @@ local function validCommit(value)
         and value:match("^[0-9a-f]+$") ~= nil
 end
 
+local function validDigest(value)
+    return type(value) == "string" and #value == 64
+        and value:match("^[0-9a-f]+$") ~= nil
+end
+
 local function validPath(path)
     if type(path) ~= "string" or #path > 220
         or path:sub(1, 4) ~= "src/"
@@ -59,13 +64,14 @@ function ReleaseAdapters.new(commit, api)
     local function safe(requestCommit, path)
         return requestCommit == commit and validPath(path)
     end
-    local function cachePath(path)
-        return cacheRoot .. "/" .. commit .. "/" .. path
+    local function cachePath(digest)
+        return cacheRoot .. "/sha256/" .. digest .. ".luau"
     end
     local cache = {}
-    function cache:Read(requestCommit, path)
-        if not safe(requestCommit, path) then return nil end
-        local full = cachePath(path)
+    function cache:Read(requestCommit, path, digest)
+        if not safe(requestCommit, path)
+            or not validDigest(digest) then return nil end
+        local full = cachePath(digest)
         local checked, exists = pcall(api.isfile, full)
         if not checked or not exists then return nil end
         local read, bytes = pcall(api.readfile, full)
@@ -73,17 +79,18 @@ function ReleaseAdapters.new(commit, api)
             or #bytes > maxModuleBytes then return nil end
         return bytes
     end
-    function cache:Write(requestCommit, path, bytes)
+    function cache:Write(requestCommit, path, bytes, digest)
         if not safe(requestCommit, path)
+            or not validDigest(digest)
             or type(bytes) ~= "string"
             or #bytes > maxModuleBytes then return false end
-        local full = cachePath(path)
+        local full = cachePath(digest)
         local directory = full:match("^(.+)/[^/]+$")
         if not directory or not ensureFolder(api, directory) then
             return false
         end
         local written = pcall(api.writefile, full, bytes)
-        return written and self:Read(requestCommit, path) == bytes
+        return written and self:Read(requestCommit, path, digest) == bytes
     end
     local function fetch(requestCommit, path)
         if not safe(requestCommit, path) then return nil end

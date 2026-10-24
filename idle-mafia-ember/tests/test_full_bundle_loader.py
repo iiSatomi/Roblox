@@ -152,8 +152,11 @@ class FullBundleLoaderTests(unittest.TestCase):
         self.assertTrue(entry_app.model.paused)
         self.assertEqual(len(entry_app.ui.window.sections), 25)
         self.assertTrue(loader.close())
+        app_digest = next(row["sha256"] for row in entries
+                          if row["id"] == "App")
         h.lua.globals().releaseFiles[
-            "IdleMafiaEmber/modules/" + commit + "/src/App.luau"] = "corrupt"
+            "IdleMafiaEmber/modules/sha256/" + app_digest
+            + ".luau"] = "corrupt"
         blocked, reason = entry.start(release, services)
         self.assertIsNone(blocked)
         self.assertEqual(reason, "Missing or mismatched module: App")

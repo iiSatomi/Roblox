@@ -114,6 +114,26 @@ class LoaderTests(unittest.TestCase):
         self.assertIsNotNone(restarted)
         self.assertEqual(len(self.lua.globals().fetchCalls), 0)
 
+    def test_unchanged_verified_modules_survive_new_release_commit(self):
+        self.cache = self.lua.execute("""return {
+            Read = function(_, _, _, digest) return cacheBytes[digest] end,
+            Write = function(_, _, _, bytes, digest)
+                cacheBytes[digest] = bytes
+            end,
+        }""")
+        first, reason = self.start()
+        self.assertIsNone(reason)
+        self.assertIsNotNone(first)
+        self.assertTrue(self.loader.close())
+        self.manifest["releaseCommit"] = "b" * 40
+        self.deps["expectedCommit"] = "b" * 40
+        self.lua.globals().fetchCalls = self.lua.table()
+        self.lua.globals().fetchBytes = self.lua.table()
+        second, reason = self.start()
+        self.assertIsNone(reason)
+        self.assertIsNotNone(second)
+        self.assertEqual(len(self.lua.globals().fetchCalls), 0)
+
     def test_corrupt_cache_fetches_and_replaces_verified_bytes(self):
         key = "a" * 40 + ":src/A.luau"
         self.lua.globals().cacheBytes[key] = "tampered"

@@ -1,4 +1,5 @@
 """Executor release adapters keep fetch and cache inside one pinned commit."""
+import hashlib
 import unittest
 
 from engine_harness import Harness
@@ -34,10 +35,12 @@ class ReleaseAdaptersTests(unittest.TestCase):
         self.assertEqual(self.h.lua.globals().fetched[1],
                          "https://raw.githubusercontent.com/iiSatomi/Roblox/"
                          + self.commit + "/idle-mafia-ember/src/ui/Catalog.luau")
+        digest = hashlib.sha256(source.encode()).hexdigest()
         self.assertTrue(made.cache.Write(made.cache, self.commit,
-                                         "src/ui/Catalog.luau", source))
+                                         "src/ui/Catalog.luau", source,
+                                         digest))
         self.assertEqual(made.cache.Read(made.cache, self.commit,
-                                         "src/ui/Catalog.luau"), source)
+                                         "src/ui/Catalog.luau", digest), source)
         self.assertTrue(made.compile(source, "src/ui/Catalog.luau")().alive)
 
     def test_wrong_commit_and_unsafe_paths_do_not_fetch_or_write(self):
@@ -56,6 +59,22 @@ class ReleaseAdaptersTests(unittest.TestCase):
         made, reason = self.adapters.new(self.commit, self.api)
         self.assertIsNone(reason)
         self.assertIsNone(made.fetch(self.commit, "src/App.luau"))
+
+    def test_verified_content_cache_reuses_unchanged_module_across_commits(self):
+        first, reason = self.adapters.new(self.commit, self.api)
+        self.assertIsNone(reason)
+        other_commit = "b" * 40
+        second, reason = self.adapters.new(other_commit, self.api)
+        self.assertIsNone(reason)
+        path = "src/ui/Catalog.luau"
+        source = "return { alive = true }"
+        digest = hashlib.sha256(source.encode()).hexdigest()
+        self.assertTrue(first.cache.Write(first.cache, self.commit,
+                                          path, source, digest))
+        self.assertEqual(second.cache.Read(second.cache, other_commit,
+                                           path, digest), source)
+        self.assertIsNone(second.cache.Read(second.cache, other_commit,
+                                            path, "c" * 64))
 
 
 if __name__ == "__main__":

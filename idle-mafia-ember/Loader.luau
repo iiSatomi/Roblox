@@ -53,7 +53,7 @@ function Loader.start(fetch, cache, compile, manifest, dependencies)
     local bytesByPath, fetched = {}, {}
     for _, entry in ipairs(order) do
         local cachedOk, fromCache = pcall(cache.Read, cache,
-            manifest.releaseCommit, entry.path)
+            manifest.releaseCommit, entry.path, entry.sha256)
         local bytes = cachedOk and fromCache or nil
         if not matches(bytes, entry.sha256, dependencies.sha256) then
             local fetchedOk, fromFetch = pcall(fetch,
@@ -62,7 +62,8 @@ function Loader.start(fetch, cache, compile, manifest, dependencies)
             if not matches(bytes, entry.sha256, dependencies.sha256) then
                 return fail("Missing or mismatched module: " .. entry.id)
             end
-            fetched[#fetched + 1] = { path = entry.path, bytes = bytes }
+            fetched[#fetched + 1] = { path = entry.path,
+                bytes = bytes, sha256 = entry.sha256 }
         end
         bytesByPath[entry.path] = bytes
     end
@@ -79,7 +80,8 @@ function Loader.start(fetch, cache, compile, manifest, dependencies)
         chunks[entry.id] = chunk
     end
     for _, item in ipairs(fetched) do
-        pcall(cache.Write, cache, manifest.releaseCommit, item.path, item.bytes)
+        pcall(cache.Write, cache, manifest.releaseCommit,
+            item.path, item.bytes, item.sha256)
     end
 
     local exports = {}
