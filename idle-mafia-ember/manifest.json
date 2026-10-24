@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "16f20aad03f35aec9702f82c830bfce5cd4a9ce3",
+  "releaseCommit": "9bce86fad8f774c17496f2098b69352fbf7fcc69",
   "modules": [
     {
       "id": "AutomationRuntime",
@@ -1247,7 +1247,7 @@
     {
       "id": "RuntimeLoop",
       "path": "src/transport/RuntimeLoop.luau",
-      "sha256": "444f89bce94dcd5889518abdc11646830397502a5aca40a2765bbd9059122f77",
+      "sha256": "373c3ac04260dc9ed708aea43c48129bc05b5240d6a4d469959db6dd5646b970",
       "deps": []
     },
     {
