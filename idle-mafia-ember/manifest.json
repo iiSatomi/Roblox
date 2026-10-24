@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "a9396aba10f752b31e292ce0869f799548c8fcc3",
+  "releaseCommit": "1534654ae9e5ed9dd3911e60f2948c43236a63a8",
   "modules": [
     {
       "id": "AutomationRuntime",
@@ -677,7 +677,7 @@
     {
       "id": "ProfileStore",
       "path": "src/storage/ProfileStore.luau",
-      "sha256": "c08e95c53667ad1c9143f652bb7229fd6f02398b4978988d210c99c85198fe1e",
+      "sha256": "165877334ebb60c050999e10bb3a2b753d2371990e631f5abae97a40d79aae84",
       "deps": []
     },
     {
@@ -689,7 +689,7 @@
     {
       "id": "Settings",
       "path": "src/storage/Settings.luau",
-      "sha256": "1057e1861ba6bbf039f278f04a00c433b17e360d08d4c5edf8cfec987896ab33",
+      "sha256": "074381debb28a06646a8996d858ae168a50901bbeb2b29847ebdd8f33a64f207",
       "deps": []
     },
     {
@@ -1013,7 +1013,7 @@
     {
       "id": "OverviewTab",
       "path": "src/tabs/overview/Module.luau",
-      "sha256": "020fda56fc3c9f9cc0ce796b4f511c29b20a573f955421f1d0cadcb09a1b4a96",
+      "sha256": "53431340aa096707a05caa5dba55a396de18bbdab8e31046b859ade906eda273",
       "deps": []
     },
     {
@@ -1025,7 +1025,7 @@
     {
       "id": "ProfilesTab",
       "path": "src/tabs/profiles/Module.luau",
-      "sha256": "3c24036c592509ff1fd068284f356bf57ca28497d2d0aceb20e2b19b31f681d3",
+      "sha256": "ee5d3522d4148925855096d7f273a64fc3e1c3b9b94ec06dba363e41e4b4c91a",
       "deps": []
     },
     {
@@ -1241,7 +1241,7 @@
     {
       "id": "RuntimeHost",
       "path": "src/transport/RuntimeHost.luau",
-      "sha256": "055a2be54b6abe97231534ff7f49aac222a76d242cf26d5d2e167f82a58a5e46",
+      "sha256": "41f0ae95dd67891d50be86cfc361dd04156e4317ceeae810d80fd8c3c50b2da8",
       "deps": []
     },
     {
@@ -1259,13 +1259,13 @@
     {
       "id": "EmberAdapter",
       "path": "src/ui/EmberAdapter.luau",
-      "sha256": "397a045891a7999abc3d46a3451e2e1079c432063e2c896fa0876bd6b74158ca",
+      "sha256": "ba9053119d71d8a9c9291e6a8e99922220ad6d705e85ca000430607e6324317f",
       "deps": []
     },
     {
       "id": "App",
       "path": "src/App.luau",
-      "sha256": "7f6f2c4be8f0e1ea15eae4db4ae3fa7c764f485e08bc489cc7d54780dc60aae7",
+      "sha256": "507a74516a4381c3948ff6715c0decf93c39a085e63849ddef3a2ba9baf52274",
       "deps": []
     }
   ]
