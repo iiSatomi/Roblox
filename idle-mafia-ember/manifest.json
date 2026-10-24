@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "253c62fdc276ec11015a756287463bf6b000d65a",
+  "releaseCommit": "256d4cd5eaf5ecf4a12536972a1e73b66fab0ef9",
   "modules": [
     {
       "id": "AutomationRuntime",
@@ -71,7 +71,7 @@
     {
       "id": "RuntimeAssembly",
       "path": "src/engine/RuntimeAssembly.luau",
-      "sha256": "bfe935cf977216a466bbee6d8a5773b1c5e294154c600a6f14bd69bb9b7b94f3",
+      "sha256": "ca9ce5d5ac3439415a599e091edabd10fc9c9156f94845da018398d017324dec",
       "deps": []
     },
     {
