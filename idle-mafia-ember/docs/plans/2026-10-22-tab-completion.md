@@ -1,5 +1,17 @@
 # Idle Mafia tab completion plan
 
+**2026-10-24 current-client compatibility repin:** User's read-only
+observer returned place version 605, GameVersion 0.26.555.1 and contract
+fingerprint `36f6d88997e5315663632826ab69e562ca9eea3672aef2c07b14aed6a050d5d0`.
+The same observer, with only those two version fields substituted back to
+590 and 0.26.530, returned the previously reviewed fingerprint exactly.
+Thus the selected Bank/Prestige/Briefcase values, all Job IDs and the
+Remote name/class inventory within this fingerprint are unchanged.
+Unobserved client code and server behavior are not certified by this
+comparison. Repin the functional entry's exact version/fingerprint; retain
+all-off startup and the Jobs/ordinary-Boss-only send allowlist. Live Job
+and Boss outcome confirmation remains the next required test.
+
 **2026-10-24 read and dispatch recovery:** Market and Territory read lanes
 now turn parser/attachment exceptions into bounded failed reads, release
 their local slot, and allow later queued reads. A late Market price reply
