@@ -30,8 +30,12 @@ function Methods:RefreshStorage()
     if reason then
         self.storageStatus:Set("Unavailable — " .. reason, true)
         self.autoloadStatus:Set("Unavailable", true)
+        self.savedSelection:SetOptions({ "Choose saved profile" }, true)
         return
     end
+    local choices = { "Choose saved profile" }
+    for _, name in ipairs(names) do choices[#choices + 1] = name end
+    self.savedSelection:SetOptions(choices, true)
     local visible = {}
     for index = 1, math.min(#names, 3) do
         visible[#visible + 1] = names[index]
@@ -76,6 +80,17 @@ function ProfilesTab.new(section, callbacks, userOrigin)
             Text = "Profile name", Default = "main",
             Save = false, FireOnStart = false,
             FireOnBlur = false, Reapply = false,
+        })
+        result.savedSelection = savedGroup:Dropdown({
+            Text = "Choose saved profile",
+            Options = { "Choose saved profile" },
+            Default = "Choose saved profile", Save = false,
+            FireOnStart = false, Reapply = false,
+            Callback = function(name, _, origin)
+                if userOrigin(origin) and name ~= "Choose saved profile" then
+                    result.profileName:Set(name, true)
+                end
+            end,
         })
         button(savedGroup, "Save choices locally", "saveProfile")
         button(savedGroup, "Preview saved profile", "previewProfile")

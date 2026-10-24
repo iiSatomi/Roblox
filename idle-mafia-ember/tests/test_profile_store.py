@@ -124,7 +124,9 @@ class ProfileStoreTests(unittest.TestCase):
         self.assertFalse(app.model["values"]["shop.enabled"])
         self.assertTrue(app.Set(app, "jobs.enabled", True)[0])
         self.assertTrue(app.SaveProfile(app, "main")[0])
+        self.assertEqual(app.ui.profileStatus.Get(app.ui.profileStatus), "None")
         self.assertTrue(app.SetAutoload(app, "main")[0])
+        self.assertEqual(app.ui.profileStatus.Get(app.ui.profileStatus), "None")
         app.Destroy(app)
 
         runtime.resumed = False
@@ -153,7 +155,9 @@ class ProfileStoreTests(unittest.TestCase):
         self.assertFalse(blocked.model["values"]["shop.enabled"])
         self.assertFalse(blocked.model["values"]["jobs.enabled"])
         self.assertIn("exceeds this runtime preview",
-                      blocked.ui.profileStatus.Get(blocked.ui.profileStatus))
+                      blocked.ui.activity.Get(blocked.ui.activity))
+        self.assertEqual(blocked.ui.profileStatus.Get(blocked.ui.profileStatus),
+                         "None")
         blocked.Destroy(blocked)
 
     def test_app_preview_requires_separate_paused_apply(self):
@@ -184,6 +188,18 @@ class ProfileStoreTests(unittest.TestCase):
             ember.Flush()
             self.assertEqual(app.ui.profiles.storageStatus.Get(
                 app.ui.profiles.storageStatus), "1 saved: main")
+            self.assertEqual(app.ui.profiles.savedSelection.options.Options[2],
+                             "main")
+            app.ui.profileName.Set(app.ui.profileName, "alternate", True)
+            buttons["Save choices locally"].Click(
+                buttons["Save choices locally"])
+            ember.Flush()
+            self.assertEqual(app.ui.profiles.savedSelection.options.Options[3],
+                             "main")
+            app.ui.profiles.savedSelection.Set(
+                app.ui.profiles.savedSelection, "main", False)
+            ember.Flush()
+            self.assertEqual(app.ui.profileName.Get(app.ui.profileName), "main")
             buttons["Autoload this saved profile"].Click(
                 buttons["Autoload this saved profile"])
             ember.Flush()

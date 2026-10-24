@@ -167,8 +167,8 @@ function App.start(dependencies)
         local saved, reason = self.profileStore:Save(
             name, self.model:Snapshot())
         if saved then
-            self.ui.profileStatus:Set("Saved locally: " .. name, true)
             if self.ui.profiles then self.ui.profiles:RefreshStorage() end
+            self.ui:RecordActivity("Saved profile: " .. name)
         end
         return saved, reason
     end
@@ -190,10 +190,9 @@ function App.start(dependencies)
         end
         local saved, reason = self.profileStore:SetAutoload(name)
         if saved then
-            self.ui.profileStatus:Set(name
-                and ("Autoload on: " .. name)
-                or "Autoload off", true)
             if self.ui.profiles then self.ui.profiles:RefreshStorage() end
+            self.ui:RecordActivity(name
+                and ("Autoload on: " .. name) or "Autoload off")
         end
         return saved, reason
     end
@@ -425,9 +424,6 @@ function App.start(dependencies)
     local ok, reason = self:Refresh(startupNote)
     if not ok then self:Destroy(); error(reason, 0) end
     if runtime then runtime:Resume() end
-    if self.profileStore and runtime then
-        self.ui.profileStatus:Set(startupNote, true)
-    end
     return self
 end
 

@@ -1,5 +1,13 @@
 # Idle Mafia tab completion plan
 
+**2026-10-24 Profiles follow-up:** The saved-profile picker now fills the
+manual name field without applying choices. Saving and changing autoload
+update their own status rows and Activity while the "Staged profile" row
+remains about staged choices only. PR #1 was merged at an earlier commit;
+the subsequent testable release lives on branch
+`codex/idle-mafia-ember-preview`. Current-client visual and gameplay
+outcomes are still unverified.
+
 **2026-10-24 UI pass:** Profiles separates session choices from saved
 profiles, counts enabled choices and staged differences, and shows saved
 profile/autoload state. Settings groups appearance and window controls,
@@ -12,8 +20,8 @@ skipped), 12 Node tests, 211 unique Luau modules, and changed Luau syntax
 parsing. A current-client visual check and Jobs/Boss server outcomes remain
 pending.
 
-**2026-10-24 functional preview update:** The existing GitHub draft PR branch
-now contains `RuntimeEntry.luau` at `5a5bbe0`, separate from the published
+**2026-10-24 functional preview update (historical):** The preview branch
+first received `RuntimeEntry.luau` at `5a5bbe0`, separate from the published
 UI-only `TestEntry.luau`. The entry pins a 211-module source commit and
 manifest, starts the current-client runtime with every switch off and no
 default pause, seeds the read-only native snapshot from `State.latest()`,

@@ -16,8 +16,9 @@ preview. Purchases, player attacks, and the other tabs are unavailable in
 this entry.
 
 Profiles displays selected and staged differences in both entries. Saved
-profile and autoload controls appear only when account/place-scoped storage
-is available. Settings offers session-only theme selection/reset, window
+profile selection and autoload controls appear only when account/place-scoped
+storage is available. Choosing a saved profile fills the name field without
+applying its choices. Settings offers session-only theme selection/reset, window
 centering, and a clear connection-mode indicator. Each gameplay row reports
 whether the current entry can run that feature.
 
