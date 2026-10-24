@@ -142,6 +142,20 @@ class ProfileStoreTests(unittest.TestCase):
         self.assertFalse(fresh.model["values"]["jobs.enabled"])
         fresh.Destroy(fresh)
 
+        scoped = self.module.new(self.storage, self.model,
+            self.h.session["account"], self.h.session["place"])
+        unsafe = lua_table(self.h.lua, {
+            "schema": 1, "values": {"shop.enabled": True}})
+        self.assertTrue(scoped.Save(scoped, "unsafe", unsafe)[0])
+        self.assertTrue(scoped.SetAutoload(scoped, "unsafe")[0])
+        deps.Ember = self.h.load("tests/ember_double.lua")()
+        blocked = app_module.start(deps)
+        self.assertFalse(blocked.model["values"]["shop.enabled"])
+        self.assertFalse(blocked.model["values"]["jobs.enabled"])
+        self.assertIn("exceeds this runtime preview",
+                      blocked.ui.profileStatus.Get(blocked.ui.profileStatus))
+        blocked.Destroy(blocked)
+
     def test_app_preview_requires_separate_paused_apply(self):
         ember = self.h.load("tests/ember_double.lua")()
         deps = lua_table(self.h.lua, {
@@ -164,6 +178,15 @@ class ProfileStoreTests(unittest.TestCase):
             buttons["Save choices locally"].Click(
                 buttons["Save choices locally"])
             ember.Flush()
+            buttons["Autoload this saved profile"].Click(
+                buttons["Autoload this saved profile"])
+            ember.Flush()
+            self.assertEqual(app.profileStore.GetAutoload(
+                app.profileStore)[0], "main")
+            buttons["Disable autoload"].Click(buttons["Disable autoload"])
+            ember.Flush()
+            self.assertIsNone(app.profileStore.GetAutoload(
+                app.profileStore)[0])
             self.assertTrue(app.Set(app, "jobs.enabled", False)[0])
             buttons["Preview saved profile"].Click(
                 buttons["Preview saved profile"])

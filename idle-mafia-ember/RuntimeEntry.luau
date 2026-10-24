@@ -1,4 +1,4 @@
--- Paused current-client runtime. Actions require enabling a feature and Resume.
+-- Current-client runtime: all switches start off; explicit profile autoload may enable them.
 local sourceCommit = "19497bae4398d48a9a2967294cafd94038a725a4"
 local manifestCommit = "e838c17bac0b686e03e972c780b108dd44ed487c"
 local root = "https://raw.githubusercontent.com/iiSatomi/Roblox/"

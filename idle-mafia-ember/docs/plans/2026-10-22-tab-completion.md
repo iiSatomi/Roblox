@@ -1,15 +1,16 @@
 # Idle Mafia tab completion plan
 
 **2026-10-24 functional preview update:** The existing GitHub draft PR branch
-now contains `RuntimeEntry.luau` at `116706e`, separate from the published
+now contains `RuntimeEntry.luau` at `5a5bbe0`, separate from the published
 UI-only `TestEntry.luau`. The entry pins a 211-module source commit and
 manifest, starts the current-client runtime with every switch off and no
 default pause, seeds the read-only native snapshot from `State.latest()`,
 and permits only Jobs and ordinary Boss stages. Profiles are account/place
 scoped; a saved profile autoloads only after explicit selection, and only if
 its enabled features are in this preview's allowlist. The first runnable
-preview passes 604 Python/Lupa tests (one skipped), 12 Node tests and Luau
+preview passes 606 Python/Lupa tests (one skipped), 12 Node tests and Luau
 syntax parsing. The full App and shared runtime compose together offline.
+Verified cache bytes are used before network fetches on repeat launches.
 No live Jobs/Boss request or exact server outcome has been observed. Next:
 run the pinned functional entry in a current client, inspect startup status,
 then enable one Job and verify newer replicated Job progress. Check Bosses

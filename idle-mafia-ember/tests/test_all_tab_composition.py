@@ -303,6 +303,9 @@ class AllTabCompositionTests(unittest.TestCase):
         self.assertFalse(app.model.paused)
         self.assertIn("Runtime connected", app.ui.window.options.StatusBar.Text)
         self.assertFalse(app.Set(app, "shop.enabled", True)[0])
+        self.assertFalse(app.Set(app, "operations.enabled", True)[0])
+        self.assertTrue(app.Set(app, "jobs.enabled", True)[0])
+        self.assertTrue(app.Set(app, "bosses.enabled", True)[0])
         self.assertEqual(len(h.transport["sent"]), 0)
         app.Destroy(app)
         injected.TerritoryTab = None

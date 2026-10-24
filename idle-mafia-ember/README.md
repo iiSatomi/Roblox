@@ -20,6 +20,8 @@ request coordination. The functional entry has not yet been confirmed on a
 live Roblox client; a successful load alone does not prove server action
 acceptance. The current-client version and fingerprint checks deliberately
 stop startup if the game contract has changed.
+Verified per-commit module cache entries are reused on later launches;
+missing or corrupt modules are fetched and checked again.
 
 The [tab completion plan](docs/plans/2026-10-22-tab-completion.md) tracks
 all 25 UI tabs. All 25 `src/tabs/<tab>/` entries now own their UI;
