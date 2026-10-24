@@ -104,8 +104,13 @@ function Loader.start(fetch, cache, compile, manifest, dependencies)
         end
         starter = exports.RuntimeHost.start
     end
-    local ok, app = pcall(starter, appDependencies)
-    if not ok or type(app) ~= "table" then return fail("App startup failed") end
+    local ok, app, startReason = pcall(starter, appDependencies)
+    if not ok or type(app) ~= "table" then
+        local detail = ok and type(startReason) == "string"
+            and #startReason <= 120 and startReason or nil
+        return fail(detail and ("App startup failed: " .. detail)
+            or "App startup failed")
+    end
     active = { signature = release, app = app }
     starting = false
     return app, nil

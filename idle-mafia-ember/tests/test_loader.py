@@ -147,6 +147,23 @@ class LoaderTests(unittest.TestCase):
         self.assertEqual(self.lua.globals().compileCount, 2)
         self.assertEqual(self.lua.globals().startCount, 0)
 
+    def test_runtime_host_failure_keeps_specific_safe_reason(self):
+        self.deps["activateRuntimeHost"] = True
+        self.bytes["src/RuntimeHost.luau"] = (
+            "return {start=function() return nil, "
+            "'Current client bindings unavailable' end}")
+        self.manifest["modules"].append({
+            "id": "RuntimeHost", "path": "src/RuntimeHost.luau",
+            "sha256": hashlib.sha256(
+                self.bytes["src/RuntimeHost.luau"].encode()).hexdigest(),
+            "deps": [],
+        })
+        self.lua.globals().fetchBytes = lua_table(self.lua, self.bytes)
+        app, reason = self.start()
+        self.assertIsNone(app)
+        self.assertEqual(reason,
+            "App startup failed: Current client bindings unavailable")
+
     def test_different_release_cannot_start_beside_active_app(self):
         self.start()
         self.manifest["releaseCommit"] = "b" * 40
