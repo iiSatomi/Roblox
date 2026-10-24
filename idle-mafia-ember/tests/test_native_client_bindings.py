@@ -27,7 +27,11 @@ class NativeClientBindingsTests(unittest.TestCase):
             mw:Add(node('DailyBuffRules', 'ModuleScript')).Value = {
                 isWeekend = function() return true end }
             mw:Add(node('Config', 'ModuleScript')).Value = {
-                GROUP = { id = 123 } }
+                GROUP = { id = 123 }, COMBAT = { staminaCost = 2 } }
+            mw:Add(node('GameData', 'ModuleScript')).Value = {
+                JOBS = { { id = 'j_watch' } } }
+            mw:Add(node('GearSets', 'ModuleScript')).Value = {
+                slotBonus = function() end }
             local scripts = node('PlayerScripts', 'PlayerScripts')
             local stateModule = scripts:Add(node('MWClient', 'LocalScript'))
                 :Add(node('State', 'ModuleScript'))
@@ -55,6 +59,9 @@ class NativeClientBindingsTests(unittest.TestCase):
         self.assertTrue(same(found.nativeState, state))
         self.assertIsNotNone(found.currentDailyBuffRules)
         self.assertEqual(found.config.GROUP.id, 123)
+        self.assertEqual(found.gameData.JOBS[1].id, 'j_watch')
+        self.assertIsNotNone(found.gearSets.slotBonus)
+        self.assertEqual(found.combatRules.staminaCost, 2)
         self.assertTrue(found.groupLookup(123))
         self.assertFalse(found.groupLookup(124))
         state_module.Parent = None

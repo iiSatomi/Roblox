@@ -75,14 +75,20 @@ function RuntimeHost.start(deps)
     local currentDailyBuffRules = deps.currentDailyBuffRules
     local groupLookup = deps.groupLookup
     local rewardsConfig = deps.config
+    local clientBindings
     if currentClient then
         local bound, bindings = pcall(deps.NativeClientBindings.read,
             deps.clientGame, deps.clientRequire)
         if not bound or type(bindings) ~= "table"
             or bindings.remotesFolder == nil
-            or type(bindings.nativeState) ~= "table" then
+            or type(bindings.nativeState) ~= "table"
+            or type(bindings.gameData) ~= "table"
+            or type(bindings.config) ~= "table"
+            or type(bindings.gearSets) ~= "table"
+            or type(bindings.combatRules) ~= "table" then
             return nil, "Current client bindings unavailable"
         end
+        clientBindings = bindings
         local observed, observer = pcall(deps.NativeClientObserver.new,
             deps.clientGame, deps.clientRequire, deps.clientHash)
         if not observed or type(observer) ~= "table"
@@ -133,6 +139,12 @@ function RuntimeHost.start(deps)
     appDeps.executorRuntimeApi = executorRuntimeApi
     appDeps.executorStorageApi = executorStorageApi
     appDeps.clock = clock
+    if clientBindings then
+        appDeps.gameData = clientBindings.gameData
+        appDeps.config = clientBindings.config
+        appDeps.gearSets = clientBindings.gearSets
+        appDeps.combatRules = clientBindings.combatRules
+    end
     local resolved, resolver = pcall(
         deps.NativeRemoteResolver.new, remotesFolder)
     if not resolved or type(resolver) ~= "table"

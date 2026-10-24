@@ -30,7 +30,7 @@ local function resolve(game, requireModule)
     end
     local latest = state.latest()
     if type(latest) ~= "table" then return nil end
-    local dailyBuffRules, config
+    local dailyBuffRules, config, gameData, gearSets
     local dailyModule = child(mw, "DailyBuffRules", "ModuleScript")
     if dailyModule then
         local ok, value = pcall(requireModule, dailyModule)
@@ -44,6 +44,21 @@ local function resolve(game, requireModule)
         local ok, value = pcall(requireModule, configModule)
         if ok and type(value) == "table" then config = value end
     end
+    local gameDataModule = child(mw, "GameData", "ModuleScript")
+    if gameDataModule then
+        local ok, value = pcall(requireModule, gameDataModule)
+        if ok and type(value) == "table" then gameData = value end
+    end
+    local gearSetsModule = child(mw, "GearSets", "ModuleScript")
+    if gearSetsModule then
+        local ok, value = pcall(requireModule, gearSetsModule)
+        if ok and type(value) == "table" then gearSets = value end
+    end
+    if type(config) ~= "table" or type(config.COMBAT) ~= "table"
+        or type(gameData) ~= "table" or type(gearSets) ~= "table"
+        or type(gearSets.slotBonus) ~= "function" then
+        return nil
+    end
     local groupLookup
     if type(player.IsInGroup) == "function" then
         groupLookup = function(groupId)
@@ -53,7 +68,9 @@ local function resolve(game, requireModule)
     return { moduleFolder = mw, remotesFolder = remotes,
         nativeState = state, stateModule = stateModule,
         currentDailyBuffRules = dailyBuffRules,
-        config = config, groupLookup = groupLookup }
+        config = config, gameData = gameData,
+        gearSets = gearSets, combatRules = config.COMBAT,
+        groupLookup = groupLookup }
 end
 
 function NativeClientBindings.read(game, requireModule)

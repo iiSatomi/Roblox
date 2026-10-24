@@ -23,6 +23,14 @@ class TestEntryTests(unittest.TestCase):
             "git", "show",
             "132a2917af8a8bc01f51669c672fee8c76d30ac5:idle-mafia-ember/manifest.json",
         ], cwd=ROOT).decode("utf-8")
+        pinned = json.loads(files["manifest.json"])
+        for row in pinned["modules"]:
+            path = row["path"]
+            if hashlib.sha256(files[path].encode("utf-8")).hexdigest() != row["sha256"]:
+                files[path] = subprocess.check_output([
+                    "git", "show", pinned["releaseCommit"]
+                    + ":idle-mafia-ember/" + path,
+                ], cwd=ROOT).decode("utf-8")
         # Lupa has no Roblox GUI services; substitute the existing UI double.
         # The Ember fixture hash stands in for the independently reviewed pin.
         ember_bytes = "offline Ember fixture"

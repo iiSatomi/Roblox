@@ -46,6 +46,9 @@ class RuntimeHostTests(unittest.TestCase):
                     files = deps.files,
                     shopQuoteSource = deps.shopQuoteSource,
                     rewardsSource = deps.rewardsSource,
+                    gameData = deps.gameData, config = deps.config,
+                    gearSets = deps.gearSets,
+                    combatRules = deps.combatRules,
                     Step = function(self, raw)
                         self.seen = self.seen + 1
                         return true
@@ -201,7 +204,10 @@ class RuntimeHostTests(unittest.TestCase):
             read = function() return {
                 remotesFolder = real_folder, nativeState = real_state,
                 currentDailyBuffRules = real_rewards_rule,
-                config = { GROUP = { id = 123 } },
+                config = { GROUP = { id = 123 }, COMBAT = { staminaCost = 2 } },
+                gameData = { JOBS = { { id = 'j_watch' } } },
+                gearSets = { slotBonus = function() end },
+                combatRules = { staminaCost = 2 },
                 groupLookup = function(id) return id == 123 end,
             } end,
         }""")
@@ -210,6 +216,11 @@ class RuntimeHostTests(unittest.TestCase):
         self.deps["release"] = "release-a"
         self.deps["config"] = lua_table(self.h.lua, {
             "GROUP": {"id": 999}})
+        self.deps["gameData"] = lua_table(self.h.lua, {
+            "JOBS": [{"id": "caller-fake"}]})
+        self.deps["gearSets"] = self.h.lua.table()
+        self.deps["combatRules"] = lua_table(self.h.lua, {
+            "staminaCost": 999})
         self.deps["currentDailyBuffRules"] = self.h.lua.table()
         self.deps["groupLookup"] = self.h.lua.eval(
             "function() return false end")
@@ -241,6 +252,10 @@ class RuntimeHostTests(unittest.TestCase):
         self.assertEqual(host.app.rewardsSource.groupId, 123)
         self.assertTrue(host.app.rewardsSource.IsWeekend(
             host.app.rewardsSource, 0))
+        self.assertEqual(host.app.gameData.JOBS[1].id, 'j_watch')
+        self.assertEqual(host.app.config.GROUP.id, 123)
+        self.assertIsNotNone(host.app.gearSets.slotBonus)
+        self.assertEqual(host.app.combatRules.staminaCost, 2)
         host.Destroy(host)
 
     def test_unbound_native_proof_sources_override_caller_values(self):
