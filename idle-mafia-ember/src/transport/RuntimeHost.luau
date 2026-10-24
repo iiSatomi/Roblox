@@ -252,13 +252,20 @@ function RuntimeHost.start(deps)
         or app.alive ~= true
         or type(app.Destroy) ~= "function"
         or type(app.Step) ~= "function" then
+        local failure = "App startup returned invalid handle"
+        if not made then
+            local firstLine = tostring(app):match("^[^\r\n]+")
+                or "Unknown construction error"
+            failure = "App construction raised: "
+                .. firstLine:sub(1, 88)
+        end
         if made and type(app) == "table"
             and type(app.Destroy) == "function" then
             pcall(app.Destroy, app)
         end
         closeSources()
         resolver:Close()
-        return nil, "App startup failed"
+        return nil, failure
     end
     local created, reader = pcall(deps.NativeSnapshotReader.new,
         deps.identity, clock)

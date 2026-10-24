@@ -424,8 +424,23 @@ class RuntimeHostTests(unittest.TestCase):
         }""")
         host, reason = self.host_module.start(self.deps)
         self.assertIsNone(host)
-        self.assertEqual(reason, "App startup failed")
+        self.assertEqual(reason, "App startup returned invalid handle")
         self.assertTrue(self.h.lua.globals().partial_app_destroyed)
+        self.assertIsNone(self.events.sync)
+
+    def test_app_exception_reports_first_line_and_cleans_up(self):
+        self.deps["App"] = self.h.lua.execute("""return {
+            start = function()
+                error([[Missing current source
+extra private details]])
+            end,
+        }""")
+        host, reason = self.host_module.start(self.deps)
+        self.assertIsNone(host)
+        self.assertIn("App construction raised:", reason)
+        self.assertIn("Missing current source", reason)
+        self.assertNotIn("extra private details", reason)
+        self.assertLessEqual(len(reason), 120)
         self.assertIsNone(self.events.sync)
 
     def test_source_change_before_next_sync_closes_host(self):

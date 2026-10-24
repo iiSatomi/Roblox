@@ -1,5 +1,13 @@
 # Idle Mafia tab completion plan
 
+**2026-10-24 App startup diagnostic:** The user confirmed that the
+605/0.26.555.1 compatibility repin passes its gate, but the current
+functional entry stops while constructing `App`. The host previously
+discarded the underlying exception and returned only `App startup failed`.
+It now returns a bounded first-line cause after cleaning up; no send scope
+or profile default changed. This diagnostic is offline-tested; the exact
+live App failure awaits the next executor run.
+
 **2026-10-24 current-client compatibility repin:** User's read-only
 observer returned place version 605, GameVersion 0.26.555.1 and contract
 fingerprint `36f6d88997e5315663632826ab69e562ca9eea3672aef2c07b14aed6a050d5d0`.
