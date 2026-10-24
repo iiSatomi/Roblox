@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "5533b4bb247c37300ae349097dd493af74058dd2",
+  "releaseCommit": "06f8d174a4543ff73561c313d323cca931540b81",
   "modules": [
     {
       "id": "AutomationRuntime",
@@ -1025,7 +1025,7 @@
     {
       "id": "ProfilesTab",
       "path": "src/tabs/profiles/Module.luau",
-      "sha256": "eebfd8b44281abf2fe2d8c949a0eca55d8ec08b87b238d3ac7ec1a204b15816e",
+      "sha256": "d02feb3b4eaf0d3e1ea3641a87e4c80b60cf94d6bb0c11f4cfe22be246318f32",
       "deps": []
     },
     {
@@ -1265,7 +1265,7 @@
     {
       "id": "App",
       "path": "src/App.luau",
-      "sha256": "498f1998bb9d0b892734c1d8fc08b027ffd2dae62603ceed9d027b589ebe365c",
+      "sha256": "2d8ab39266d900072292fd44793948ea3726671f2f111c02bf14af394e34a342",
       "deps": []
     }
   ]
