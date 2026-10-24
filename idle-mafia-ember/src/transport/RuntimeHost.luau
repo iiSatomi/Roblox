@@ -294,7 +294,7 @@ function RuntimeHost.start(deps)
             return false
         end
         refreshQueued = true
-        local scheduled = pcall(runtimeCaps.nativeExecutor.Schedule,
+        local scheduled, accepted = pcall(runtimeCaps.nativeExecutor.Schedule,
             runtimeCaps.nativeExecutor, function()
                 if self.active then
                     pcall(source.Refresh, source,
@@ -302,8 +302,11 @@ function RuntimeHost.start(deps)
                 end
                 refreshQueued = false
             end)
-        if not scheduled then refreshQueued = false end
-        return scheduled
+        if not scheduled or accepted == false then
+            refreshQueued = false
+            return false
+        end
+        return true
     end
     function host:Destroy()
         if not self.active then return false end

@@ -338,6 +338,34 @@ class RuntimeHostTests(unittest.TestCase):
         queued[2]()
         self.assertEqual(host.app.rewardsSource["calls"], 1)
 
+    def test_group_refresh_can_retry_after_scheduler_declines(self):
+        self.deps["NativeRewardsSource"] = self.h.lua.execute("""return {
+            new = function(_, _, _, release, account, id)
+                return { release = release, account = account,
+                    groupId = id, Refresh = function() return true end }, nil
+            end,
+        }""")
+        self.deps["currentDailyBuffRules"] = self.h.lua.table()
+        self.deps["groupLookup"] = self.h.lua.eval(
+            "function() return true end")
+        self.deps["config"] = lua_table(self.h.lua, {
+            "GROUP": {"id": 674050067}})
+        self.deps["release"] = "release-a"
+        self.deps["executorRuntimeApi"]["defer"] = self.h.lua.execute(
+            """local declined = false
+            return function(callback)
+                if not declined then declined = true; return false end
+                local api = test_runtime_api
+                api.queued[#api.queued + 1] = callback
+                return true
+            end""")
+        host, reason = self.host_module.start(self.deps)
+        self.assertIsNone(reason)
+        self.assertFalse(host.RefreshGroupMembership(host))
+        self.assertTrue(host.RefreshGroupMembership(host))
+        self.assertEqual(len(self.deps["executorRuntimeApi"]["queued"]), 1)
+        host.Destroy(host)
+
     def test_incompatible_client_never_starts_app_or_subscribes(self):
         self.observer["Read"] = self.h.lua.eval("""function()
             return { place = '73897506680154',
