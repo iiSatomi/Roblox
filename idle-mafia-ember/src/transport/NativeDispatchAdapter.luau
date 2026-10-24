@@ -11,11 +11,20 @@ function NativeDispatchAdapter.new(plan, executor)
         and type(executor.Invoke) == "function",
         "Missing injected native executor")
     return setmetatable({ plan = plan, executor = executor,
-        invoking = false }, Methods)
+        invoking = nil }, Methods)
 end
 
 function Methods:InFlight()
-    return self.invoking
+    return self.invoking ~= nil
+end
+
+function Methods:ReleaseExpired(proposal)
+    -- Release only the local scheduling lock; the server call may still return.
+    if self.invoking and self.invoking.proposal == proposal then
+        self.invoking = nil
+        return true
+    end
+    return false
 end
 
 function Methods:Validate(proposal)
@@ -42,11 +51,12 @@ function Methods:Send(proposal, onReturn, canDispatch)
     self.executor:Schedule(function()
         local owned, allowed = pcall(canDispatch)
         if not owned or allowed ~= true or self.invoking then return end
-        self.invoking = true
+        local invocation = { proposal = proposal }
+        self.invoking = invocation
         local ok, reply = pcall(self.executor.Invoke,
             self.executor, call.remote, call.method,
             table.unpack(call.args, 1, call.arity))
-        self.invoking = false
+        if self.invoking == invocation then self.invoking = nil end
         -- An interrupted/malformed response is ambiguous. Keep the broker's
         -- sent action pending until state proof or the 45-second deadline.
         if ok and type(reply) == "table" then

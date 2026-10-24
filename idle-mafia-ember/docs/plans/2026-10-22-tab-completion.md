@@ -1,5 +1,12 @@
 # Idle Mafia tab completion plan
 
+**2026-10-24 broker deadline follow-up:** At the 45-second unconfirmed
+deadline, the broker now releases the expired call's local transport lock so
+other features can continue. The timed-out feature retains its cooldown and
+duplicate-risk status. A late return cannot release a newer call's lock or
+count the old action as success. This does not cancel the server request.
+Current-client gameplay outcomes remain unverified.
+
 **2026-10-24 Profiles follow-up:** The saved-profile picker now fills the
 manual name field without applying choices. Saving and changing autoload
 update their own status rows and Activity while the "Staged profile" row

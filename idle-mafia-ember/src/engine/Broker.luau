@@ -65,6 +65,9 @@ function Methods:Expire(active, now)
     if not self.active or self.active.token ~= active.token then return end
     self:Record("skipped_unconfirmed", active, now,
         "No action-specific confirmation by first send + 45s", true)
+    if type(self.transport.ReleaseExpired) == "function" then
+        pcall(self.transport.ReleaseExpired, self.transport, active.proposal)
+    end
     self.cooldownUntil[active.proposal.feature] = now + self.cooldown
     self.active = nil
 end

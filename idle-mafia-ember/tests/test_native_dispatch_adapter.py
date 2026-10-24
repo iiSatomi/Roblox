@@ -216,7 +216,7 @@ class NativeDispatchAdapterTests(unittest.TestCase):
         self.executor.Drain(self.executor)
         self.assertEqual(len(self.executor["calls"]), 0)
 
-    def test_invoke_still_running_blocks_next_broker_owner(self):
+    def test_expired_invoke_releases_other_feature_while_return_is_late(self):
         try:
             proposal = self.h.proposal()
             proposal["intent"] = lua_table(self.h.lua, {
@@ -227,21 +227,48 @@ class NativeDispatchAdapterTests(unittest.TestCase):
             self.h.lua.globals().test_broker = self.broker
             second = self.h.proposal(feature="operations", key="op:2")
             second["resources"] = lua_table(self.h.lua, {})
+            same_feature = self.h.proposal(key="jobs:retry")
             self.h.lua.globals().second_proposal = second
-            self.h.lua.globals().second_snapshot = self.h.snapshot()
+            self.h.lua.globals().same_feature_proposal = same_feature
+            self.h.lua.globals().second_snapshot = self.h.snapshot(
+                captured_at=45)
             self.executor["Invoke"] = self.h.lua.eval("""function(self, remote, method, ...)
                 advance_invoke_clock()
                 test_session:Tick(second_snapshot)
+                self.same_feature = test_broker:Offer(
+                    same_feature_proposal, second_snapshot)
                 self.nested = test_broker:Offer(second_proposal, second_snapshot)
                 return { ok = true }
             end""")
             self.assertEqual(self.session.Tick(self.session,
                 self.h.snapshot()), "sent")
             self.executor.Drain(self.executor)
-            self.assertEqual(self.executor["nested"], "wait")
+            self.assertEqual(self.executor["same_feature"], "blocked")
+            self.assertEqual(self.executor["nested"], "admitted")
             self.assertFalse(self.transport.InFlight(self.transport))
         finally:
             self.close()
+
+    def test_late_invoke_completion_preserves_newer_transport_owner(self):
+        old = self.h.proposal()
+        old["intent"] = lua_table(self.h.lua, {
+            "kind": "job", "targetId": "j_watch"})
+        newer = self.h.proposal(feature="bosses", key="bosses:next")
+        self.h.lua.globals().old_dispatch = old
+        self.h.lua.globals().new_dispatch = newer
+        self.h.lua.globals().test_dispatch = self.transport
+        self.executor["Invoke"] = self.h.lua.eval("""function()
+            assert(test_dispatch:ReleaseExpired(old_dispatch))
+            test_dispatch.invoking = { proposal = new_dispatch }
+            return { ok = true }
+        end""")
+        self.transport.Send(self.transport, old,
+            self.h.lua.eval("function() end"),
+            self.h.lua.eval("function() return true end"))
+        self.executor.Drain(self.executor)
+        self.assertTrue(self.transport.InFlight(self.transport))
+        self.assertTrue(self.transport.ReleaseExpired(self.transport, newer))
+        self.assertFalse(self.transport.InFlight(self.transport))
 
 
 if __name__ == "__main__":
