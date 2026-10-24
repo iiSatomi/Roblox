@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "d2a521fba770b192b159de14d316da28f8f60a9d",
+  "releaseCommit": "25c4e4dd655dab06f87e355e799f7e8779aa2809",
   "modules": [
     {
       "id": "AutomationRuntime",
@@ -1241,7 +1241,7 @@
     {
       "id": "RuntimeHost",
       "path": "src/transport/RuntimeHost.luau",
-      "sha256": "305863c06da7007c94b6b61b444192a7ed9663f6b422c9b11412e3e69e44abc8",
+      "sha256": "a9b7f019aa1fcd25f30bf176402a30e06803002525227e268acca8a9f5784ea8",
       "deps": []
     },
     {
