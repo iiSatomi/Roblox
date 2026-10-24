@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "746e174c9914791fefb94448793e6052498b273e",
+  "releaseCommit": "16f20aad03f35aec9702f82c830bfce5cd4a9ce3",
   "modules": [
     {
       "id": "AutomationRuntime",
@@ -323,7 +323,7 @@
     {
       "id": "MarketReadRuntime",
       "path": "src/features/MarketReadRuntime.luau",
-      "sha256": "8603669e9545f1f06491d957fe355a6b23d7d8575cf4c2aacf9ac980022fda98",
+      "sha256": "f939ef4ed0ac8624bdcbb6742a46f83dd5fec2bed58ecf0281908b69db6a72ff",
       "deps": []
     },
     {
@@ -1139,7 +1139,7 @@
     {
       "id": "TerritoryReadRuntime",
       "path": "src/tabs/territory/TerritoryReadRuntime.luau",
-      "sha256": "8c2a2745b011da1a6934000bfc33e2f939f1ba81ff51c2f43877391377233cc6",
+      "sha256": "0ff3443376b6aa0e202b2ade27aa08a63e3e93864d7056ae313be71d2ebe9e5f",
       "deps": []
     },
     {
