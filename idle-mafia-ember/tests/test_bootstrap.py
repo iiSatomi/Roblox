@@ -21,7 +21,12 @@ class BootstrapTests(unittest.TestCase):
                 if name == 'Players' then
                     return { LocalPlayer = { Name = 'user-a' } }
                 end
-                if name == 'HttpService' then return {} end
+                if name == 'HttpService' then
+                    return { GenerateGUID = function(_, wrapped)
+                        assert(wrapped == false)
+                        return 'runtime-guid-a'
+                    end }
+                end
             end
         """)
         self.h.lua.globals().pysha = lambda source: hashlib.sha256(
@@ -80,10 +85,25 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(deps.fingerprint, "b" * 64)
         self.assertEqual(deps.release, "a" * 40)
         self.assertEqual(deps.identity.release, "a" * 40)
+        self.assertEqual(deps.identity.session, "runtime-guid-a")
         board = self.h.load("src/tabs/heists/BoardQuery.luau")
         self.assertEqual(board.new(deps.identity).release, "a" * 40)
         self.assertTrue(deps.allowedFeatures.jobs)
         self.assertTrue(deps.allowedFeatures.bosses)
+
+    def test_missing_session_generator_blocks_runtime_before_loader(self):
+        self.h.lua.execute("""
+            function fakeGame:GetService(name)
+                if name == 'Players' then
+                    return { LocalPlayer = { Name = 'user-a' } }
+                end
+                if name == 'HttpService' then return {} end
+            end
+        """)
+        app, reason = self.bootstrap.start(self.release, self.adapters, True)
+        self.assertIsNone(app)
+        self.assertEqual(reason, "Current session identity unavailable")
+        self.assertIsNone(self.h.lua.globals().seen)
 
     def test_active_release_requires_explicit_allowlist(self):
         self.release["allowedFeatures"] = None

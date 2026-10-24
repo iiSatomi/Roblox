@@ -60,6 +60,15 @@ function Bootstrap.start(release, adapters, activateRuntime)
         or digest:lower() ~= abcSha256 then
         return nil, "Bootstrap SHA-256 unavailable"
     end
+    local sessionId
+    if activateRuntime == true then
+        local generated, value = pcall(http.GenerateGUID, http, false)
+        if not generated or type(value) ~= "string"
+            or #value == 0 or #value > 80 then
+            return nil, "Current session identity unavailable"
+        end
+        sessionId = value
+    end
     local dependencies = {
         Manifest = adapters.Manifest,
         sha256 = function(bytes)
@@ -74,7 +83,7 @@ function Bootstrap.start(release, adapters, activateRuntime)
         directory = release.directory,
         Ember = adapters.Ember,
         identity = { place = release.place, account = player.Name,
-            release = release.commit },
+            release = release.commit, session = sessionId },
         activateRuntimeHost = activateRuntime == true,
         activateAutomation = activateRuntime == true,
         activateStorage = activateRuntime == true,

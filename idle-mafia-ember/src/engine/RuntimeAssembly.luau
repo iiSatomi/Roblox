@@ -52,6 +52,13 @@ function RuntimeAssembly.start(deps)
         snapshotAssembler = composed.snapshotAssembler,
     })
     if not ok or type(runtime) ~= "table" then
+        if not ok then
+            local firstLine = tostring(runtime):match("^[^\r\n]+")
+                or "Unknown constructor error"
+            local detail = firstLine:match("^.-:%d+:%s*(.+)$")
+                or firstLine
+            return nil, "Runtime: " .. detail:sub(1, 75)
+        end
         return nil, "Runtime startup failed"
     end
     return runtime, nil

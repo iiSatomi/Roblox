@@ -1,5 +1,14 @@
 # Idle Mafia tab completion plan
 
+**2026-10-24 runtime session startup fix:** The first identity fix advanced
+the current client to `Runtime startup failed`. Full tab composition passed;
+runtime construction requires a nonempty `identity.session`, which the
+bootstrap had omitted. Functional startup now generates one client-local
+GUID through HttpService and fails closed if it cannot. The runtime
+assembly also reports a bounded first-line constructor error so another
+startup failure is actionable. Failing-first tests cover both paths;
+live UI startup and ordinary-action results await the repinned release.
+
 **2026-10-24 current-client startup fix:** The diagnostic entry exposed
 `Invalid tab module: heists` before UI creation. The functional bootstrap
 omitted `identity.release`, which `HeistsTab` passes to its read-only
