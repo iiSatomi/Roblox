@@ -1,6 +1,6 @@
 -- Paused current-client runtime. Actions require enabling a feature and Resume.
-local sourceCommit = "1534654ae9e5ed9dd3911e60f2948c43236a63a8"
-local manifestCommit = "3057b89085c89eb61411af43b69417b144076713"
+local sourceCommit = "19497bae4398d48a9a2967294cafd94038a725a4"
+local manifestCommit = "e838c17bac0b686e03e972c780b108dd44ed487c"
 local root = "https://raw.githubusercontent.com/iiSatomi/Roblox/"
 local project = "/idle-mafia-ember/"
 local hashApi = crypt or (syn and syn.crypt)
@@ -32,11 +32,11 @@ local function pinnedModule(path, digest)
 end
 
 local manifestBytes = fetch(root .. manifestCommit .. project .. "manifest.json",
-    "71c6ecec5821c2befdaa8caec7ec4e374216bb6c5576f28ebc6e25e75bcbcaa0", "manifest")
+    "c66cbb295e1d4ccfb6f8fcd10ae2714ffa851e622c77c779094259dc9e29611c", "manifest")
 local manifest = game:GetService("HttpService"):JSONDecode(manifestBytes)
 assert(manifest.releaseCommit == sourceCommit, "Manifest pin mismatch")
 
-local Loader = pinnedModule("Loader.luau", "b658ab217abbfb160e8bebc80abedf30543fe5bd7c3afa4cf8d9b1490a39b441")
+local Loader = pinnedModule("Loader.luau", "a39df0bc554eee950c64d8d147e33a22698cd86f5376520c4b1086663f9298ba")
 local Manifest = pinnedModule("src/loader/Manifest.luau", "cbbe6d580c1fab36bf8c9cd4d9e93830dee7c091a32a6fd9bf2a30868712822b")
 local Bootstrap = pinnedModule("Bootstrap.luau", "8e532b4bb2e45255b75f66f249423a7f2e70d3ff954fd08f2780fb28c1237c99")
 local ReleaseAdapters = pinnedModule("ReleaseAdapters.luau", "f830b6379ff3eeff3d0ad7942fbc9497f2a9989fcc0c212f744c66eed0494c8c")

@@ -9,8 +9,8 @@ from engine_harness import Harness, lua_table
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = "1534654ae9e5ed9dd3911e60f2948c43236a63a8"
-MANIFEST = "3057b89085c89eb61411af43b69417b144076713"
+SOURCE = "19497bae4398d48a9a2967294cafd94038a725a4"
+MANIFEST = "e838c17bac0b686e03e972c780b108dd44ed487c"
 
 
 def committed(commit, path):
