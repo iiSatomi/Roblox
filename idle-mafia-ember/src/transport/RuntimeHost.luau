@@ -127,10 +127,12 @@ function RuntimeHost.start(deps)
     if not gateOk or type(compatibility) ~= "table" then
         return nil, "Current client compatibility unavailable"
     end
-    local compatible, accepted = pcall(compatibility.Verify,
+    local compatible, accepted, gateReason = pcall(compatibility.Verify,
         compatibility)
     if not compatible or accepted ~= true then
-        return nil, "Current client compatibility not verified"
+        return nil, "Current client compatibility not verified: "
+            .. (compatible and tostring(gateReason or "Unspecified mismatch")
+                or "Verification raised")
     end
     local host
     local appDeps = {}

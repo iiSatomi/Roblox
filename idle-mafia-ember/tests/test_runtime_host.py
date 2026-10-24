@@ -392,7 +392,22 @@ class RuntimeHostTests(unittest.TestCase):
         end""")
         host, reason = self.host_module.start(self.deps)
         self.assertIsNone(host)
-        self.assertEqual(reason, "Current client compatibility not verified")
+        self.assertEqual(reason,
+            "Current client compatibility not verified: "
+            "Current game version differs from reviewed source")
+        self.assertIsNone(self.events.sync)
+
+    def test_fingerprint_mismatch_reports_specific_gate_without_starting(self):
+        self.observer["Read"] = self.h.lua.eval("""function()
+            return { place = '73897506680154',
+                account = 'user-a', gameVersion = '0.26.530',
+                fingerprint = string.rep('b', 64) }
+        end""")
+        host, reason = self.host_module.start(self.deps)
+        self.assertIsNone(host)
+        self.assertEqual(reason,
+            "Current client compatibility not verified: "
+            "Current source fingerprint differs")
         self.assertIsNone(self.events.sync)
 
     def test_partial_app_startup_is_destroyed(self):
