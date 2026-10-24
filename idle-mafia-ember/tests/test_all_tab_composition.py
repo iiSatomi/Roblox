@@ -293,6 +293,18 @@ class AllTabCompositionTests(unittest.TestCase):
         self.assertEqual(len(list(runtime["features"].items())), len(expected))
         self.assertEqual(runtime.Status(runtime)["state"], "paused")
         self.assertEqual(len(h.transport["sent"]), 0)
+        injected.automationRuntimeInstance = runtime
+        injected.allowedFeatures = lua_table(h.lua, {
+            "jobs": True, "bosses": True})
+        injected.Settings = h.load("src/storage/Settings.luau")
+        injected.EmberAdapter = h.load("src/ui/EmberAdapter.luau")
+        injected.Ember = h.load("tests/ember_double.lua")()
+        app = h.load("src/App.luau").start(injected)
+        self.assertFalse(app.model.paused)
+        self.assertIn("Runtime connected", app.ui.window.options.StatusBar.Text)
+        self.assertFalse(app.Set(app, "shop.enabled", True)[0])
+        self.assertEqual(len(h.transport["sent"]), 0)
+        app.Destroy(app)
         injected.TerritoryTab = None
         missing, reason = assembly.compose(injected)
         self.assertIsNone(missing)

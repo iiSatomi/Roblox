@@ -1,5 +1,22 @@
 # Idle Mafia tab completion plan
 
+**2026-10-24 functional preview update:** The existing GitHub draft PR branch
+now contains `RuntimeEntry.luau` at `116706e`, separate from the published
+UI-only `TestEntry.luau`. The entry pins a 211-module source commit and
+manifest, starts the current-client runtime with every switch off and no
+default pause, seeds the read-only native snapshot from `State.latest()`,
+and permits only Jobs and ordinary Boss stages. Profiles are account/place
+scoped; a saved profile autoloads only after explicit selection, and only if
+its enabled features are in this preview's allowlist. The first runnable
+preview passes 604 Python/Lupa tests (one skipped), 12 Node tests and Luau
+syntax parsing. The full App and shared runtime compose together offline.
+No live Jobs/Boss request or exact server outcome has been observed. Next:
+run the pinned functional entry in a current client, inspect startup status,
+then enable one Job and verify newer replicated Job progress. Check Bosses
+separately after the Job path. Expand the entry allowlist tab by tab only
+after each action's state confirmation and safety boundary is established.
+Do not count UI startup, a sent remote, or a reply alone as success.
+
 **Goal:** Deliver the recode as separate tab modules, with every ordinary function either working through the shared broker or visibly blocked by a documented missing contract.
 
 **Architecture:** Keep the broker, checkpoint, settings, loader and Ember primitives shared. Put each tab's UI composition, source adapters, state readers, planners and evidence behind `src/tabs/<tab>/`; do not grow `App.luau` or `EmberAdapter.luau` into a gameplay monolith. The existing `src/game/` and `src/features/` files remain focused domain modules and can be moved behind tab entry points gradually. A modular release manifest loads each tab independently at one reviewed commit; the inert single-file prototype is only a compatibility preview.
