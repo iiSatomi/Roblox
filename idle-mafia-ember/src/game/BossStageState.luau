@@ -23,11 +23,14 @@ function BossStageState.read(raw, context)
     end
     local native, proof = raw.native, raw.bossStageProof
     local state = type(native) == "table" and native.bossStage
-    local day = type(native) == "table"
-        and integer(native.serverNow, 0)
-        and tonumber(os.date("!%Y%j", native.serverNow))
+    local day
+    if type(native) == "table" and finite(native.serverNow, 0) then
+        local ok, value = pcall(os.date, "!%Y%j",
+            math.floor(native.serverNow))
+        if ok then day = tonumber(value) end
+    end
     if type(native) ~= "table" or native.fullSync ~= true
-        or not integer(native.serverNow, 0)
+        or not finite(native.serverNow, 0)
         or context.serverNow ~= native.serverNow
         or not integer(day, 0)
         or not integer(native.level, 1)

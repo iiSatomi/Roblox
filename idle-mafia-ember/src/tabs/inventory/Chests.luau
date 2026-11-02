@@ -29,7 +29,10 @@ end
 
 local function luck(raw, proof)
     if type(raw) ~= "table" or type(proof) ~= "table"
+        or proof.session ~= raw.session
         or proof.account ~= raw.account
+        or proof.place ~= raw.place
+        or proof.release ~= raw.release
         or proof.capturedAt ~= raw.capturedAt
         or proof.revision ~= raw.revision
         or not finite(proof.luck)
@@ -44,7 +47,7 @@ function Chests.read(raw, context)
         return nil, "Chest snapshot changed"
     end
     local native, catalog = raw.native, raw.ownedCrateCatalog
-    local currentLuck = luck(raw, context.crateLuckProof)
+    local currentLuck = luck(raw, raw.crateLuckProof)
     if type(native) ~= "table" or native.fullSync ~= true
         or type(native.inventory) ~= "table"
         or type(native.inventoryBound) ~= "table"
@@ -53,8 +56,7 @@ function Chests.read(raw, context)
         or catalog.catalogKey ~= context.crateCatalogKey
         or not integer(catalog.batchMax, 1)
         or type(catalog.crates) ~= "table"
-        or currentLuck == nil
-        or luck(raw, raw.crateLuckProof) ~= currentLuck then
+        or currentLuck == nil then
         return nil, "Current crate catalog, inventory and luck required"
     end
     local owned, total = {}, 0
@@ -114,8 +116,7 @@ function Chests.propose(view, settings)
             .. chosen.id .. ":" .. chosen.count .. ":"
             .. amount,
         resources = { [chosen.id] = amount },
-        intent = { kind = "chests", remote = "OpenCrate",
-            args = { chosen.id, false, amount, view.luck },
+        intent = { kind = "chests",
             itemId = chosen.id, amount = amount,
             beforeCount = chosen.count, luck = view.luck,
             catalogKey = view.catalogKey } }, nil
@@ -130,19 +131,19 @@ function Chests.capture(proposal, before)
         or proposal.revision ~= before.revision
         or type(native) ~= "table" or native.fullSync ~= true
         or type(before.ownedCrateCatalog) ~= "table"
+        or before.ownedCrateCatalog.release ~= proposal.release
         or before.ownedCrateCatalog.catalogKey ~= intent.catalogKey
+        or type(before.ownedCrateCatalog.crates) ~= "table"
         or before.ownedCrateCatalog.crates[intent.itemId] ~= true
         or not integer(intent.amount, 1)
+        or not integer(before.ownedCrateCatalog.batchMax, 1)
         or intent.amount > before.ownedCrateCatalog.batchMax
+        or type(proposal.resources) ~= "table"
+        or proposal.resources[intent.itemId] ~= intent.amount
         or count(native.inventory, intent.itemId)
             ~= intent.beforeCount
         or intent.beforeCount < intent.amount
-        or luck(before, before.crateLuckProof) ~= intent.luck
-        or type(intent.args) ~= "table"
-        or intent.args[1] ~= intent.itemId
-        or intent.args[2] ~= false
-        or intent.args[3] ~= intent.amount
-        or intent.args[4] ~= intent.luck then
+        or luck(before, before.crateLuckProof) ~= intent.luck then
         return nil, "Exact owned crate and luck quote unavailable"
     end
     local inventory = {}

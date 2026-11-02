@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value >= minimum and value < math.huge and value % 1 == 0
 end
 
+local function timestamp(value)
+    return type(value) == "number" and value == value
+        and value >= 0 and value < math.huge
+end
+
 local function rowId(value)
     return (type(value) == "string" and #value > 0)
         or integer(value, 1)
@@ -17,7 +22,9 @@ function Sabotage.propose(view, settings, reservations)
         return nil, "Missing sabotage planning input"
     end
     if settings.enabled ~= true then return nil, "Sabotage disabled" end
-    if not integer(view.serverNow, 0)
+    local floor = settings.energyReserve or 0
+    if not integer(floor, 0) or floor > 1000000000000 then return nil, "Invalid shared energy reserve" end
+    if not timestamp(view.serverNow)
         or not integer(view.serverDay, 0)
         or not integer(view.selfId, 1)
         or not integer(view.level, 1)
@@ -42,7 +49,7 @@ function Sabotage.propose(view, settings, reservations)
         - (reservations.uncertainFavors or 0) < 5
         or view.energy - view.energyCost
         - (reservations.energy or 0)
-        - (reservations.uncertainEnergy or 0) < 10 then
+        - (reservations.uncertainEnergy or 0) < math.max(10, floor) then
         return nil, "Sabotage resource reserve"
     end
     local chosen

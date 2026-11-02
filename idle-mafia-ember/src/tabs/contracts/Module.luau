@@ -13,17 +13,26 @@ function ContractsTab.BuildUI(section, feature, bind)
         Description = feature.description, Open = true })
     bind(group, "Toggle", feature.id .. ".enabled", {
         Text = "Allow " .. feature.label,
-        Description = "Select this activity for the prototype.",
+        Description = "Select this activity; the status below shows whether this entry can run it.",
         Default = false, RevertOnClose = true, RevertTo = false,
     })
+    if feature.id == "autoContracts" then
+        for _, field in ipairs(feature.custom) do
+            assert(field.type == "boolean" and field.value == false,
+                "Invalid Contract borrowing control")
+            bind(group, "Toggle", feature.id .. ".custom." .. field.id, {
+                Text = field.label, Default = false,
+                Description = "Used only when shared Contract goal routing is active.",
+                RevertOnClose = true, RevertTo = false,
+            })
+        end
+    end
     local reason = feature.id == "autoContracts"
-        and "Cross-tab borrowing awaits shared opt-in and progress proof" or nil
+        and "Prioritizes supported objectives through separately enabled Jobs and Operation settings. Borrowing stays off until selected." or nil
     if reason then group:Description({ Text = reason }) end
     return { feature = feature, tabOwned = true,
-        blockedReason = reason,
         status = group:Status({ Text = "Activity",
-            Default = reason and "Blocked — " .. reason
-                or "Off — UI only" }) }
+            Default = "Off — connected ordinary routes required" }) }
 end
 
 function ContractsTab.new(deps)
@@ -63,6 +72,14 @@ function Methods:ReadCashQuote(raw, context)
     return self.deps.ContractCashQuote.read(raw, context)
 end
 
+function Methods:GoalRequests(view, settings)
+    local module = self.deps.ContractGoalRequests
+    if type(module) ~= "table" or type(module.derive) ~= "function" then
+        return nil, "Contract goal request module unavailable"
+    end
+    return module.derive(view, settings)
+end
+
 function Methods:Enrich(snapshot)
     return self.catalog:Enrich(snapshot)
 end
@@ -78,7 +95,7 @@ function Methods:Descriptors()
             evidence = d.ContractBonusesEvidence },
         { id = "autoContracts", reader = d.ContractGoalState,
             planner = d.ContractGoalBlocked,
-            evidence = d.ContractGoalBlocked },
+            evidence = d.ContractGoalBlocked, goals = d.ContractGoalRequests },
     }
 end
 

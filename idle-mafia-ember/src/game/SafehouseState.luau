@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value < math.huge and value >= minimum and value % 1 == 0
 end
 
+local function balance(value)
+    return type(value) == "number" and value == value
+        and value < math.huge and value >= 0
+end
+
 local function catalog(value)
     if type(value) ~= "table" or #value ~= 18 then return false end
     local lastCost, lastLevel = -1, 0
@@ -41,7 +46,7 @@ function SafehouseState.read(raw, context)
         or not integer(native.safehouse, 1) or native.safehouse > 18
         or not integer(native.level, 1)
         or not integer(native.maxLevel, 1)
-        or not integer(native.cash, 0)
+        or not balance(native.cash)
         or not catalog(raw.safehouseCatalog)
         or type(raw.catalogKey) ~= "string" or #raw.catalogKey == 0 then
         return nil, "Complete Safehouse tier and catalog required"

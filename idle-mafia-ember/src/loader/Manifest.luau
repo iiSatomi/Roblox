@@ -1,5 +1,6 @@
 -- Pure validation only. The caller supplies a trusted SHA-256 implementation.
 local Manifest = {}
+local MAX_MODULES = 512 -- Keep builder capacity and both boundary tests in sync.
 
 local function hex(value, length)
     return type(value) == "string" and #value == length
@@ -37,7 +38,7 @@ function Manifest.inspect(raw)
         return nil, "Invalid manifest header"
     end
     local count = arrayLength(raw.modules)
-    if not count or count == 0 or count > 256 then
+    if not count or count == 0 or count > MAX_MODULES then
         return nil, "Invalid module list"
     end
     local byId, byPath, entries = {}, {}, {}

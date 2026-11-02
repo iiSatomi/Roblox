@@ -8,6 +8,11 @@ local function integer(value, minimum)
         and value >= minimum and value < math.huge and value % 1 == 0
 end
 
+local function balance(value)
+    return type(value) == "number" and value == value
+        and value >= 0 and value < math.huge
+end
+
 function NativePropertyCatalog.new(gameData, config, fingerprint, release)
     assert(type(gameData) == "table" and type(gameData.PROPERTIES) == "table"
         and type(config) == "table" and type(config.PROPERTY) == "table"
@@ -44,7 +49,7 @@ function Methods:Enrich(snapshot)
     end
     local native = snapshot.native
     if type(native.properties) ~= "table"
-        or not integer(native.cash, 0) or not integer(native.level, 1)
+        or not balance(native.cash) or not integer(native.level, 1)
         or (native.propertyCap ~= nil
             and not integer(native.propertyCap, 1)) then
         return nil, "Incomplete Property Sync"
@@ -70,6 +75,7 @@ function Methods:Enrich(snapshot)
     for id in pairs(native.properties) do
         if not seen[id] then return nil, "Unknown owned Property" end
     end
+    if occupied > cap then return nil, "Property ownership exceeds capacity" end
     local derived = native.derived
     if type(derived) ~= "table"
         or type(derived.territoryBonuses) ~= "table" then
@@ -88,7 +94,7 @@ function Methods:Enrich(snapshot)
     result.propertyCatalog = rows
     result.propertyProof = { account = snapshot.account,
         capturedAt = snapshot.capturedAt,
-        occupied = math.min(occupied, cap), capacity = cap,
+        occupied = occupied, capacity = cap,
         buildDiscount = discount }
     return result, nil
 end

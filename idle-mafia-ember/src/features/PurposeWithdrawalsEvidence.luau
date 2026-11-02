@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value < math.huge and value >= minimum and value % 1 == 0
 end
 
+local function balance(value)
+    return type(value) == "number" and value == value
+        and value < math.huge and value >= 0
+end
+
 local function matching(a, b)
     for _, field in ipairs({ "session", "account", "place", "release" }) do
         if type(a[field]) ~= "string" or #a[field] == 0
@@ -17,8 +22,8 @@ end
 local function balances(raw)
     local native = type(raw) == "table" and raw.native
     if type(native) ~= "table" or native.fullSync ~= true
-        or not integer(native.cash, 0)
-        or not integer(native.banked, 0) then return nil end
+        or not balance(native.cash)
+        or not balance(native.banked) then return nil end
     return native.cash, native.banked
 end
 
@@ -37,9 +42,13 @@ function PurposeWithdrawalsEvidence.capture(proposal, before)
     local cash, banked = balances(before)
     local request = before.fundingRequest
     if not cash or banked < intent.amount
-        or intent.requiredCash - cash ~= intent.amount
+        or math.ceil(intent.requiredCash - cash) ~= intent.amount
         or type(request) ~= "table"
+        or request.session ~= proposal.session
         or request.account ~= proposal.account
+        or request.place ~= proposal.place
+        or request.release ~= proposal.release
+        or request.revision ~= proposal.revision
         or request.capturedAt ~= before.capturedAt
         or request.purpose ~= intent.purpose
         or request.purchaseKey ~= intent.purchaseKey
@@ -71,6 +80,12 @@ function PurposeWithdrawalsEvidence.evaluate(proposal, beforeHeader, after,
     end
     local request = after.fundingRequest
     if request ~= nil and (type(request) ~= "table"
+        or request.session ~= after.session
+        or request.account ~= after.account
+        or request.place ~= after.place
+        or request.release ~= after.release
+        or request.revision ~= after.revision
+        or request.capturedAt ~= after.capturedAt
         or request.purpose ~= baseline.purpose
         or request.purchaseKey ~= baseline.purchaseKey) then
         return "pending"

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "c35cb73533668c930fc1269b70c4630f90a0def9",
+  "releaseCommit": "256d4cd5eaf5ecf4a12536972a1e73b66fab0ef9",
   "modules": [
     {
       "id": "AutomationRuntime",
@@ -11,7 +11,7 @@
     {
       "id": "Broker",
       "path": "src/engine/Broker.luau",
-      "sha256": "f958678f5e5faf1401009bf8c12cb7802f6d16de82c63ded02a3b2435388b93b",
+      "sha256": "6a118b5bf3503d4de4267e025ab5a4b0a318bb6118f18a2ae0eebee5f800708e",
       "deps": []
     },
     {
@@ -71,7 +71,7 @@
     {
       "id": "RuntimeAssembly",
       "path": "src/engine/RuntimeAssembly.luau",
-      "sha256": "bfe935cf977216a466bbee6d8a5773b1c5e294154c600a6f14bd69bb9b7b94f3",
+      "sha256": "ca9ce5d5ac3439415a599e091edabd10fc9c9156f94845da018398d017324dec",
       "deps": []
     },
     {
@@ -323,7 +323,7 @@
     {
       "id": "MarketReadRuntime",
       "path": "src/features/MarketReadRuntime.luau",
-      "sha256": "8603669e9545f1f06491d957fe355a6b23d7d8575cf4c2aacf9ac980022fda98",
+      "sha256": "15c3aa17dac43e571d0a7cfaa57da04303dea64d424001b1bfe76799b3d7695e",
       "deps": []
     },
     {
@@ -677,7 +677,7 @@
     {
       "id": "ProfileStore",
       "path": "src/storage/ProfileStore.luau",
-      "sha256": "c08e95c53667ad1c9143f652bb7229fd6f02398b4978988d210c99c85198fe1e",
+      "sha256": "165877334ebb60c050999e10bb3a2b753d2371990e631f5abae97a40d79aae84",
       "deps": []
     },
     {
@@ -689,7 +689,7 @@
     {
       "id": "Settings",
       "path": "src/storage/Settings.luau",
-      "sha256": "1057e1861ba6bbf039f278f04a00c433b17e360d08d4c5edf8cfec987896ab33",
+      "sha256": "074381debb28a06646a8996d858ae168a50901bbeb2b29847ebdd8f33a64f207",
       "deps": []
     },
     {
@@ -731,7 +731,7 @@
     {
       "id": "BlackMarketTab",
       "path": "src/tabs/blackMarket/Module.luau",
-      "sha256": "41a2a6fc92fafc093635050c4d20590d26aa9bbb85d5b1cd82d879bb6311d079",
+      "sha256": "39a8e8a59c5bfd55a24f6236855f730f7862aabd456efa624f090e7288359c3c",
       "deps": []
     },
     {
@@ -743,7 +743,7 @@
     {
       "id": "CollectionTab",
       "path": "src/tabs/collection/Module.luau",
-      "sha256": "4bf90235c4d914fe6c96ff3bb479953abbcc43ef28186894ed0729958abef6cd",
+      "sha256": "9d9a0aed39b63312bd0f039884dc20544a2d39e9da38ec8e7fa1d5b35b382c3f",
       "deps": []
     },
     {
@@ -767,7 +767,7 @@
     {
       "id": "CombatTab",
       "path": "src/tabs/combat/Module.luau",
-      "sha256": "1d3ee8d2fba471ee33a87f9ea8a88b5201cdd7f26c8ba24bd0e0b98d68591e6a",
+      "sha256": "a01b35ebc1454df3c21d89b65eaa2b2508050215d1b2dcde454f5d395b257cfe",
       "deps": []
     },
     {
@@ -797,7 +797,7 @@
     {
       "id": "ContractsTab",
       "path": "src/tabs/contracts/Module.luau",
-      "sha256": "7b7b554026a3197be3f6e16c1bc144f18d9a93b817915924c4d75994db50160b",
+      "sha256": "97837c49005edda0b22fc60ab27f767ed4df76af263674ca47f609dc8036f193",
       "deps": []
     },
     {
@@ -857,7 +857,7 @@
     {
       "id": "CrewTab",
       "path": "src/tabs/crew/Module.luau",
-      "sha256": "645c883c533aeaf91c5625c88dd7e93a3107c35d03bcdb58abc374893fcc4afb",
+      "sha256": "e2648063340bcac291c92a9b2f1fc3f1d9656242e8680e813c43347e1b0f0b31",
       "deps": []
     },
     {
@@ -893,7 +893,7 @@
     {
       "id": "EventsTab",
       "path": "src/tabs/events/Module.luau",
-      "sha256": "2075419829a428fc09003ac0d33018b8b45ed1e8dead1f63c0490a36114c39a0",
+      "sha256": "86cc16c5180a7d2475d4060fc9fb435dac611b963d76170dc279ce6815053c6d",
       "deps": []
     },
     {
@@ -905,13 +905,13 @@
     {
       "id": "FamilyTab",
       "path": "src/tabs/family/Module.luau",
-      "sha256": "bbf811617dfba6a95bded6cbcdf54266e770a6e99a78de9a202387a20cc05bcf",
+      "sha256": "844d6262419cee6dc85af29a54c900b0c69cfab173ce15b11755c2d4db1d2081",
       "deps": []
     },
     {
       "id": "FavorsTab",
       "path": "src/tabs/favors/Module.luau",
-      "sha256": "643dfea58fc87f6ba547bb3da2c3169656d8f8a9086d604fa5cce0aa0fbff4f3",
+      "sha256": "86ddb9f721b92e37ddbc0112e9440c4544e44c6b315581b1c1278f34f88c9930",
       "deps": []
     },
     {
@@ -923,7 +923,7 @@
     {
       "id": "HeistsTab",
       "path": "src/tabs/heists/Module.luau",
-      "sha256": "1a7093a16d53a087f517d46af524e3494d8a67e84461f98570568f3e8a2037f5",
+      "sha256": "d156dbe764619efaf886de041f08cd8ad5c30e3aed6721fc34ed48ce1fadc1e1",
       "deps": []
     },
     {
@@ -953,7 +953,7 @@
     {
       "id": "InventoryTab",
       "path": "src/tabs/inventory/Module.luau",
-      "sha256": "1cc0492b5e9521264656db8462c1accbbeffa49f02731a648aa5309dfe12340c",
+      "sha256": "d9f86219ed5e81cdbc83197cab9f09a6bd7c72ceea232fa7b6febbb2439ee1f6",
       "deps": []
     },
     {
@@ -977,7 +977,7 @@
     {
       "id": "JobsTab",
       "path": "src/tabs/jobs/Module.luau",
-      "sha256": "c26ba1af651aef6c0a65ea740e53019429eb12af42f1f29acd7614bccc91a141",
+      "sha256": "1f452e2ae3b4c380688d387a32d706ce635eeae4248965faaa1df68c2a142de3",
       "deps": []
     },
     {
@@ -989,7 +989,7 @@
     {
       "id": "MoneyTab",
       "path": "src/tabs/money/Module.luau",
-      "sha256": "380e3b0381dd61c270ad0aea309e4abfc488a8bc34b281e47a4d04bd5c35c2b5",
+      "sha256": "8f4e2cd77086779e1f59fe34d08d18c4eff6cfc6b8d2236b4dc08260b0b7bdd7",
       "deps": []
     },
     {
@@ -1001,7 +1001,7 @@
     {
       "id": "OperationsTab",
       "path": "src/tabs/operations/Module.luau",
-      "sha256": "836b3e916f585a204e1527e972c2deebfff7ec3e8101ff7c6193594fde2053c6",
+      "sha256": "3ad05cd4dfead583b2b9b8ea3b74360463c886c11c0c8f12fd09ae8a5c8c4d25",
       "deps": []
     },
     {
@@ -1013,25 +1013,25 @@
     {
       "id": "OverviewTab",
       "path": "src/tabs/overview/Module.luau",
-      "sha256": "020fda56fc3c9f9cc0ce796b4f511c29b20a573f955421f1d0cadcb09a1b4a96",
+      "sha256": "53431340aa096707a05caa5dba55a396de18bbdab8e31046b859ade906eda273",
       "deps": []
     },
     {
       "id": "PrestigeTab",
       "path": "src/tabs/prestige/Module.luau",
-      "sha256": "4c96a749b496e24f078cc31808df894b272e91b3474b73de1b77e77dc1f21838",
+      "sha256": "b696af7607808111fd772bfd890053373861107f99a5f7d5290bc6f97b9c349c",
       "deps": []
     },
     {
       "id": "ProfilesTab",
       "path": "src/tabs/profiles/Module.luau",
-      "sha256": "3c24036c592509ff1fd068284f356bf57ca28497d2d0aceb20e2b19b31f681d3",
+      "sha256": "d02feb3b4eaf0d3e1ea3641a87e4c80b60cf94d6bb0c11f4cfe22be246318f32",
       "deps": []
     },
     {
       "id": "PropertyTab",
       "path": "src/tabs/property/Module.luau",
-      "sha256": "5dcf41ea34cf4efa8c2b57d5b2e0c9d935b024dba9c32daa92b22f9fd9cf3dea",
+      "sha256": "f01256c2d4b38758989f6c239ad4cd03ca36a41770b7140ad81fcb50ef5a5ff1",
       "deps": []
     },
     {
@@ -1043,7 +1043,7 @@
     {
       "id": "RewardsTab",
       "path": "src/tabs/rewards/Module.luau",
-      "sha256": "1603e121789cf973d5ae69070428e428c11736fb3618816bf08a4bdefef7f4ea",
+      "sha256": "5b5a77178266b09c239137f514bf420a1347aeba9eefe3a38f33451fb5b2261b",
       "deps": []
     },
     {
@@ -1061,7 +1061,7 @@
     {
       "id": "SafehouseTab",
       "path": "src/tabs/safehouse/Module.luau",
-      "sha256": "fe8366cdc256fcfaaa572c83a7870fff2e1eb87926c2c5979a3ca74158575823",
+      "sha256": "1f0738422ba7c4701f5280a62d1ba54b318acff70604f1adfbdce071218cc704",
       "deps": []
     },
     {
@@ -1073,13 +1073,13 @@
     {
       "id": "SettingsTab",
       "path": "src/tabs/settings/Module.luau",
-      "sha256": "cdc0c58fae9b0190eeb92862c9fe8f138c569166354551a7afdff5694282d0e8",
+      "sha256": "ace4a85ea939dee733b242ee8cad2053f73f4ec6240c58468baf05f3dac6c75d",
       "deps": []
     },
     {
       "id": "ShopTab",
       "path": "src/tabs/shop/Module.luau",
-      "sha256": "ca8d73360a12fa9971867f0852978feb0dcb718860e6e69ec953d2764ed3a72d",
+      "sha256": "62e8b5fba90d7aa5e345016a906035b51fa90c126d301d06b3ae01a89eb163c2",
       "deps": []
     },
     {
@@ -1097,7 +1097,7 @@
     {
       "id": "SkillsTab",
       "path": "src/tabs/skills/Module.luau",
-      "sha256": "32e6e22f239c444197c1b57e4ebcd767a124324f34ff4532976a0b54d4078e38",
+      "sha256": "32ffaeafdf6667679bcc4cd199eb5cc4c94855055f3e46efdd8c2ea3f983986a",
       "deps": []
     },
     {
@@ -1109,7 +1109,7 @@
     {
       "id": "TerritoryTab",
       "path": "src/tabs/territory/Module.luau",
-      "sha256": "de0da2f59e8b3bc00fc559eb7d6f54d4ed47c37f40d0e3d0738630a6299b66a8",
+      "sha256": "d2907a9636826255db7183758130428ddc70855141ddcf4efd8f588544674ec7",
       "deps": []
     },
     {
@@ -1139,7 +1139,7 @@
     {
       "id": "TerritoryReadRuntime",
       "path": "src/tabs/territory/TerritoryReadRuntime.luau",
-      "sha256": "8c2a2745b011da1a6934000bfc33e2f939f1ba81ff51c2f43877391377233cc6",
+      "sha256": "990d3f1723da5bfbcec1222a48515ef57b60ff6b5f7deb1b38fc12aea7599092",
       "deps": []
     },
     {
@@ -1151,7 +1151,7 @@
     {
       "id": "TrophiesTab",
       "path": "src/tabs/trophies/Module.luau",
-      "sha256": "afd3541ec882019371ca49d8ae0e31f43a440acc56d6f8eb8b5a2afe85d9e3de",
+      "sha256": "248bfbc27e531ad4958adddd28831d3d41114958f116c0c1a8bf32b22d03f117",
       "deps": []
     },
     {
@@ -1193,7 +1193,7 @@
     {
       "id": "NativeClientBindings",
       "path": "src/transport/NativeClientBindings.luau",
-      "sha256": "ac5dfabc04f97263bc947fb5a5f9891b579787482d17c45230cda99ccc7aa8c4",
+      "sha256": "07e8e3dfb7786d0b7842f9943758f900f1f5f4ba14104285e74c31afee1d6f89",
       "deps": []
     },
     {
@@ -1205,7 +1205,7 @@
     {
       "id": "NativeDispatchAdapter",
       "path": "src/transport/NativeDispatchAdapter.luau",
-      "sha256": "bf42ead65fc7d3ca2e299bec9bf4fcc35b8e52a6882e7eaa91e8eaa0c4e66ef8",
+      "sha256": "210c251671e58e8f2c942a484a2ba6271da3c269beaf29243121116b6746ab49",
       "deps": []
     },
     {
@@ -1241,31 +1241,31 @@
     {
       "id": "RuntimeHost",
       "path": "src/transport/RuntimeHost.luau",
-      "sha256": "307f2a6a3ed7f86fe34e66168812774e991a11f28509521df08d16e6b93db1e1",
+      "sha256": "a9b7f019aa1fcd25f30bf176402a30e06803002525227e268acca8a9f5784ea8",
       "deps": []
     },
     {
       "id": "RuntimeLoop",
       "path": "src/transport/RuntimeLoop.luau",
-      "sha256": "444f89bce94dcd5889518abdc11646830397502a5aca40a2765bbd9059122f77",
+      "sha256": "373c3ac04260dc9ed708aea43c48129bc05b5240d6a4d469959db6dd5646b970",
       "deps": []
     },
     {
       "id": "Catalog",
       "path": "src/ui/Catalog.luau",
-      "sha256": "1c101e4f491526f5c90f786672d7a842d1dd413efb3035fb086f5ec3b8ddfaa6",
+      "sha256": "60aa75eaeb4c03b4142d0a5969818513a15ba646ddec4eb0f00936db48ca7460",
       "deps": []
     },
     {
       "id": "EmberAdapter",
       "path": "src/ui/EmberAdapter.luau",
-      "sha256": "397a045891a7999abc3d46a3451e2e1079c432063e2c896fa0876bd6b74158ca",
+      "sha256": "b4c7f1d06e814ae2089a45ad636d08cfce05c572c57f8c42d3b877a29eb6a9ec",
       "deps": []
     },
     {
       "id": "App",
       "path": "src/App.luau",
-      "sha256": "7f6f2c4be8f0e1ea15eae4db4ae3fa7c764f485e08bc489cc7d54780dc60aae7",
+      "sha256": "2d8ab39266d900072292fd44793948ea3726671f2f111c02bf14af394e34a342",
       "deps": []
     }
   ]

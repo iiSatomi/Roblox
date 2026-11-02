@@ -49,6 +49,8 @@ local function state(raw, item)
         if row.item == item then selected = row end
     end
     return { tokens = tokens + bound, owned = owned + ownedBound,
+        tokenLoose = tokens, tokenBound = bound, ownedLoose = owned, ownedBound = ownedBound,
+        serverNow = native.serverNow,
         catalogKey = proof.catalogKey, selected = selected }
 end
 
@@ -93,31 +95,78 @@ function BossShopBuyEvidence.capture(proposal, before)
         revision = proposal.revision, tokens = current.tokens,
         owned = current.owned, item = intent.item,
         quantity = intent.quantity, totalCost = intent.totalCost,
-        catalogKey = intent.catalogKey }, nil
+        catalogKey = intent.catalogKey, unitPrice = intent.unitPrice, itemKind = intent.itemKind,
+        tokenLoose = current.tokenLoose, tokenBound = current.tokenBound,
+        ownedLoose = current.ownedLoose, ownedBound = current.ownedBound, serverNow = current.serverNow }, nil
 end
 
-function BossShopBuyEvidence.evaluate(proposal, beforeHeader, after,
-    reply, baseline)
+local function timestamp(value)
+    return type(value) == "number" and value == value and value >= 0 and value < math.huge
+end
+
+local function reconcile(proposal, beforeHeader, after, reply, baseline, restart)
     if type(proposal) ~= "table" or type(beforeHeader) ~= "table"
-        or type(after) ~= "table" or type(reply) ~= "table"
-        or type(baseline) ~= "table"
-        or not matching(proposal, beforeHeader)
-        or not matching(proposal, after)
-        or not matching(proposal, baseline)
-        or proposal.revision ~= baseline.revision
-        or beforeHeader.revision ~= baseline.revision then
+        or type(after) ~= "table" or type(reply) ~= "table" or type(baseline) ~= "table"
+        or not matching(proposal, beforeHeader) or not matching(proposal, baseline)
+        or proposal.account ~= after.account or proposal.place ~= after.place or proposal.release ~= after.release
+        or (not restart and not matching(proposal, after))
+        or proposal.revision ~= baseline.revision or beforeHeader.revision ~= baseline.revision
+        or not integer(after.revision, 0)
+        or not (after.session == baseline.session and after.revision > baseline.revision
+            or restart and after.session ~= baseline.session and timestamp(baseline.serverNow)
+                and type(after.native) == "table" and timestamp(after.native.serverNow)
+                and after.native.serverNow > baseline.serverNow)
+        or reply.pending == true or reply.code == "rate_limited" or reply.code == "presence" then
         return "pending"
     end
     local current = state(after, baseline.item)
-    if not current then return "pending" end
-    local advanced = integer(after.revision, baseline.revision + 1)
-        and current.catalogKey == baseline.catalogKey
-        and type(current.selected) == "table"
-        and current.tokens <= baseline.tokens - baseline.totalCost
-        and current.owned >= baseline.owned + baseline.quantity
-    if reply.ok == false then return advanced and "pending" or "rejected" end
-    if reply.ok == true and advanced then return "confirmed" end
-    return "pending"
+    if not current or current.catalogKey ~= baseline.catalogKey or not current.selected
+        or current.selected.price ~= baseline.unitPrice or current.selected.kind ~= baseline.itemKind
+        or timestamp(baseline.serverNow) and (not timestamp(current.serverNow) or current.serverNow < baseline.serverNow) then
+        return "pending"
+    end
+    local unchanged = current.tokenLoose == baseline.tokenLoose and current.tokenBound == baseline.tokenBound
+        and current.ownedLoose == baseline.ownedLoose and current.ownedBound == baseline.ownedBound
+    if reply.ok == false then return unchanged and "rejected" or "pending" end
+    -- Observe either output origin without assuming the native debit order.
+    -- Transfers, overdebits, and extra copies cannot prove this purchase.
+    local addedLoose = current.ownedLoose - baseline.ownedLoose
+    local addedBound = current.ownedBound - baseline.ownedBound
+    local advanced = current.tokens == baseline.tokens - baseline.totalCost
+        and current.tokenLoose <= baseline.tokenLoose and current.tokenBound <= baseline.tokenBound
+        and ((addedLoose == baseline.quantity and addedBound == 0)
+            or (addedLoose == 0 and addedBound == baseline.quantity))
+    return reply.ok == true and advanced and "confirmed" or "pending"
+end
+
+function BossShopBuyEvidence.evaluate(proposal, before, after, reply, baseline)
+    return reconcile(proposal, before, after, reply, baseline, false)
+end
+
+local function equal(a, b)
+    if type(a) ~= type(b) then return false end
+    if type(a) ~= "table" then return a == b end
+    for k, v in pairs(a) do if not equal(v, b[k]) then return false end end
+    for k in pairs(b) do if a[k] == nil then return false end end
+    return true
+end
+
+function BossShopBuyEvidence.recoverSaved(data, after)
+    if type(data) ~= "table" or type(data.reply) ~= "table" then return nil end
+    local baseline = BossShopBuyEvidence.capture(data.proposal, data.before)
+    if not baseline or not equal(baseline, data.baseline) then return nil end
+    local result = reconcile(data.proposal, data.before, after, data.reply, baseline, true)
+    return (result == "confirmed" or result == "rejected") and result or nil
+end
+
+function BossShopBuyEvidence.canDispatch(proposal, snapshot)
+    local intent = type(proposal) == "table" and proposal.intent
+    if type(snapshot) ~= "table" or type(intent) ~= "table" then return false end
+    local before = {}
+    for key, value in pairs(snapshot) do before[key] = value end
+    before.bossShopUsageProof = { account = proposal.account, session = proposal.session,
+        capturedAt = snapshot.capturedAt, attempts = intent.attemptsBefore }
+    return BossShopBuyEvidence.capture(proposal, before) ~= nil
 end
 
 return BossShopBuyEvidence

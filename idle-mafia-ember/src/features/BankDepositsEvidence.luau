@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value < math.huge and value >= minimum and value % 1 == 0
 end
 
+local function balance(value)
+    return type(value) == "number" and value == value
+        and value < math.huge and value >= 0
+end
+
 local function matching(a, b)
     for _, field in ipairs({ "session", "account", "place", "release" }) do
         if type(a[field]) ~= "string" or #a[field] == 0
@@ -17,8 +22,8 @@ end
 local function state(raw)
     local native = type(raw) == "table" and raw.native
     if type(native) ~= "table" or native.fullSync ~= true
-        or not integer(native.cash, 0)
-        or not integer(native.banked, 0) then return nil end
+        or not balance(native.cash)
+        or not balance(native.banked) then return nil end
     return native.cash, native.banked
 end
 

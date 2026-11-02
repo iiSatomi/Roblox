@@ -11,7 +11,7 @@ local function integer(value)
         and value >= 0 and value < math.huge and value % 1 == 0
 end
 
-function CollectionProtection.derive(raw, context, settings, features)
+function CollectionProtection.derive(raw, context, settings, features, reservationOwner)
     local native = type(raw) == "table" and raw.native
     if type(context) ~= "table" or type(settings) ~= "table"
         or type(features) ~= "table" or type(native) ~= "table"
@@ -25,7 +25,7 @@ function CollectionProtection.derive(raw, context, settings, features)
         or not integer(raw.revision) then
         return nil, "Fresh Collection protection input required"
     end
-    local protected = {}
+    local protected, reserved = {}, {}
     for _, lane in ipairs(checked) do
         local config = settings[lane.id]
         if type(config) == "table" and config.enabled == true then
@@ -61,6 +61,24 @@ function CollectionProtection.derive(raw, context, settings, features)
             end
         end
     end
+    if reservationOwner ~= nil then
+        local ok, held = pcall(reservationOwner.Held, reservationOwner, raw)
+        if not ok or type(held) ~= "table" then return nil, "Durable item custody unavailable" end
+        if held.allItems then return nil, "Whole inventory custody is reserved" end
+        for key, amount in pairs(held.items) do
+            if key:sub(1, 2) == "L:" then
+                local id = key:sub(3)
+                reserved[id] = (reserved[id] or 0) + amount
+            end
+        end
+        -- Old records expose only total inventory; preserve that amount from
+        -- loose donation until exact custody resolves.
+        for id, amount in pairs(held.funds) do
+            if native.inventory and native.inventory[id] ~= nil then
+                reserved[id] = (reserved[id] or 0) + amount
+            end
+        end
+    end
     return { session = context.session, account = context.account,
         place = context.place, release = context.release,
         revision = context.revision,
@@ -68,7 +86,7 @@ function CollectionProtection.derive(raw, context, settings, features)
         key = context.account .. ":" .. tostring(context.revision)
             .. ":" .. tostring(context.capturedAt),
         covers = { gear = true, cosmetics = true },
-        protected = protected }, nil
+        protected = protected, reserved = reserved }, nil
 end
 
 return CollectionProtection

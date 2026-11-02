@@ -1,9 +1,20 @@
 -- A newer personal hit and free-charge debit confirm a Takedown attack.
 local FamilyBossAttacksEvidence = {}
+local function familyId(value)
+    return type(value) == "string" and #value > 0 and #value <= 120
+        and not value:find("[%c]")
+        or type(value) == "number" and value == value and value >= 1
+            and value <= 9007199254740991 and value % 1 == 0
+end
 
 local function integer(value, minimum)
     return type(value) == "number" and value == value
         and value >= minimum and value < math.huge and value % 1 == 0
+end
+
+local function timestamp(value, minimum)
+    return type(value) == "number" and value == value
+        and value >= minimum and value < math.huge
 end
 
 local function matching(a, b)
@@ -22,22 +33,22 @@ local function current(raw, needAttack)
     local usage = type(raw) == "table"
         and raw.familyAttackUsageProof
     if type(native) ~= "table" or native.fullSync ~= true
-        or not integer(native.serverNow, 0)
+        or not timestamp(native.serverNow, 0)
         or type(proof) ~= "table"
         or proof.account ~= raw.account
         or proof.capturedAt ~= raw.capturedAt
         or type(state) ~= "table"
         or not integer(state.week, 1)
-        or not integer(state.famId, 1)
+        or not familyId(state.famId)
         or not integer(state.stage, 1)
-        or not integer(state.resetAt, native.serverNow + 1)
+        or not timestamp(state.resetAt, native.serverNow + 1)
         or state.inFamily ~= true
         or not integer(state.freeMax, 1)
         or not integer(state.freeUsed, 0)
         or state.freeUsed > state.freeMax
         or not integer(state.freeRegen, 1)
         or (state.nextFreeAt ~= nil
-            and not integer(state.nextFreeAt, 0))
+            and not timestamp(state.nextFreeAt, 0))
         or not integer(state.tickets, 0)
         or not integer(state.myDmg, 0)
         or type(usage) ~= "table"
@@ -46,7 +57,7 @@ local function current(raw, needAttack)
         or usage.week ~= state.week
         or usage.famId ~= state.famId
         or not integer(usage.hits, 0)
-        or not integer(usage.lastServerNow, 0) then
+        or not timestamp(usage.lastServerNow, 0) then
         return nil
     end
     if needAttack and (type(attack) ~= "table"
@@ -81,11 +92,11 @@ function FamilyBossAttacksEvidence.capture(proposal, before)
         or type(intent) ~= "table"
         or intent.kind ~= "familyBossAttack"
         or not integer(intent.week, 1)
-        or not integer(intent.famId, 1)
+        or not familyId(intent.famId)
         or not integer(intent.stage, 1) or intent.stage > 5
-        or not integer(intent.serverNow, 0)
+        or not timestamp(intent.serverNow, 0)
         or not integer(intent.hitsBefore, 0)
-        or not integer(intent.lastServerNowBefore, 0)
+        or not timestamp(intent.lastServerNowBefore, 0)
         or not integer(intent.mineDamageBefore, 0)
         or not integer(intent.freeUsedBefore, 0)
         or not integer(intent.expectedStaminaCost, 1)
@@ -116,9 +127,9 @@ function FamilyBossAttacksEvidence.capture(proposal, before)
         or type(pools) ~= "table"
         or type(stats) ~= "table"
         or not integer(stats.maxHealth, 1)
-        or not integer(pools.health, 0)
+        or not timestamp(pools.health, 0)
         or pools.health > stats.maxHealth
-        or not integer(pools.stamina,
+        or not timestamp(pools.stamina,
             attack.staminaCost + 1)
         or pools.health - attack.hitBackMax
             < math.max(20, stats.maxHealth * 0.5) then

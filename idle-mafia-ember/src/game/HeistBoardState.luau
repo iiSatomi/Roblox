@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value >= minimum and value < math.huge and value % 1 == 0
 end
 
+local function timestamp(value)
+    return type(value) == "number" and value == value
+        and value >= 0 and value < math.huge
+end
+
 local function key(value)
     return type(value) == "string" and #value > 0
 end
@@ -23,14 +28,14 @@ function HeistBoardState.read(raw, context)
     local native, proof = raw.native, raw.heistBoardProof
     local board = type(proof) == "table" and proof.board
     if type(native) ~= "table" or native.fullSync ~= true
-        or not integer(native.serverNow, 0)
+        or not timestamp(native.serverNow)
         or type(proof) ~= "table"
         or proof.account ~= context.account
         or proof.capturedAt ~= context.capturedAt
         or proof.query ~= nil
         or type(board) ~= "table" or board.ok ~= true
         or (board.serverNow ~= nil and
-            (not integer(board.serverNow, 0)
+            (not timestamp(board.serverNow)
                 or math.abs(board.serverNow - native.serverNow) > 2))
         or type(board.rows) ~= "table"
         or (board.startsLeft ~= nil

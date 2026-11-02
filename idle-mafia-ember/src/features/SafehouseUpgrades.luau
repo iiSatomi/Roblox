@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value < math.huge and value >= minimum and value % 1 == 0
 end
 
+local function balance(value)
+    return type(value) == "number" and value == value
+        and value < math.huge and value >= 0
+end
+
 function SafehouseUpgrades.propose(view, settings, reservations)
     if type(view) ~= "table" or type(settings) ~= "table"
         or type(reservations) ~= "table" then
@@ -17,7 +22,7 @@ function SafehouseUpgrades.propose(view, settings, reservations)
         or not integer(view.nextCost, 1)
         or not integer(view.nextLevel, 1)
         or not integer(view.highestLevel, 1)
-        or not integer(view.cash, 0)
+        or not balance(view.cash)
         or not integer(settings.maxTier, 1) or settings.maxTier > 18
         or not integer(settings.maxCost, 0)
         or not integer(settings.cashReserve, 0)

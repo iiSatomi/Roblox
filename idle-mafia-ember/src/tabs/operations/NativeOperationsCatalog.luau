@@ -35,10 +35,10 @@ local function copiedCatalog(source, crates)
             and integer(row.respect or 0, 0)
             and number(row.duration, 1)
             and number(row.cost, 0) and number(row.cash, 0)
-            and number(row.xp, 0), "Invalid saved Operation")
+            and number(row.xp, 0) and number(row.crateCount or 1, 0), "Invalid saved Operation")
         seen[row.id] = true
         local item = { id = row.id, level = row.level,
-            respect = row.respect, duration = row.duration,
+            respect = row.respect, duration = row.duration, crateCount = row.crateCount,
             cost = row.cost, cash = row.cash, xp = row.xp }
         for _, fields in ipairs({ { "crate", "crateChance" },
             { "bonusCrate", "bonusCrateChance" } }) do
@@ -90,7 +90,14 @@ function NativeOperationsCatalog.new(gameData, fingerprint, release)
         "Missing reviewed Operations source identity")
     local operations, crates = copiedCatalog(gameData.OPERATIONS,
         gameData.CRATES)
-    return setmetatable({ operations = operations, crates = crates,
+    local rarities = {}
+    for _, row in ipairs(operations) do
+        local item = row.crate and type(gameData.ITEMS_BY_ID) == "table" and gameData.ITEMS_BY_ID[row.crate]
+        if type(item) == "table" and integer(item.rarity, 1) and item.rarity <= 9 then
+            rarities[row.crate] = item.rarity
+        end
+    end
+    return setmetatable({ operations = operations, crates = crates, rarities = rarities,
         catalogKey = string.lower(fingerprint), release = release }, Methods)
 end
 
@@ -105,6 +112,7 @@ function Methods:Enrich(snapshot)
     result.catalogKey = self.catalogKey
     result.operationCatalog = clone(self.operations)
     result.crateCatalog = clone(self.crates)
+    result.operationCrateRarities = clone(self.rarities)
     return result, nil
 end
 

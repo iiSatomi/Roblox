@@ -31,6 +31,14 @@ local function integer(value, low, high)
         and value >= low and value <= high and value % 1 == 0
 end
 
+local function monthKey(value)
+    if type(value) ~= "string"
+        or not value:match("^%d%d%d%d%-%d%d$") then return false end
+    local year = tonumber(value:sub(1, 4))
+    local month = tonumber(value:sub(6, 7))
+    return integer(year, 1, 9999) and integer(month, 1, 12)
+end
+
 function NativeCallPlan.describe(proposal)
     local intent = type(proposal) == "table" and proposal.intent
     if type(intent) ~= "table" then
@@ -185,15 +193,18 @@ function NativeCallPlan.describe(proposal)
     end
     if proposal.feature == "trophies"
         and intent.kind == "earnedTrophyClaim"
-        and (intent.targetId == "t_eldersignet"
-            or intent.targetId == "t_grudgeledger") then
+        and type(intent.targetId) == "string"
+        and #intent.targetId > 0 and #intent.targetId <= 120
+        and type(intent.catalogKey) == "string"
+        and #intent.catalogKey > 0 then
         return { remote = "ClaimTrophy", method = "InvokeServer",
             arity = 1, args = { intent.targetId },
             source = "saved InventoryTab trophy claim" }, nil
     end
     if proposal.feature == "monthlyRewards"
         and intent.kind == "monthlyClaim"
-        and integer(intent.month, 1, 12)
+        and monthKey(intent.month)
+        and integer(intent.today, 1000001, 9999366)
         and integer(intent.nextDay, 1, 31) then
         return { remote = "ClaimMonthly", method = "InvokeServer",
             arity = 0, args = {},
@@ -234,6 +245,144 @@ function NativeCallPlan.describe(proposal)
         return nil, "Unverified Boss Shop item or quantity"
     end
     return nil, "No saved native call contract for feature"
+end
+
+function NativeCallPlan.withCrew(crewPlan, replacementPlan)
+    assert(type(crewPlan) == "table"
+        and type(crewPlan.describe) == "function",
+        "Missing Crew call plan")
+    assert(replacementPlan == nil or (type(replacementPlan) == "table"
+        and type(replacementPlan.describe) == "function"), "Invalid Crew replacement call plan")
+    local crew = { crew = true, crewSort = true, crewHeal = true,
+        crewTrain = true, crewHire = true, crewGear = true,
+        crewHealItems = true, crewRoll = true }
+    return { describe = function(proposal)
+        if type(proposal) == "table" and proposal.feature == "crewRoll" and replacementPlan then
+            return replacementPlan.describe(proposal)
+        end
+        if type(proposal) == "table" and crew[proposal.feature] then
+            return crewPlan.describe(proposal)
+        end
+        return NativeCallPlan.describe(proposal)
+    end }
+end
+
+function NativeCallPlan.withInventory(basePlan, inventoryPlan)
+    assert(type(basePlan) == "table"
+        and type(basePlan.describe) == "function"
+        and type(inventoryPlan) == "table"
+        and type(inventoryPlan.describe) == "function",
+        "Missing Inventory call plan")
+    local inventory = { cosmetics = true, chests = true,
+        restoratives = true }
+    return { describe = function(proposal)
+        if type(proposal) == "table"
+            and inventory[proposal.feature] then
+            return inventoryPlan.describe(proposal)
+        end
+        return basePlan.describe(proposal)
+    end }
+end
+
+function NativeCallPlan.withCollection(basePlan, collectionPlan)
+    assert(type(basePlan) == "table"
+        and type(basePlan.describe) == "function"
+        and type(collectionPlan) == "table"
+        and type(collectionPlan.describe) == "function",
+        "Missing Collection call plan")
+    return { describe = function(proposal)
+        if type(proposal) == "table"
+            and proposal.feature == "collectionDonate" then
+            return collectionPlan.describe(proposal)
+        end
+        return basePlan.describe(proposal)
+    end }
+end
+
+function NativeCallPlan.withCombat(basePlan, combatPlan)
+    assert(type(basePlan) == "table"
+        and type(basePlan.describe) == "function"
+        and type(combatPlan) == "table"
+        and type(combatPlan.describe) == "function",
+        "Missing Combat call plan")
+    local combat = { combat = true, bosses = true, globalBossAttack = true,
+        globalBossClaim = true, familyBossAttacks = true,
+        familyBossClaims = true, bossShop = true }
+    return { describe = function(proposal)
+        if type(proposal) == "table"
+            and combat[proposal.feature] then
+            return combatPlan.describe(proposal)
+        end
+        return basePlan.describe(proposal)
+    end }
+end
+
+function NativeCallPlan.withMarket(basePlan, marketPlan)
+    assert(type(basePlan) == "table"
+        and type(basePlan.describe) == "function"
+        and type(marketPlan) == "table"
+        and type(marketPlan.describe) == "function",
+        "Missing Market call plan")
+    local market = { marketWatch = true, marketSell = true,
+        marketFlip = true, marketRent = true,
+        marketManage = true }
+    return { describe = function(proposal)
+        if type(proposal) == "table"
+            and market[proposal.feature] then
+            return marketPlan.describe(proposal)
+        end
+        return basePlan.describe(proposal)
+    end }
+end
+
+function NativeCallPlan.withFamily(basePlan, familyPlan)
+    assert(type(basePlan) == "table" and type(basePlan.describe) == "function"
+        and type(familyPlan) == "table" and type(familyPlan.describe) == "function",
+        "Missing Family call plan")
+    local family = { familyCash = true, familyGold = true, familyStamina = true }
+    return { describe = function(proposal)
+        if type(proposal) == "table" and family[proposal.feature] then
+            return familyPlan.describe(proposal)
+        end
+        return basePlan.describe(proposal)
+    end }
+end
+
+function NativeCallPlan.withTerritory(basePlan, territoryPlan)
+    assert(type(basePlan) == "table" and type(basePlan.describe) == "function"
+        and type(territoryPlan) == "table" and type(territoryPlan.describe) == "function",
+        "Missing Territory call plan")
+    local territory = { station = true, residency = true, territoryWatch = true }
+    return { describe = function(proposal)
+        if type(proposal) == "table" and territory[proposal.feature] then
+            return territoryPlan.describe(proposal)
+        end
+        return basePlan.describe(proposal)
+    end }
+end
+
+function NativeCallPlan.withPrestige(basePlan, prestigePlan)
+    assert(type(basePlan) == "table" and type(basePlan.describe) == "function"
+        and type(prestigePlan) == "table" and type(prestigePlan.describe) == "function",
+        "Missing Prestige call plan")
+    return { describe = function(proposal)
+        if type(proposal) == "table" and proposal.feature == "prestige" then
+            return prestigePlan.describe(proposal)
+        end
+        return basePlan.describe(proposal)
+    end }
+end
+
+function NativeCallPlan.withEvents(basePlan, eventShopPlan)
+    assert(type(basePlan) == "table" and type(basePlan.describe) == "function"
+        and type(eventShopPlan) == "table" and type(eventShopPlan.describe) == "function",
+        "Missing Event Shop call plan")
+    return { describe = function(proposal)
+        if type(proposal) == "table" and proposal.feature == "eventShop" then
+            return eventShopPlan.describe(proposal)
+        end
+        return basePlan.describe(proposal)
+    end }
 end
 
 return NativeCallPlan

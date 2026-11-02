@@ -105,7 +105,16 @@ local function protection(raw, proof)
         size = size + 1
         if size > 5000 then return nil end
     end
-    return copied
+    local reserved = {}
+    if proof.reserved ~= nil then
+        if type(proof.reserved) ~= "table" then return nil end
+        for id, amount in pairs(proof.reserved) do
+            size = size + 1
+            if size > 5000 or type(id) ~= "string" or not integer(amount, 0) then return nil end
+            reserved[id] = amount
+        end
+    end
+    return copied, reserved
 end
 
 function CollectionDonate.read(raw, context)
@@ -115,7 +124,7 @@ function CollectionDonate.read(raw, context)
         return nil, "Collection snapshot changed"
     end
     local native, catalog = raw.native, raw.collectionCatalog
-    local protected = protection(raw, context.collectionProtection)
+    local protected, reserved = protection(raw, context.collectionProtection)
     if type(native) ~= "table" or native.fullSync ~= true
         or type(native.inventory) ~= "table"
         or type(native.inventoryBound) ~= "table"
@@ -129,7 +138,7 @@ function CollectionDonate.read(raw, context)
         or type(catalog.tiers) ~= "table" then
         return nil, "Current Collection custody and source required"
     end
-    local attached = protection(raw, raw.collectionProtection)
+    local attached, attachedReserved = protection(raw, raw.collectionProtection)
     if not protected or not attached
         or raw.collectionProtection.key
             ~= context.collectionProtection.key then
@@ -144,6 +153,12 @@ function CollectionDonate.read(raw, context)
         if protected[id] == nil then
             return nil, "Collection protection proof changed"
         end
+    end
+    for id, amount in pairs(reserved) do
+        if attachedReserved[id] ~= amount then return nil, "Collection reservation proof changed" end
+    end
+    for id in pairs(attachedReserved) do
+        if reserved[id] == nil then return nil, "Collection reservation proof changed" end
     end
     local used = worn(native)
     if not used then return nil, "Current worn items required" end
@@ -172,7 +187,7 @@ function CollectionDonate.read(raw, context)
         revision = context.revision, capturedAt = context.capturedAt,
         catalogKey = catalog.catalogKey,
         protectionKey = context.collectionProtection.key,
-        protected = protected,
+        protected = protected, reserved = reserved,
         catalog = catalog, entries = entries }, nil
 end
 
@@ -192,7 +207,7 @@ function CollectionDonate.propose(view, settings)
     local chosen, bestGain
     for _, row in ipairs(view.entries or {}) do
         local reserve = math.max(row.worn + custom.sparesToKeep,
-            view.protected[row.id] or 0)
+            view.protected[row.id] or 0) + ((view.reserved or {})[row.id] or 0)
         local amount = math.min(custom.maxBatch, row.loose - reserve)
         if amount >= 1 then
             local beforeBonus = bonus(view.catalog,
@@ -223,8 +238,6 @@ function CollectionDonate.propose(view, settings)
             .. chosen.collected .. ":" .. chosen.amount,
         resources = { [chosen.id] = chosen.amount },
         intent = { kind = "collectionDonate",
-            remote = "CollectionAction",
-            args = { "deposit", chosen.id, chosen.amount },
             itemId = chosen.id, amount = chosen.amount,
             loose = chosen.loose,
             collected = chosen.collected,
@@ -247,24 +260,31 @@ function CollectionDonate.capture(proposal, before)
     end
     local native = before.native
     local used = worn(native)
-    local protected = protection(before, before.collectionProtection)
+    local protected, reserved = protection(before, before.collectionProtection)
     if type(native) ~= "table" or native.fullSync ~= true
         or type(before.collectionCatalog) ~= "table"
+        or before.collectionCatalog.release ~= proposal.release
         or before.collectionCatalog.catalogKey
             ~= intent.catalogKey
+        or type(intent.itemId) ~= "string" or #intent.itemId == 0
+        or not integer(intent.reserve, 0)
+        or not integer(intent.worn, 0)
+        or not integer(intent.loose, 0)
+        or not integer(intent.collected, 0)
+        or type(proposal.resources) ~= "table"
+        or proposal.resources[intent.itemId] ~= intent.amount
         or not protected
         or before.collectionProtection.key ~= intent.protectionKey
-        or (protected[intent.itemId] or 0) > intent.reserve
+        or (protected[intent.itemId] or 0) + (reserved[intent.itemId] or 0) > intent.reserve
         or not used or (used[intent.itemId] or 0) ~= intent.worn
         or count(native.inventory, intent.itemId) ~= intent.loose
+        or count(native.inventoryBound, intent.itemId) == nil
+        or count(native.collection, intent.itemId) == nil
+        or count(native.collectionBound, intent.itemId) == nil
         or collected(native, intent.itemId) ~= intent.collected
         or not integer(intent.amount, 1)
         or intent.amount > 10
-        or intent.loose - intent.amount < intent.reserve
-        or type(intent.args) ~= "table"
-        or intent.args[1] ~= "deposit"
-        or intent.args[2] ~= intent.itemId
-        or intent.args[3] ~= intent.amount then
+        or intent.loose - intent.amount < intent.reserve then
         return nil, "Exact protected Collection surplus changed"
     end
     return { session = proposal.session, account = proposal.account,
@@ -272,6 +292,9 @@ function CollectionDonate.capture(proposal, before)
         revision = proposal.revision, itemId = intent.itemId,
         amount = intent.amount, loose = intent.loose,
         collected = intent.collected,
+        collectionLoose = count(native.collection, intent.itemId),
+        inventoryBound = count(native.inventoryBound, intent.itemId),
+        collectionBound = count(native.collectionBound, intent.itemId),
         worn = intent.worn }, nil
 end
 
@@ -293,6 +316,12 @@ function CollectionDonate.evaluate(proposal, before, after,
         or not used or (used[baseline.itemId] or 0) ~= baseline.worn
         or count(native.inventory, baseline.itemId)
             ~= baseline.loose - baseline.amount
+        or count(native.inventoryBound, baseline.itemId)
+            ~= baseline.inventoryBound
+        or count(native.collection, baseline.itemId)
+            ~= baseline.collectionLoose + baseline.amount
+        or count(native.collectionBound, baseline.itemId)
+            ~= baseline.collectionBound
         or collected(native, baseline.itemId)
             ~= baseline.collected + baseline.amount then
         return "pending"

@@ -33,13 +33,18 @@ function NativeRewardsSource.new(rule, lookup, clock,
 end
 
 function Methods:IsWeekend(serverNow)
-    if self.closed or not integer(serverNow, 0) then return nil end
-    local ok, value = pcall(self.rule.isWeekend, serverNow)
+    if self.closed or not timestamp(serverNow) then return nil end
+    local ok, value = pcall(self.rule.isWeekend,
+        math.floor(serverNow))
     if ok and type(value) == "boolean" then return value end
     return nil
 end
 
-function Methods:Refresh(account, groupId)
+function Methods:Refresh(account, groupId, stillCurrent)
+    if stillCurrent ~= nil then
+        local ok, allowed = pcall(stillCurrent)
+        if not ok or allowed ~= true then return false end
+    end
     if self.closed or self.refreshing
         or account ~= self.account or groupId ~= self.groupId then
         return false
@@ -48,6 +53,10 @@ function Methods:Refresh(account, groupId)
     local ok, member = pcall(self.lookup, groupId)
     local clockOk, checkedAt = pcall(self.clock.Now, self.clock)
     self.refreshing = false
+    if stillCurrent ~= nil then
+        local ok, allowed = pcall(stillCurrent)
+        if not ok or allowed ~= true then return false end
+    end
     if self.closed or not ok or type(member) ~= "boolean"
         or not clockOk or not timestamp(checkedAt) then
         self.membership, self.checkedAt = nil, nil

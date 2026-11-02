@@ -63,10 +63,23 @@ function JobsState.read(raw, context)
             or (index > 1 and rule.completions <= mastery[index - 1].completions) then
             return nil, "Invalid mastery rule"
         end
+        if rule.name ~= nil and (type(rule.name) ~= "string" or #rule.name == 0 or #rule.name > 80) then
+            return nil, "Invalid native Mastery name"
+        end
         mastery[index] = {
-            completions = rule.completions,
+            name = rule.name, completions = rule.completions,
             energyDiscount = rule.energyDiscount,
         }
+    end
+    local cities
+    if raw.jobCities ~= nil then
+        local count = arrayLength(raw.jobCities)
+        if not count or count < 1 or count > 32 then return nil, "Invalid Job city catalog" end
+        cities = {}
+        for _, id in ipairs(raw.jobCities) do
+            if type(id) ~= "string" or #id == 0 or #id > 120 or cities[id] then return nil, "Invalid Job city identity" end
+            cities[id] = true
+        end
     end
     local jobs, seen = {}, {}
     for index, item in ipairs(raw.jobCatalog) do
@@ -76,6 +89,8 @@ function JobsState.read(raw, context)
             or not nonnegative(item.cash) or not nonnegative(item.xp) then
             return nil, "Invalid or duplicate Job catalog entry"
         end
+        if item.tier ~= nil and (not integer(item.tier, 1) or item.tier > 100) then return nil, "Invalid native Job tier" end
+        if cities and not cities[item.cityId] then return nil, "Job city membership incomplete" end
         seen[item.id] = true
         local record = native.jobs[item.id]
         if record ~= nil and type(record) ~= "table" then
@@ -92,18 +107,22 @@ function JobsState.read(raw, context)
         local discount = tier > 0 and mastery[tier].energyDiscount or 0
         local cost = math.max(1, math.floor(item.energy * (1 - discount) + 0.5))
         jobs[index] = {
-            id = item.id, level = item.level, cost = cost,
+            id = item.id, level = item.level, cost = cost, tier = item.tier, cityId = cities and item.cityId or nil,
             cash = item.cash, xp = item.xp,
             masteryTier = tier,
             masteryProgress = math.max(completions, progress),
         }
     end
+    local capacity
+    if type(native.derived) == "table" and native.derived.effMaxEnergy ~= nil then capacity = native.derived.effMaxEnergy
+    elseif type(native.stats) == "table" then capacity = native.stats.maxEnergy end
+    if not nonnegative(capacity) or capacity <= 0 then capacity = nil end
     return {
-        session = context.session, account = context.account,
+        capacityEnergy = capacity, session = context.session, account = context.account,
         place = context.place, release = context.release,
         revision = context.revision, capturedAt = context.capturedAt,
         catalogKey = raw.catalogKey, level = native.level,
-        energy = native.pools.energy, jobs = jobs, masteryRules = mastery,
+        energy = native.pools.energy, jobs = jobs, masteryRules = mastery, cities = cities,
     }, nil
 end
 

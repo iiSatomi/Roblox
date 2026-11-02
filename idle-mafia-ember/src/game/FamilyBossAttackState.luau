@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value >= minimum and value < math.huge and value % 1 == 0
 end
 
+local function finite(value, minimum)
+    return type(value) == "number" and value == value
+        and value >= minimum and value < math.huge
+end
+
 function FamilyBossAttackState.read(raw, context)
     if type(raw) ~= "table" or type(context) ~= "table" then
         return nil, "Missing Family attack input"
@@ -36,23 +41,23 @@ function FamilyBossAttackState.read(raw, context)
         or usage.week ~= takedown.week
         or usage.famId ~= takedown.famId
         or not integer(usage.hits, 0)
-        or not integer(usage.lastServerNow, 0)
+        or not finite(usage.lastServerNow, 0)
         or type(native) ~= "table" or native.fullSync ~= true
         or type(native.stats) ~= "table"
         or not integer(native.stats.maxHealth, 1)
         or type(native.pools) ~= "table"
-        or not integer(native.pools.health, 0)
+        or not finite(native.pools.health, 0)
         or native.pools.health > native.stats.maxHealth
-        or not integer(native.pools.stamina, 0)
+        or not finite(native.pools.stamina, 0)
         or type(state) ~= "table"
         or not integer(state.freeUsed, 0) then
         return nil, "Current free Family attack proof required"
     end
     local view = {}
     for key, value in pairs(takedown) do view[key] = value end
-    view.health = native.pools.health
+    view.health = math.floor(native.pools.health)
     view.maxHealth = native.stats.maxHealth
-    view.stamina = native.pools.stamina
+    view.stamina = math.floor(native.pools.stamina)
     view.staminaCost = proof.staminaCost
     view.hitBackMax = proof.hitBackMax
     view.freeUsed = state.freeUsed

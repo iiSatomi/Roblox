@@ -94,11 +94,12 @@ function TrophyFocusState.read(raw, context)
             count = count + value
         end
         local status = count > 0 and "owned"
-            or item.tradeIn == true and "manualTradeIn"
+            or (item.tradeIn == true or item.requiresItems == true)
+                and "manualTradeIn"
             or ready[item.id] and "ready" or "notReady"
         result[item.id] = { id = item.id, kind = item.kind,
             route = routes[item.id] or "unsupported",
-            status = status }
+            status = status, goal = item.goal }
     end
     return { session = context.session, account = context.account,
         place = context.place, release = context.release,

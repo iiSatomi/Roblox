@@ -1,5 +1,6 @@
 -- Inert composition. No game services, remote calls, timers or account files.
 local App = {}
+local energyActivities = { jobs = true, heists = true, favors = true, sabotage = true }
 
 local function runtimeInstance(value)
     return type(value) == "table"
@@ -48,9 +49,37 @@ function App.start(dependencies)
     assert(not (automation and jobs),
         "Use one automation runtime")
     local runtime = automation or jobs
-    local self = { alive = true, model = dependencies.Settings.new(dependencies.Catalog),
-        ui = nil, staged = nil, jobsRuntime = jobs,
+    local allowedFeatures = runtime and dependencies.allowedFeatures or nil
+    local function allowed(values)
+        if type(allowedFeatures) ~= "table" then return true end
+        for key, value in pairs(values) do
+            if value == true and type(key) == "string"
+                and key:sub(-8) == ".enabled"
+                and allowedFeatures[key:sub(1, -9)] ~= true then
+                return false
+            end
+        end
+        return true
+    end
+    local self = { alive = true,
+        model = dependencies.Settings.new(dependencies.Catalog, runtime ~= nil),
+        ui = nil, staged = nil, profileSync = false, jobsRuntime = jobs,
         automationRuntime = automation }
+    if runtime and type(runtime.SetSelectionGuard) == "function" then
+        runtime:SetSelectionGuard(function(feature)
+            if not self.alive or self.model.paused or self.model.stopped
+                or self.model.values[feature .. ".enabled"] ~= true
+                or (type(allowedFeatures) == "table" and allowedFeatures[feature] ~= true) then return nil end
+            local choices, prefix = {}, feature .. "."
+            for key, value in pairs(self.model.values) do
+                if key:sub(1, #prefix) == prefix then choices[key] = value end
+            end
+            if energyActivities[feature] and self.model.specs["shared.energyReserve"] then
+                choices["shared.energyReserve"] = self.model.values["shared.energyReserve"]
+            end
+            return choices
+        end)
+    end
     if dependencies.ProfileStorage then
         assert(type(dependencies.ProfileStore) == "table"
             and type(dependencies.ProfileStore.new) == "function"
@@ -58,7 +87,31 @@ function App.start(dependencies)
             "Profile storage needs an account identity and adapter")
         self.profileStore = dependencies.ProfileStore.new(
             dependencies.ProfileStorage, self.model,
-            dependencies.identity.account, dependencies.identity.place)
+            dependencies.identity.account, dependencies.identity.place, dependencies.storage)
+        self.profileSync, self.profileSyncError = self.profileStore:GetSync()
+    end
+    local startupNote = runtime and "Runtime attached; all features off"
+        or "Created inert UI"
+    if runtime and self.profileStore then
+        local name, autoloadReason = self.profileStore:ConsumeNextLoad()
+        local once = name ~= nil
+        if not name and not autoloadReason then name, autoloadReason = self.profileStore:GetAutoload() end
+        if autoloadReason then
+            startupNote = autoloadReason .. "; all features off"
+        elseif name then
+            local profile, loadReason = self.profileStore:Load(name)
+            local prepared, validationReason = profile
+                and self.model:Validate(profile, true)
+            if prepared and allowed(prepared) then
+                self.model:Commit(prepared, false)
+                self.currentProfile = name
+                startupNote = (once and "Loaded next-launch profile: " or "Autoloaded profile: ") .. name
+            else
+                startupNote = (loadReason or validationReason
+                    or "Autoload profile exceeds this runtime preview")
+                    .. "; all features off"
+            end
+        end
     end
 
     local function closed()
@@ -74,7 +127,10 @@ function App.start(dependencies)
     local function render(view, command)
         return pcall(function()
             local projected = { values = view.values, paused = view.paused,
-                stopped = view.stopped,
+                stopped = view.stopped, staged = self.staged,
+                currentProfile = self.currentProfile, profileModified = self.profileModified,
+                profileSync = self.profileSync, profileSyncError = self.profileSyncError,
+                profileSaving = self.profileSaving, importReviewText = self.importReviewText,
                 jobsRuntime = self.jobsRuntime and self.jobsRuntime:Status() or nil,
                 automationRuntime = self.automationRuntime
                     and self.automationRuntime:Status() or nil }
@@ -119,9 +175,18 @@ function App.start(dependencies)
 
     function self:ApplyProfile(profile)
         if not self.alive then return false, "Prototype is closed" end
-        local prepared, reason = self.model:Validate(profile)
+        if self.profileSaving then return false, "Profile save already in progress" end
+        local prepared, reason = self.model:Validate(profile, true)
         if not prepared then return false, reason end
-        return applyPrepared(prepared, true, "Applied choices; session paused")
+        if not allowed(prepared) then
+            return false, "Profile enables unavailable runtime features"
+        end
+        local accepted, failure = applyPrepared(prepared, true, "Applied choices; session paused")
+        if accepted then
+            self.currentProfile, self.profileModified = self.staged == profile and self.stagedName or nil, false
+            self:Refresh()
+        end
+        return accepted, failure
     end
 
     function self:SaveProfile(name)
@@ -130,7 +195,11 @@ function App.start(dependencies)
         end
         local saved, reason = self.profileStore:Save(
             name, self.model:Snapshot())
-        if saved then self.ui.profileStatus:Set("Saved locally: " .. name, true) end
+        if saved then
+            self.currentProfile, self.profileModified = name, false
+            if self.ui.profiles then self.ui.profiles:RefreshStorage() end
+            self:Refresh("Saved profile: " .. name)
+        end
         return saved, reason
     end
 
@@ -140,19 +209,204 @@ function App.start(dependencies)
         end
         local profile, reason = self.profileStore:Load(name)
         if not profile then return false, reason end
-        self.staged = profile
+        local prepared
+        prepared, reason = self.model:Validate(profile, true)
+        if not prepared then return false, reason end
+        self.staged = { schema = 1, values = prepared }
+        self.stagedName = name
         self.ui.profileStatus:Set("Ready to apply: " .. name, true)
-        return true, nil
+        return self:Refresh("Previewed saved profile")
+    end
+
+    local codec = dependencies.codec
+    local transferAvailable = type(codec) == "table" and type(codec.Encode) == "function"
+        and type(codec.Decode) == "function"
+
+    local function showImportReview(review, staged)
+        self.importReview = review
+        if not review then self.importReviewText = ""; return true end
+        review.note = "Unchanged legacy defaults use current reviewed defaults. Automation and new permissions are not enabled automatically. Apply is separate and pauses the session."
+        review.status = staged and "Ready for explicit Apply" or "Unresolved; nothing staged"
+        review.stagedPreview = nil
+        if staged then
+            local values = {}
+            for key, value in pairs(staged.values) do values[key] = value end
+            review.stagedPreview = { schema = 1, values = values }
+        end
+        local ok, text = pcall(codec.Encode, codec, review)
+        if not ok or type(text) ~= "string" or #text > 65536 then
+            self.importReviewText = "Import review could not be displayed within 64 KiB; original input retained. Nothing applied."
+            return false
+        end
+        self.importReviewText = text
+        return true
+    end
+
+    function self:ExportProfile()
+        if not self.alive or not transferAvailable then return nil, "Settings JSON adapter unavailable" end
+        local ok, text = pcall(codec.Encode, codec, self.model:Snapshot())
+        if not ok or type(text) ~= "string" or #text > 65536 then
+            return nil, "Settings export failed or exceeds 64 KiB"
+        end
+        return text, nil
+    end
+
+    function self:PreviewImport(text)
+        if not self.alive or not transferAvailable then return false, "Settings JSON adapter unavailable" end
+        if type(text) ~= "string" or #text == 0 or #text > 65536 then
+            return false, "Settings JSON must contain 1–65536 bytes"
+        end
+        local ok, profile = pcall(codec.Decode, codec, text)
+        if not ok then return false, "Settings JSON could not be decoded" end
+        local legacy = type(profile) == "table" and (profile.version ~= nil or profile.settings ~= nil)
+        if legacy then
+            local migration = dependencies.LegacySettings
+            if type(migration) ~= "table" or type(migration.preview) ~= "function" then
+                return false, "Legacy settings preview unavailable"
+            end
+            local converted, review, reason = migration.preview(profile, self.model)
+            self.importReview = review
+            if not converted then
+                showImportReview(review)
+                self.staged, self.stagedName = nil, nil
+                self.ui.profileStatus:Set(reason or "Legacy choices need review", true)
+                self:Refresh("Legacy choices require review")
+                return false, reason
+            end
+            profile = converted
+        end
+        local prepared, reason = self.model:Validate(profile, true)
+        if not prepared then return false, reason end
+        if not allowed(prepared) then return false, "Profile enables unavailable runtime features" end
+        local values = {}
+        for key, value in pairs(prepared) do values[key] = value end
+        local staged = { schema = 1, values = values }
+        if legacy and not showImportReview(self.importReview, staged) then
+            self.staged, self.stagedName = nil, nil
+            self.ui.profileStatus:Set("Import review unavailable; nothing staged", true)
+            self:Refresh("Import review unavailable")
+            return false, "Import review unavailable; nothing staged"
+        end
+        if not legacy then showImportReview(nil) end
+        self.staged, self.stagedName = staged, nil
+        self.ui.profileStatus:Set(legacy
+            and "Ready to apply: legacy choices; defaults updated, automation off"
+            or "Ready to apply: imported settings", true)
+        return self:Refresh("Previewed imported choices")
+    end
+
+    function self:RenameProfile(name, replacement)
+        if not self.alive or not self.profileStore then return false, "Profile storage unavailable" end
+        local saved, reason = self.profileStore:Rename(name, replacement)
+        if not saved then return false, reason end
+        if self.currentProfile == name then self.currentProfile = replacement end
+        if self.stagedName == name then
+            self.stagedName = replacement
+            self.ui.profileStatus:Set("Ready to apply: " .. replacement, true)
+        end
+        if self.ui.profiles then
+            self.ui.profiles.profileName:Set(replacement, true)
+            self.ui.profiles:RefreshStorage()
+        end
+        return self:Refresh("Renamed saved profile")
+    end
+
+    function self:SetAutoload(name)
+        if not self.alive or not self.profileStore then
+            return false, "Profile storage unavailable"
+        end
+        local saved, reason = self.profileStore:SetAutoload(name)
+        if saved then
+            if self.ui.profiles then self.ui.profiles:RefreshStorage() end
+            self.ui:RecordActivity(name
+                and ("Autoload on: " .. name) or "Autoload off")
+        end
+        return saved, reason
+    end
+
+    function self:SetNextLoad(name)
+        if not self.alive or not self.profileStore then return false, "Profile storage unavailable" end
+        local saved, reason = self.profileStore:SetNextLoad(name)
+        if saved then
+            if self.ui.profiles then self.ui.profiles:RefreshStorage() end
+            self.ui:RecordActivity(name and ("Next launch only: " .. name) or "Next-launch choice cleared")
+        end
+        return saved, reason
+    end
+
+    function self:DeleteProfile(name)
+        if not self.alive or not self.profileStore then return false, "Profile storage unavailable" end
+        if not self.model.paused or self.stagedName ~= name then
+            return false, "Pause and preview this saved profile before deletion"
+        end
+        local saved, reason = self.profileStore:Delete(name, self.staged)
+        if saved then
+            self.staged, self.stagedName = nil, nil
+            if self.currentProfile == name then self.currentProfile, self.profileModified = nil, false end
+            if self.ui.profiles then self.ui.profiles:RefreshStorage() end
+            self.ui.profileStatus:Set("None", true)
+            self:Refresh("Deleted saved profile: " .. name)
+        end
+        return saved, reason
+    end
+
+    function self:SetProfileSync(enabled)
+        if not self.alive or not self.profileStore then return false, "Profile storage unavailable" end
+        local saved, reason = self.profileStore:SetSync(enabled)
+        if saved then self.profileSync, self.profileSyncError = enabled, nil
+        else self.profileSyncError = reason end
+        self:Refresh(saved and "Profile edit saving preference updated" or "Profile saving preference rejected")
+        return saved, reason
     end
 
     function self:Set(key, value)
         if not self.alive then return false, "Prototype is closed" end
+        if self.profileSaving then return false, "Profile save already in progress" end
         if not self.model.specs[key] or value == nil then return false, "Invalid preference: " .. tostring(key) end
         local prepared, reason = self.model:Validate({ schema = 1, values = { [key] = value } })
         if not prepared then return false, reason end
-        return applyPrepared(prepared, false, "Changed " .. key)
+        if not allowed(prepared) then
+            return false, "Feature unavailable in this runtime preview"
+        end
+        local previousModified = self.profileModified
+        local changed = self.model.values[key] ~= value
+        local syncing = changed and self.currentProfile and self.profileSync and self.profileStore
+        local wasRunning = runtime and not self.model.paused and not self.model.stopped
+        if self.currentProfile and changed then self.profileModified = true end
+        if syncing then
+            self.profileSaving = true
+            if runtime then runtime:Pause() end
+        end
+        local accepted, failure = applyPrepared(prepared, false, "Changed " .. key)
+        if not accepted then self.profileModified = previousModified
+        elseif syncing then
+            local saved, reason = self.profileStore:Save(self.currentProfile, self.model:Snapshot())
+            if saved then self.profileModified, self.profileSyncError = false, nil
+            else
+                self.profileModified, self.profileSyncError = true, reason
+                self.model:Pause()
+                failure = "Choice is unsaved; profile save failed; session paused"
+                accepted = false
+            end
+        end
+        if syncing then
+            self.profileSaving = false
+            if self.alive then
+                if wasRunning and not self.model.paused and not self.model.stopped then runtime:Resume() end
+                self:Refresh(accepted and "Saved active-profile edit" or failure)
+            end
+        end
+        return accepted, failure
     end
 
+    function self:CanReplace()
+        if self.profileSaving or self.profileStore and self.profileStore.writing then
+            return false, "Profile storage is busy"
+        end
+        if not runtime then return true end
+        if type(runtime.CanReplace)~="function" then return false,"Runtime replacement ownership unavailable" end
+        return runtime:CanReplace()
+    end
     function self:Pause()
         if not self.alive then return false, "Prototype is closed" end
         self.model:Pause()
@@ -161,6 +415,12 @@ function App.start(dependencies)
     end
     function self:Resume()
         if not self.alive then return false, "Prototype is closed" end
+        if runtime and type(runtime.FeatureRecoveryBusy) == "function" and runtime:FeatureRecoveryBusy() then
+            return false, "Feature recovery is saving; wait before resuming"
+        end
+        if runtime and type(runtime.AllowanceResetBusy) == "function" and runtime:AllowanceResetBusy() then
+            return false, "Allowance reset is saving; wait before resuming"
+        end
         if runtime and runtime:Status().state == "stopped" then
             return false, "Automation stopped; reload required"
         end
@@ -169,9 +429,52 @@ function App.start(dependencies)
         if ok and runtime then runtime:Resume() end
         return ok, reason
     end
+    function self:PreviewAllowance(feature)
+        self.allowanceStaged = nil
+        if not self.alive or not runtime or type(runtime.PreviewAllowanceReset) ~= "function" then
+            return nil, "Allowance controls need the connected runtime"
+        end
+        if not self.model.paused then return nil, "Pause automation before reviewing an allowance" end
+        local preview, reason = runtime:PreviewAllowanceReset(feature)
+        if preview then self.allowanceStaged = preview end
+        return preview, reason
+    end
+    function self:CancelAllowancePreview()
+        self.allowanceStaged = nil
+        if runtime and type(runtime.CancelAllowanceReset) == "function" then runtime:CancelAllowanceReset() end
+    end
+    function self:ConfirmAllowance(feature)
+        local staged = self.allowanceStaged
+        self.allowanceStaged = nil
+        if not self.alive or not self.model.paused or not staged or staged.feature ~= feature
+            or not runtime or type(runtime.ConfirmAllowanceReset) ~= "function" then
+            return false, "Pause and preview this allowance before confirming"
+        end
+        local saved, reason = runtime:ConfirmAllowanceReset(staged.ticket)
+        if self.alive then self:Refresh(saved and "Reset local allowance" or "Allowance reset refused") end
+        return saved, reason
+    end
+    function self:PreviewFeatureRecovery(feature)
+        self.featureRecoveryStaged = nil
+        if not self.alive or not self.model.paused or not runtime
+            or type(runtime.PreviewFeatureRecovery) ~= "function" then return nil, "Pause the connected runtime before reviewing recovery" end
+        local preview, reason = runtime:PreviewFeatureRecovery(feature)
+        if preview then self.featureRecoveryStaged = {feature = feature, ticket = preview.ticket} end
+        return preview, reason
+    end
+    function self:ConfirmFeatureRecovery(feature)
+        local staged = self.featureRecoveryStaged
+        self.featureRecoveryStaged = nil
+        if not self.alive or not self.model.paused or not staged or staged.feature ~= feature
+            or not runtime or type(runtime.ConfirmFeatureRecovery) ~= "function" then return false, "Pause and review this recovery before confirming" end
+        local saved, reason = runtime:ConfirmFeatureRecovery(feature, staged.ticket)
+        if self.alive then self:Refresh(saved and "Updated local recovery records; automation remains paused" or "Recovery refused") end
+        return saved, reason
+    end
     function self:Stop()
         if not self.alive then return false, "Prototype is closed" end
         self.model:Stop()
+        if self.currentProfile then self.profileModified = true end
         if runtime then runtime:Stop() end
         return self:Refresh("Stopped; choices cleared")
     end
@@ -186,10 +489,24 @@ function App.start(dependencies)
             settings = {
                 jobs = { enabled = enabled and self.model.values["jobs.enabled"] == true,
                     policy = self.model.values["jobs.policy"],
-                    selectedJobId = self.model.values["jobs.custom.selectedJobId"] },
+                    selectedJobId = self.model.values["jobs.custom.selectedJobId"],
+                    limitsEnabled = self.model.values["jobs.custom.limitsEnabled"],
+                    city = self.model.values["jobs.custom.city"],
+                    masteryTarget = self.model.values["jobs.custom.masteryTarget"],
+                    energyReserve = self.model.values["shared.energyReserve"],
+                    minLevel = self.model.values["jobs.custom.minLevel"], maxLevel = self.model.values["jobs.custom.maxLevel"],
+                    minCost = self.model.values["jobs.custom.minCost"], maxCost = self.model.values["jobs.custom.maxCost"] },
                 operations = { enabled = enabled
                     and self.model.values["operations.enabled"] == true,
-                    policy = self.model.values["operations.policy"] },
+                    policy = self.model.values["operations.policy"],
+                    selection = self.model.values["operations.custom.selection"],
+                    selectedIds = self.model.values["operations.custom.selectedIds"],
+                    limitsEnabled = self.model.values["operations.custom.limitsEnabled"],
+                    minLevel = self.model.values["operations.custom.minLevel"],
+                    maxLevel = self.model.values["operations.custom.maxLevel"],
+                    minHours = self.model.values["operations.custom.minHours"],
+                    maxHours = self.model.values["operations.custom.maxHours"],
+                    minCrateRarity = self.model.values["operations.custom.minCrateRarity"] },
                 collect = { enabled = enabled
                     and self.model.values["collect.enabled"] == true },
                 skills = { enabled = enabled
@@ -245,11 +562,25 @@ function App.start(dependencies)
                     settings[id] = feature
                 end
             end
+            for id in pairs(energyActivities) do
+                if settings[id] then settings[id].energyReserve = self.model.values["shared.energyReserve"] or 0 end
+            end
+            if type(allowedFeatures) == "table" then
+                for id, feature in pairs(settings) do
+                    if allowedFeatures[id] ~= true then feature.enabled = false end
+                end
+            end
         else
             settings = { enabled = enabled
                 and self.model.values["jobs.enabled"] == true,
                 policy = self.model.values["jobs.policy"],
-                selectedJobId = self.model.values["jobs.custom.selectedJobId"] }
+                selectedJobId = self.model.values["jobs.custom.selectedJobId"],
+                    limitsEnabled = self.model.values["jobs.custom.limitsEnabled"],
+                    city = self.model.values["jobs.custom.city"],
+                    masteryTarget = self.model.values["jobs.custom.masteryTarget"],
+                    energyReserve = self.model.values["shared.energyReserve"],
+                    minLevel = self.model.values["jobs.custom.minLevel"], maxLevel = self.model.values["jobs.custom.maxLevel"],
+                    minCost = self.model.values["jobs.custom.minCost"], maxCost = self.model.values["jobs.custom.maxCost"] }
         end
         local ok, result = pcall(runtime.Step, runtime, raw, settings)
         if not ok then
@@ -286,14 +617,48 @@ function App.start(dependencies)
         elseif name == "unload" then self:Destroy()
         elseif name == "stage" then
             self.staged = self.model:Snapshot()
+            self.stagedName = nil
             self.ui.profileStatus:Set("Staged locally", true)
+            self:Refresh("Staged current choices")
         elseif name == "discard" then
             self.staged = nil
+            self.stagedName = nil
             self.ui.profileStatus:Set("None", true)
+            self:Refresh("Discarded staged choices")
         elseif name == "apply" then
             local ok, reason = self:ApplyProfile(self.staged)
             if not ok then self.ui.lastError = reason; self:Refresh("Profile not applied") end
-        elseif name == "saveProfile" or name == "previewProfile" then
+        elseif name == "enableProfileSync" or name == "disableProfileSync" then
+            local ok, reason = self:SetProfileSync(name == "enableProfileSync")
+            if not ok then self.ui.lastError = reason end
+        elseif name == "clearNextLoad" then
+            local ok, reason = self:SetNextLoad(nil)
+            if not ok then self.ui.lastError = reason; self:Refresh("Next-launch choice rejected") end
+        elseif name == "disableAutoload" then
+            local ok, reason = self:SetAutoload(nil)
+            if not ok then self.ui.lastError = reason
+                self:Refresh("Autoload setting rejected") end
+        elseif name == "refreshProfiles" then
+            self.ui.profiles:RefreshStorage()
+        elseif name == "exportProfile" or name == "importProfile" then
+            local field = self.ui.profiles and self.ui.profiles.transferText
+            if not field then return end
+            local ok, reason
+            if name == "exportProfile" then
+                local text
+                text, reason = self:ExportProfile()
+                if text then ok, reason = field:Set(text, true) end
+                if ok then self:Refresh("Exported choices to text") end
+            else
+                local read, text = pcall(field.Get, field)
+                if read then ok, reason = self:PreviewImport(text)
+                else reason = "Settings text unavailable" end
+            end
+            if not ok then self.ui.lastError = reason or "Settings transfer failed"
+                self:Refresh("Settings transfer rejected") end
+        elseif name == "saveProfile" or name == "previewProfile"
+            or name == "enableAutoload" or name == "renameProfile"
+            or name == "nextLoadProfile" or name == "deleteProfile" then
             if not self.ui.profileName then return end
             local read, profileName = pcall(self.ui.profileName.Get,
                 self.ui.profileName)
@@ -302,8 +667,19 @@ function App.start(dependencies)
                 ok, reason = false, "Profile name unavailable"
             elseif name == "saveProfile" then
                 ok, reason = self:SaveProfile(profileName)
-            else
+            elseif name == "previewProfile" then
                 ok, reason = self:PreviewProfile(profileName)
+            elseif name == "nextLoadProfile" then
+                ok, reason = self:SetNextLoad(profileName)
+            elseif name == "deleteProfile" then
+                ok, reason = self:DeleteProfile(profileName)
+            elseif name == "renameProfile" then
+                local readName, replacement = pcall(self.ui.profiles.renameName.Get,
+                    self.ui.profiles.renameName)
+                if readName then ok, reason = self:RenameProfile(profileName, replacement)
+                else reason = "Replacement name unavailable" end
+            else
+                ok, reason = self:SetAutoload(profileName)
             end
             if not ok then self.ui.lastError = reason
                 self:Refresh("Profile operation rejected") end
@@ -314,7 +690,31 @@ function App.start(dependencies)
         dependencies.Ember, dependencies.Catalog, {
         change = change, command = command, destroy = closed,
         profileStorage = self.profileStore ~= nil,
+        profileTransfer = transferAvailable,
+        profileOverview = self.profileStore and function() return self.profileStore:AccountOverview() end or nil,
+        profileSummary = self.profileStore and function()
+            local names, listReason = self.profileStore:List()
+            if not names then return nil, nil, listReason end
+            local autoload, autoloadReason = self.profileStore:GetAutoload()
+            local nextLoad, nextReason = self.profileStore:GetNextLoad()
+            return names, autoload, autoloadReason,
+                nextReason and ("Unavailable: " .. nextReason) or nextLoad
+        end or nil,
+        runtimeConnected = runtime ~= nil,
+        prestigeResetAvailable = (type(allowedFeatures) ~= "table" or allowedFeatures.prestige == true)
+            and runtime ~= nil and type(runtime.SupportsPrestigeReset) == "function" and runtime:SupportsPrestigeReset(),
+        allowanceAvailable = runtime ~= nil and type(runtime.SupportsAllowanceReset) == "function" and runtime:SupportsAllowanceReset(),
+        allowancePreview = function(feature) return self:PreviewAllowance(feature) end,
+        allowanceConfirm = function(feature) return self:ConfirmAllowance(feature) end,
+        allowanceCancel = function() return self:CancelAllowancePreview() end,
+        featureRecoveryAvailable = function(feature)
+            return runtime ~= nil and type(runtime.SupportsFeatureRecovery) == "function" and runtime:SupportsFeatureRecovery(feature)
+        end,
+        featureRecoveryPreview = function(feature) return self:PreviewFeatureRecovery(feature) end,
+        featureRecoveryConfirm = function(feature) return self:ConfirmFeatureRecovery(feature) end,
+        allowedFeatures = allowedFeatures,
         overviewModule = dependencies.OverviewTab,
+        playerModule = dependencies.PlayerTab,
         heistsModule = dependencies.HeistsTab,
         jobsModule = dependencies.JobsTab,
         operationsModule = dependencies.OperationsTab,
@@ -342,8 +742,9 @@ function App.start(dependencies)
     })
     if not created then closed(); error(uiOrReason, 0) end
     self.ui = uiOrReason
-    local ok, reason = self:Refresh("Created inert UI")
+    local ok, reason = self:Refresh(startupNote)
     if not ok then self:Destroy(); error(reason, 0) end
+    if runtime then runtime:Resume() end
     return self
 end
 

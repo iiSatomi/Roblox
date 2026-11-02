@@ -12,7 +12,7 @@ function TrophiesTab.BuildUI(section, feature, bind)
         Description = feature.description, Open = true })
     bind(group, "Toggle", feature.id .. ".enabled", {
         Text = "Allow " .. feature.label,
-        Description = "Select this activity for the prototype.",
+        Description = "Select this activity; the status below shows whether this entry can run it.",
         Default = false, RevertOnClose = true, RevertTo = false,
     })
     local reason
@@ -24,14 +24,22 @@ function TrophiesTab.BuildUI(section, feature, bind)
             Text = field.label, Default = field.value,
             FireOnBlur = true,
         })
-        reason = "Goal routes need separate action opt-ins and progress proof"
+        for index = 2, #feature.custom do
+            local choice = feature.custom[index]
+            assert(choice.type == "boolean" and choice.value == false,
+                "Invalid Trophy borrowing control")
+            bind(group, "Toggle", "trophyFocus.custom." .. choice.id, {
+                Text = choice.label, Default = false,
+                Description = "Used only when shared Trophy goal routing is active.",
+                RevertOnClose = true, RevertTo = false,
+            })
+        end
+        reason = "Uses explicitly borrowed, already-enabled ordinary settings and current target data. Item-consuming and unsupported routes remain manual."
         group:Description({ Text = reason })
     end
     return { feature = feature, tabOwned = true,
-        blockedReason = reason,
         status = group:Status({ Text = "Activity",
-            Default = reason and "Blocked — " .. reason
-                or "Off — UI only" }) }
+            Default = "Off — current objective and separately enabled routes required" }) }
 end
 
 function TrophiesTab.new(deps)
@@ -54,7 +62,7 @@ function TrophiesTab.new(deps)
         and type(deps.TrophyFocusBlocked.evaluate) == "function",
         "Missing Trophies tab modules")
     local catalog = deps.NativeTrophyCatalog.new(deps.gameData,
-        deps.fingerprint, deps.release)
+        deps.fingerprint, deps.release, deps.config, deps.NativeJobCatalog)
     return setmetatable({ id = "trophies", deps = deps,
         catalog = catalog }, Methods)
 end
@@ -67,6 +75,14 @@ function Methods:InspectGoal(view, settings)
     return self.deps.TrophyFocusBlocked.inspect(view, settings)
 end
 
+function Methods:GoalRequests(view, settings)
+    local module = self.deps.TrophyGoalRequests
+    if type(module) ~= "table" or type(module.derive) ~= "function" then
+        return nil, "Trophy goal request module unavailable"
+    end
+    return module.derive(view, settings)
+end
+
 function Methods:Descriptors()
     local d = self.deps
     return {
@@ -75,7 +91,7 @@ function Methods:Descriptors()
             evidence = d.EarnedTrophiesEvidence },
         { id = "trophyFocus", reader = d.TrophyFocusState,
             planner = d.TrophyFocusBlocked,
-            evidence = d.TrophyFocusBlocked },
+            evidence = d.TrophyFocusBlocked, goals = d.TrophyGoalRequests },
     }
 end
 

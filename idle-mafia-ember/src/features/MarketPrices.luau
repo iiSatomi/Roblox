@@ -13,6 +13,12 @@ local function nonnegative(value)
         and value >= 0 and value < math.huge
 end
 
+local function dateKey(value)
+    return type(value) == "string" and #value == 8
+        and value:match("^%d%d%d%d%d%d%d%d$") ~= nil
+        and tonumber(value) >= 19000101
+end
+
 local function array(value, limit)
     if type(value) ~= "table" or #value > limit then return false end
     local length = #value
@@ -60,7 +66,7 @@ function Methods:Prepare(itemId)
     if self:Get(itemId) then return nil, "Market prices cached" end
     self.token = self.token + 1
     local request = { remote = "MarketAction", method = "InvokeServer",
-        arity = 4, args = { "prices", itemId },
+        arity = 4, args = { "prices", itemId, nil, nil },
         itemId = itemId, token = self.token }
     self.current = request
     return request, nil
@@ -70,7 +76,8 @@ function Methods:Accept(request, reply)
     if self.closed or request ~= self.current then
         return nil, "Stale Market price reply"
     end
-    if type(reply) ~= "table" or reply.ok ~= true then
+    if type(reply) ~= "table" or reply.ok ~= true
+        or reply.item ~= request.itemId then
         return nil, "Market price query rejected"
     end
     local recent, days = reply.recent or {}, reply.days or {}
@@ -87,7 +94,7 @@ function Methods:Accept(request, reply)
     end
     for index, row in ipairs(days) do
         if type(row) ~= "table"
-            or not integer(row.day, 19000101, 99991231)
+            or not dateKey(row.day)
             or not integer(row.qty, 0, 1000000000)
             or not nonnegative(row.avg) then
             return nil, "Invalid Market daily price"

@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value >= minimum and value < math.huge and value % 1 == 0
 end
 
+local function nonnegative(value)
+    return type(value) == "number" and value == value
+        and value >= 0 and value < math.huge
+end
+
 function ShopBuy.propose(view, settings, reservations)
     if type(view) ~= "table" or type(settings) ~= "table"
         or type(reservations) ~= "table" then
@@ -17,7 +22,7 @@ function ShopBuy.propose(view, settings, reservations)
     local row = type(view.offers) == "table" and view.offers[id]
     if type(id) ~= "string" or #id == 0 or type(row) ~= "table"
         or not integer(view.slot, 0) or not integer(view.level, 1)
-        or not integer(view.cash, 0)
+        or not nonnegative(view.cash)
         or not integer(settings.cashReserve, 0)
         or not integer(settings.purchaseCap, 1)
         or not integer(reservations.cash or 0, 0)

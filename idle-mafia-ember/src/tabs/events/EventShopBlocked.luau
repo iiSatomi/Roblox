@@ -1,12 +1,12 @@
--- 0.26.530 save omits EventShopTab and EventShop definitions.
+-- Fallback until a current native offer and earned-custody source is installed.
 local EventShopBlocked = {}
 
 function EventShopBlocked.read()
-    return nil, "Current Event Shop offers, medal custody and native call unavailable"
+    return nil, "Current Event Shop offers and medal custody are not connected"
 end
 
 function EventShopBlocked.propose()
-    return nil, "Event Shop buying is blocked pending source and current quote"
+    return nil, "Current Event Shop offers and earned medal origin are not connected"
 end
 
 function EventShopBlocked.capture()

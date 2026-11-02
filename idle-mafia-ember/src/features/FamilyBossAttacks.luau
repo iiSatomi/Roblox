@@ -1,9 +1,20 @@
 -- One free Takedown hit; held Tickets always block this automation.
 local FamilyBossAttacks = {}
+local function familyId(value)
+    return type(value) == "string" and #value > 0 and #value <= 120
+        and not value:find("[%c]")
+        or type(value) == "number" and value == value and value >= 1
+            and value <= 9007199254740991 and value % 1 == 0
+end
 
 local function integer(value, minimum)
     return type(value) == "number" and value == value
         and value >= minimum and value < math.huge and value % 1 == 0
+end
+
+local function timestamp(value, minimum)
+    return type(value) == "number" and value == value
+        and value >= minimum and value < math.huge
 end
 
 function FamilyBossAttacks.propose(view, settings, reservations)
@@ -16,10 +27,10 @@ function FamilyBossAttacks.propose(view, settings, reservations)
     end
     if view.status ~= "known" or view.inFamily ~= true
         or not integer(view.week, 1)
-        or not integer(view.famId, 1)
+        or not familyId(view.famId)
         or not integer(view.stage, 1) or view.stage > 5
-        or not integer(view.serverNow, 0)
-        or not integer(view.resetAt, view.serverNow + 1)
+        or not timestamp(view.serverNow, 0)
+        or not timestamp(view.resetAt, view.serverNow + 1)
         or not integer(view.free, 1)
         or view.tickets ~= 0
         or not integer(view.freeUsed, 0)
@@ -30,7 +41,7 @@ function FamilyBossAttacks.propose(view, settings, reservations)
         or not integer(view.staminaCost, 1)
         or not integer(view.hitBackMax, 1)
         or not integer(view.usageHits, 0)
-        or not integer(view.lastServerNow, 0)
+        or not timestamp(view.lastServerNow, 0)
         or not integer(reservations.stamina or 0, 0)
         or not integer(reservations.uncertainStamina or 0, 0) then
         return nil, "Current free Family resources required"

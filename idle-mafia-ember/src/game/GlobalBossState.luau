@@ -27,7 +27,7 @@ function GlobalBossState.read(raw, context)
     local native, proof, player = raw.native,
         raw.globalBossProof, raw.localUserIdProof
     if type(native) ~= "table" or native.fullSync ~= true
-        or not integer(native.serverNow, 0)
+        or not finite(native.serverNow, 0)
         or context.serverNow ~= native.serverNow
         or type(proof) ~= "table"
         or proof.account ~= context.account

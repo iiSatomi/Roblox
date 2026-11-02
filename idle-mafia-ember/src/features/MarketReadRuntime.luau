@@ -3,7 +3,8 @@ local MarketReadRuntime = {}
 local Methods = {}
 Methods.__index = Methods
 
-function MarketReadRuntime.new(budget, browse, prices, executor, onResult)
+function MarketReadRuntime.new(budget, browse, prices, executor, onResult,
+    rap)
     assert(type(budget) == "table" and type(budget.Due) == "function"
         and type(budget.Finish) == "function"
         and type(budget.Owns) == "function", "Missing Market read budget")
@@ -15,8 +16,14 @@ function MarketReadRuntime.new(budget, browse, prices, executor, onResult)
         and type(executor.Schedule) == "function"
         and type(executor.Invoke) == "function"
         and type(onResult) == "function", "Missing Market read executor")
+    assert(rap == nil or (type(rap) == "table"
+        and type(rap.Prepare) == "function"
+        and type(rap.Accept) == "function"
+        and type(rap.Close) == "function"),
+        "Invalid Market RAP reader")
     return setmetatable({ budget = budget, browse = browse,
-        prices = prices, executor = executor, onResult = onResult,
+        prices = prices, rap = rap, executor = executor,
+        onResult = onResult,
         queued = {}, inFlight = nil, closed = false }, Methods)
 end
 
@@ -33,6 +40,15 @@ function Methods:QueuePrices(itemId)
     local request, reason = self.prices:Prepare(itemId)
     if not request then return false, reason end
     self.queued.marketPrices = request
+    return true, nil
+end
+
+function Methods:QueueRap(itemIds)
+    if self.closed then return false, "Market reader closed" end
+    if not self.rap then return false, "Market RAP reader unavailable" end
+    local request, reason = self.rap:Prepare(itemIds)
+    if not request then return false, reason end
+    self.queued.marketRap = request
     return true, nil
 end
 
@@ -61,10 +77,16 @@ function Methods:Step()
         return "unsupported_read_source"
     end
     self.queued[id] = nil
-    local reader = id == "marketBrowse" and self.browse or self.prices
+    local reader = id == "marketBrowse" and self.browse
+        or id == "marketPrices" and self.prices
+        or id == "marketRap" and self.rap
+    if not reader then
+        self.budget:Finish(token, false)
+        return "unsupported_read_source"
+    end
     local flight = { token = token, phase = "scheduled" }
     self.inFlight = flight
-    local scheduled = pcall(self.executor.Schedule, self.executor, function()
+    local scheduled, accepted = pcall(self.executor.Schedule, self.executor, function()
         if self.closed or self.inFlight ~= flight
             or not self.budget:Owns(token) then return end
         flight.phase = "invoking"
@@ -72,8 +94,16 @@ function Methods:Step()
             self.executor, request.remote, request.method,
             table.unpack(request.args, 1, request.arity))
         local result, reason
-        if ok and type(reply) == "table" then
-            result, reason = reader:Accept(request, reply)
+        if ok and type(reply) == "table"
+            and not self.closed and self.inFlight == flight
+            and self.budget:Owns(token) then
+            local parsed, acceptedResult, acceptedReason = pcall(
+                reader.Accept, reader, request, reply)
+            if parsed then
+                result, reason = acceptedResult, acceptedReason
+            else
+                reason = "Market read parse failed"
+            end
         else
             reason = "Market read interrupted"
         end
@@ -83,7 +113,7 @@ function Methods:Step()
             pcall(self.onResult, id, result, reason)
         end
     end)
-    if not scheduled then
+    if not scheduled or accepted == false then
         self.budget:Finish(token, false)
         if self.inFlight == flight then self.inFlight = nil end
         return "schedule_failed"
@@ -99,6 +129,7 @@ function Methods:Close()
     self.budget:Close()
     self.browse:Close()
     self.prices:Close()
+    if self.rap then self.rap:Close() end
 end
 
 return MarketReadRuntime

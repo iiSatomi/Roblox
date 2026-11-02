@@ -106,7 +106,7 @@ function Methods:Step()
         and self.mapQuery or self.residencyQuery
     local flight = { token = token, phase = "scheduled" }
     self.inFlight = flight
-    local scheduled = pcall(self.executor.Schedule,
+    local scheduled, accepted = pcall(self.executor.Schedule,
         self.executor, function()
             if self.closed or self.inFlight ~= flight
                 or not self.budget:Owns(token)
@@ -121,20 +121,27 @@ function Methods:Step()
                 and not self.closed and self.inFlight == flight
                 and self.budget:Owns(token)
                 and current then
-                result, reason = reader:Accept(request, reply)
+                local parsed, acceptedResult, acceptedReason = pcall(
+                    reader.Accept, reader, request, reply)
+                if parsed then
+                    result, reason = acceptedResult, acceptedReason
+                else
+                    reason = "Territory read parse failed"
+                end
                 if result then
                     local map = id == "territoryMap" and result
                         or self.map
                     local residency = id == "residencyView"
                         and result or nil
-                    local attached
-                    attached, reason = self.attachment.attach(
-                        current, map, residency)
-                    if attached then
+                    local attachedOk, attached, attachReason = pcall(
+                        self.attachment.attach, current, map, residency)
+                    if attachedOk and attached then
                         if id == "territoryMap" then self.map = result end
                         result = attached
                     else
                         result = nil
+                        reason = attachedOk and attachReason
+                            or "Territory read parse failed"
                     end
                 end
             else
@@ -147,7 +154,7 @@ function Methods:Step()
                 pcall(self.onResult, id, result, reason)
             end
         end)
-    if not scheduled then
+    if not scheduled or accepted == false then
         self.budget:Finish(token, false)
         if self.inFlight == flight then self.inFlight = nil end
         return "schedule_failed"

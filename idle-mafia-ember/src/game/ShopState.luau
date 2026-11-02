@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value >= minimum and value < math.huge and value % 1 == 0
 end
 
+local function nonnegative(value)
+    return type(value) == "number" and value == value
+        and value >= 0 and value < math.huge
+end
+
 function ShopState.read(raw, context)
     if type(raw) ~= "table" or type(context) ~= "table" then
         return nil, "Missing Shop state"
@@ -20,10 +25,11 @@ function ShopState.read(raw, context)
         raw.shopQuoteProof
     if type(native) ~= "table" or native.fullSync ~= true
         or not integer(native.level, 1)
-        or not integer(native.cash, 0)
-        or not integer(native.serverNow, 0)
+        or not nonnegative(native.cash)
+        or not nonnegative(native.serverNow)
         or type(native.inventory) ~= "table"
-        or type(native.shopBought) ~= "table"
+        or (native.shopBought ~= nil
+            and type(native.shopBought) ~= "table")
         or type(native.shopRotation) ~= "table"
         or type(native.shopRotation.bought) ~= "table"
         or type(catalog) ~= "table"
@@ -55,7 +61,8 @@ function ShopState.read(raw, context)
             or not integer(row.ceiling, row.base)
             or (row.limit ~= nil and not integer(row.limit, 1))
             or type(row.kind) ~= "string"
-            or not integer(native.shopBought[id] or 0, 0)
+            or not integer(type(native.shopBought) == "table"
+                and (native.shopBought[id] or 0) or 0, 0)
             or not integer(native.inventory[id] or 0, 0)
             or (proof.stock[id] ~= nil
                 and type(proof.stock[id]) ~= "boolean")
@@ -70,7 +77,9 @@ function ShopState.read(raw, context)
             end
             offers[id] = { cost = price, level = row.level,
                 kind = row.kind, rarity = row.rarity,
-                limit = row.limit, bought = native.shopBought[id] or 0,
+                limit = row.limit,
+                bought = type(native.shopBought) == "table"
+                    and (native.shopBought[id] or 0) or 0,
                 owned = native.inventory[id] or 0,
                 rotationBought = native.shopRotation.bought[id] == true }
         end

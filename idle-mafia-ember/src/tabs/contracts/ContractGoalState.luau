@@ -46,6 +46,14 @@ function ContractGoalState.read(raw, context)
     local native, templates = raw.native, raw.contractTemplates
     if type(native) ~= "table" or native.fullSync ~= true
         or type(native.contracts) ~= "table"
+        or type(native.derived) ~= "table"
+        or type(native.serverNow) ~= "number"
+        or native.serverNow ~= native.serverNow
+        or native.serverNow < 0 or native.serverNow >= math.huge
+        or not integer(native.derived.contractDayReset, 1)
+        or not integer(native.derived.contractWeekReset, 1)
+        or native.derived.contractDayReset - native.serverNow <= 5
+        or native.derived.contractWeekReset - native.serverNow <= 5
         or type(templates) ~= "table" or #templates == 0
         or #templates > 100
         or type(raw.catalogKey) ~= "string" or #raw.catalogKey == 0 then
@@ -101,7 +109,10 @@ function ContractGoalState.read(raw, context)
     return { session = context.session, account = context.account,
         place = context.place, release = context.release,
         revision = context.revision, capturedAt = context.capturedAt,
-        catalogKey = raw.catalogKey, rows = result }, nil
+        catalogKey = raw.catalogKey, serverNow = native.serverNow,
+        dayReset = native.derived.contractDayReset,
+        weekReset = native.derived.contractWeekReset,
+        rows = result }, nil
 end
 
 return ContractGoalState

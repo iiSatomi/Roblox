@@ -11,6 +11,10 @@ local function finite(value)
         and value > -math.huge and value < math.huge
 end
 
+local function timestamp(value)
+    return finite(value) and value >= 0
+end
+
 local function same(a, b)
     if type(a) ~= "table" or type(b) ~= "table" then return false end
     for _, field in ipairs({ "session", "account", "place", "release" }) do
@@ -35,10 +39,10 @@ function Restoratives.read(raw, context)
     end
     local native, catalog = raw.native, raw.restorativeCatalog
     if type(native) ~= "table" or native.fullSync ~= true
-        or not integer(native.serverNow, 0)
+        or not timestamp(native.serverNow)
         or context.serverNow ~= native.serverNow
         or not integer(native.consumableUseSequence, 0)
-        or not integer(native.consumableReadyAt, 0)
+        or not timestamp(native.consumableReadyAt)
         or type(native.pools) ~= "table"
         or type(native.stats) ~= "table"
         or type(native.derived) ~= "table"
@@ -105,7 +109,7 @@ function Restoratives.propose(view, settings)
     local custom = type(settings.custom) == "table"
         and settings.custom or settings
     for _, key in ipairs({ "healthBelow", "energyBelow",
-        "staminaBelow" }) do
+        "staminaBelow", "minUsefulPercent" }) do
         if not integer(custom[key], 0) or custom[key] > 100 then
             return nil, "Restorative thresholds required"
         end
@@ -114,8 +118,8 @@ function Restoratives.propose(view, settings)
         and custom.custody ~= "Bound or tradable" then
         return nil, "Restorative custody choice required"
     end
-    if not integer(view.readyAt, 0)
-        or not integer(view.serverNow, 0)
+    if not timestamp(view.readyAt)
+        or not timestamp(view.serverNow)
         or view.readyAt > view.serverNow then
         return nil, "Player consumables cooling down"
     end
@@ -131,22 +135,26 @@ function Restoratives.propose(view, settings)
             and pool.current / pool.maximum * 100 <= threshold then
             local gain = math.max(1,
                 math.ceil(pool.maximum * row.percent / 100))
-            local waste = math.max(0,
-                gain - (pool.maximum - pool.current))
-            local source = fromBound and 1 or 2
-            local score = policy == "Small first" and -row.percent
-                or policy == "Large first" and row.percent
-                or -waste * 1000 + row.percent
-            if not best or rank[row.pool] < bestRank
-                or (rank[row.pool] == bestRank
-                    and (source < bestSource
-                        or (source == bestSource
-                            and score > bestScore))) then
-                best, bestRank, bestSource, bestScore = row,
-                    rank[row.pool], source, score
-                best.fromBound = fromBound
-                best.expectedGain = gain
-                best.beforePool = pool.current
+            local useful = math.min(gain,
+                pool.maximum - pool.current)
+            if useful * 100 >= pool.maximum
+                * custom.minUsefulPercent then
+                local waste = gain - useful
+                local source = fromBound and 1 or 2
+                local score = policy == "Small first" and -row.percent
+                    or policy == "Large first" and row.percent
+                    or -waste * 1000 + row.percent
+                if not best or rank[row.pool] < bestRank
+                    or (rank[row.pool] == bestRank
+                        and (source < bestSource
+                            or (source == bestSource
+                                and score > bestScore))) then
+                    best, bestRank, bestSource, bestScore = row,
+                        rank[row.pool], source, score
+                    best.fromBound = fromBound
+                    best.expectedGain = gain
+                    best.beforePool = pool.current
+                end
             end
         end
     end
@@ -159,8 +167,6 @@ function Restoratives.propose(view, settings)
             .. tostring(best.fromBound),
         resources = { [best.id] = 1 },
         intent = { kind = "restoratives",
-            remote = "UseConsumable",
-            args = { best.id, best.fromBound, view.sequence },
             itemId = best.id, fromBound = best.fromBound,
             sequence = view.sequence, resource = best.pool,
             beforePool = best.beforePool,
@@ -182,9 +188,9 @@ function Restoratives.capture(proposal, before)
             or native.inventory)
     local amount = count(inventory, intent.itemId)
     if type(native) ~= "table" or native.fullSync ~= true
-        or not integer(native.serverNow, 0)
+        or not timestamp(native.serverNow)
         or native.consumableUseSequence ~= intent.sequence
-        or not integer(native.consumableReadyAt, 0)
+        or not timestamp(native.consumableReadyAt)
         or native.consumableReadyAt > native.serverNow
         or type(before.restorativeCatalog) ~= "table"
         or before.restorativeCatalog.catalogKey
@@ -193,11 +199,7 @@ function Restoratives.capture(proposal, before)
         or (intent.fromBound ~= true
             and count(native.inventoryBound, intent.itemId) ~= 0)
         or type(native.pools) ~= "table"
-        or native.pools[intent.resource] ~= intent.beforePool
-        or type(intent.args) ~= "table"
-        or intent.args[1] ~= intent.itemId
-        or intent.args[2] ~= intent.fromBound
-        or intent.args[3] ~= intent.sequence then
+        or native.pools[intent.resource] ~= intent.beforePool then
         return nil, "Restorative item, pool or sequence changed"
     end
     return { session = proposal.session, account = proposal.account,
@@ -228,7 +230,7 @@ function Restoratives.evaluate(proposal, before, after, reply,
         or native.fullSync ~= true
         or not integer(reply.sequence, baseline.sequence + 1)
         or reply.sequence ~= baseline.sequence + 1
-        or not integer(reply.readyAt, 0)
+        or not timestamp(reply.readyAt)
         or native.consumableUseSequence ~= reply.sequence
         or native.consumableReadyAt ~= reply.readyAt
         or reply.resource ~= baseline.resource

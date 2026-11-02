@@ -3,8 +3,6 @@ local Cosmetics = {}
 
 local fields = { background = "equippedBackground",
     border = "equippedBorder" }
-local remotes = { background = "EquipBackground",
-    border = "EquipBorder" }
 
 local function integer(value, minimum)
     return type(value) == "number" and value == value
@@ -118,6 +116,7 @@ function Cosmetics.new(gameData, fingerprint, release)
             if type(proposal) ~= "table"
                 or type(proposal.intent) ~= "table"
                 or proposal.intent.sourceKey ~= sourceKey
+                or type(before) ~= "table"
                 or before.release ~= release then
                 return nil, "Cosmetic source changed"
             end
@@ -171,7 +170,6 @@ function Cosmetics.propose(view, settings)
             .. ":" .. best.id,
         resources = {},
         intent = { kind = "cosmetics",
-            remote = remotes[best.kind], args = { best.id },
             cosmeticKind = best.kind, oldId = best.oldId,
             itemId = best.id, count = best.count,
             sourceKey = view.sourceKey } }, nil
@@ -190,9 +188,7 @@ function Cosmetics.capture(proposal, before)
         or count(native.inventory, intent.itemId) ~= intent.count
         or not integer(intent.count, 1)
         or count(native.inventoryBound, intent.itemId) ~= 0
-        or count(native.collectionBound, intent.itemId) ~= 0
-        or type(intent.args) ~= "table"
-        or intent.args[1] ~= intent.itemId then
+        or count(native.collectionBound, intent.itemId) ~= 0 then
         return nil, "Exact loose cosmetic or worn state changed"
     end
     return { session = proposal.session, account = proposal.account,

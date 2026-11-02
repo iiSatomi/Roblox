@@ -6,6 +6,15 @@ local function integer(value, minimum)
         and value < math.huge and value >= minimum and value % 1 == 0
 end
 
+local function balance(value, minimum)
+    return type(value) == "number" and value == value
+        and value < math.huge and value >= minimum
+end
+
+local function timestamp(value)
+    return balance(value, 0)
+end
+
 local function same(a, b)
     if type(a) ~= "table" or type(b) ~= "table" then return false end
     for _, field in ipairs({ "session", "account", "place", "release" }) do
@@ -15,12 +24,19 @@ local function same(a, b)
     return true
 end
 
+local function equal(a,b)
+    if type(a)~=type(b) then return false end
+    if type(a)~="table" then return a==b end
+    for k,v in pairs(a) do if not equal(v,b[k]) then return false end end
+    for k in pairs(b) do if a[k]==nil then return false end end
+    return true
+end
 local function roster(raw)
     local native = type(raw) == "table" and raw.native
     local source = type(native) == "table" and native.crew
     if type(native) ~= "table" or native.fullSync ~= true
         or type(source) ~= "table" or #source < 2
-        or #source > 32 then return nil end
+        or #source > 46 then return nil end
     local rows, seen, count = {}, {}, 0
     for slot, member in pairs(source) do
         if not integer(slot, 1) or slot > #source
@@ -30,17 +46,17 @@ local function roster(raw)
             if type(member.name) ~= "string" or #member.name == 0
                 or #member.name > 64 or not integer(member.rarity, 1)
                 or not integer(member.train or 0, 0)
-                or not integer(member.injuredUntil or 0, 0)
-                or not integer(member.recalledUntil or 0, 0)
+                or not timestamp(member.injuredUntil or 0)
+                or not timestamp(member.recalledUntil or 0)
                 or (member.training ~= nil
                     and type(member.training) ~= "table") then
                 return nil
             end
-            local identity = #member.name .. ":" .. member.name
-                .. ":" .. member.rarity
+            if member.healId~=nil and (type(member.healId)~="string" or #member.healId==0 or #member.healId>128) then return nil end
+            local identity=member.healId and "id:"..member.healId or "name:"..#member.name..":"..member.name..":"..member.rarity
             if seen[identity] then return nil end
             seen[identity] = true
-            rows[slot] = { slot = slot, name = member.name,
+            rows[slot] = { memberId=member.healId,slot = slot, name = member.name,
                 rarity = member.rarity, level = member.train or 0,
                 injuredUntil = member.injuredUntil or 0,
                 recalledUntil = member.recalledUntil or 0,
@@ -61,9 +77,9 @@ function CrewTrain.read(raw, context)
     end
     local native, catalog = raw.native, raw.trainingCatalog
     if type(native) ~= "table" or native.fullSync ~= true
-        or not integer(native.serverNow, 0)
+        or not timestamp(native.serverNow)
         or context.serverNow ~= native.serverNow
-        or not integer(native.cash, 0)
+        or not balance(native.cash, 0)
         or type(catalog) ~= "table"
         or catalog.release ~= context.release
         or catalog.catalogKey ~= context.trainingCatalogKey
@@ -116,7 +132,7 @@ function CrewTrain.propose(view, settings)
     if not same(view, view) or not integer(view.revision, 0)
         or type(view.catalogKey) ~= "string"
         or type(view.members) ~= "table"
-        or not integer(view.cash, 0)
+        or not balance(view.cash, 0)
         or not integer(view.active, 0)
         or not integer(view.available, 0)
         or not integer(view.maxConcurrent, 1)
@@ -137,7 +153,7 @@ function CrewTrain.propose(view, settings)
     local rarityFloor = math.max(custom.minRarity, view.minRarity)
     local chosen
     for _, member in pairs(view.members) do
-        if member.rarity >= rarityFloor and member.level < target
+        if member.memberId~=nil and member.rarity >= rarityFloor and member.level < target
             and not member.training and not member.duty
             and not member.rolling and not member.recalling
             and member.injuredUntil <= view.serverNow
@@ -171,15 +187,15 @@ function CrewTrain.propose(view, settings)
         actionKey = "crewTrain:" .. view.catalogKey .. ":"
             .. member.slot .. ":" .. member.level .. ":"
             .. #member.name .. ":" .. member.name .. ":"
-            .. member.rarity,
+            .. member.rarity .. ":" .. member.memberId,
         resources = { cash = chosen.cost },
-        intent = { kind = "crewTrain", remote = "CrewAction",
-            args = { "train", member.slot }, slot = member.slot,
+        intent = { kind = "crewTrain", slot = member.slot,memberId=member.memberId,
             name = member.name, rarity = member.rarity,
             from = member.level, to = chosen.to,
             quotedCost = chosen.cost,
             quotedSeconds = chosen.seconds,
             cashReserve = custom.cashReserve,
+            maxConcurrent = custom.maxConcurrent,
             catalogKey = view.catalogKey } }, nil
 end
 
@@ -187,23 +203,38 @@ function CrewTrain.capture(proposal, before)
     local intent = type(proposal) == "table" and proposal.intent
     if type(proposal) ~= "table" or proposal.feature ~= "crewTrain"
         or type(intent) ~= "table" or intent.kind ~= "crewTrain"
-        or not integer(intent.slot, 2) or intent.slot > 32
+        or not integer(intent.slot, 2) or intent.slot > 46
         or not integer(intent.from, 0)
         or not integer(intent.to, intent.from + 1)
         or intent.to ~= intent.from + 1
         or not integer(intent.quotedCost, 1)
         or not integer(intent.quotedSeconds, 1)
         or not integer(intent.cashReserve, 0)
+        or not integer(intent.maxConcurrent, 1)
+        or type(proposal.resources) ~= "table"
+        or proposal.resources.cash ~= intent.quotedCost
         or not same(proposal, before)
         or proposal.revision ~= before.revision then
         return nil, "Crew training baseline changed"
     end
-    local members = roster(before)
-    local member = members and members[intent.slot]
+    local context = { session = proposal.session,
+        account = proposal.account, place = proposal.place,
+        release = proposal.release, revision = proposal.revision,
+        capturedAt = before.capturedAt,
+        serverNow = before.native and before.native.serverNow,
+        trainingCatalogKey = intent.catalogKey }
+    local view = CrewTrain.read(before, context)
+    local member = view and view.members[intent.slot]
     local catalog = before.trainingCatalog
-    if not member or member.name ~= intent.name
+    if not member or member.memberId~=intent.memberId or member.name ~= intent.name
         or member.rarity ~= intent.rarity
         or member.level ~= intent.from or member.training
+        or member.duty or member.rolling or member.recalling
+        or member.injuredUntil > view.serverNow
+        or member.recalledUntil > view.serverNow
+        or view.available <= 1
+        or view.active >= math.min(intent.maxConcurrent,
+            view.maxConcurrent)
         or type(catalog) ~= "table"
         or catalog.catalogKey ~= intent.catalogKey
         or catalog.release ~= proposal.release
@@ -214,47 +245,58 @@ function CrewTrain.capture(proposal, before)
         or catalog.cost[intent.rarity][intent.to] ~= intent.quotedCost
         or catalog.seconds[intent.rarity][intent.to]
             ~= intent.quotedSeconds
-        or not integer(before.native.cash,
+        or not balance(before.native.cash,
             intent.quotedCost + intent.cashReserve) then
         return nil, "Exact Crew training quote unavailable"
     end
     return { session = proposal.session, account = proposal.account,
         place = proposal.place, release = proposal.release,
-        revision = proposal.revision, slot = intent.slot,
+        revision = proposal.revision, slot = intent.slot,memberId=intent.memberId,
+        serverNow=before.native.serverNow,cash=before.native.cash,quotedSeconds=intent.quotedSeconds,
         name = intent.name, rarity = intent.rarity,
         from = intent.from, to = intent.to,
         quotedCost = intent.quotedCost }, nil
 end
 
-function CrewTrain.evaluate(proposal, before, after, reply, baseline)
-    if type(proposal) ~= "table" or type(reply) ~= "table"
-        or not same(proposal, before) or not same(proposal, after)
-        or not same(proposal, baseline)
-        or proposal.revision ~= baseline.revision
-        or before.revision ~= baseline.revision
-        or not integer(after.revision, baseline.revision + 1) then
-        return "pending"
+local function reconcile(proposal,before,after,reply,baseline,restart)
+    if type(proposal)~="table" or type(reply)~="table" or type(after)~="table" or type(baseline)~="table"
+        or not same(proposal,before) or not same(proposal,baseline)
+        or proposal.account~=after.account or proposal.place~=after.place or proposal.release~=after.release
+        or (not restart and not same(proposal,after)) or proposal.revision~=baseline.revision
+        or before.revision~=baseline.revision or not integer(after.revision,0)
+        or type(after.native)~="table" or not timestamp(after.native.serverNow) or not timestamp(baseline.serverNow)
+        or after.native.serverNow<baseline.serverNow
+        or not (after.session==baseline.session and after.revision>baseline.revision
+            or restart and after.session~=baseline.session and after.native.serverNow>baseline.serverNow)
+        or reply.pending==true or reply.code=="rate_limited" or reply.code=="presence" then return "pending" end
+    local members=roster(after)
+    local member=members and members[baseline.slot]
+    local row=type(after.native.crew)=="table" and after.native.crew[baseline.slot]
+    local cash=after.native.cash
+    if not member or member.memberId~=baseline.memberId or member.name~=baseline.name or member.rarity~=baseline.rarity
+        or not balance(cash,0) then return "pending" end
+    if reply.ok==false then
+        return member.level==baseline.from and row.training==nil and cash==baseline.cash and "rejected" or "pending"
     end
-    local members = roster(after)
-    local member = members and members[baseline.slot]
-    local rawMember = type(after.native) == "table"
-        and type(after.native.crew) == "table"
-        and after.native.crew[baseline.slot]
-    if not member or member.name ~= baseline.name
-        or member.rarity ~= baseline.rarity
-        or member.level ~= baseline.from
-        or type(rawMember.training) ~= "table" then
-        return "pending"
-    end
-    if reply.ok == false then return "rejected" end
-    if reply.ok == true
-        and rawMember.training.to == baseline.to
-        and integer(after.native.serverNow, 0)
-        and integer(rawMember.training.endsAt,
-            after.native.serverNow + 1) then
+    if reply.ok~=true or cash~=baseline.cash-baseline.quotedCost then return "pending" end
+    if member.level==baseline.to and row.training==nil and after.native.serverNow>=baseline.serverNow+baseline.quotedSeconds then
         return "confirmed"
     end
+    local training=row.training
+    if member.level==baseline.from and type(training)=="table" and training.to==baseline.to and timestamp(training.endsAt)
+        and training.endsAt>after.native.serverNow
+        and training.endsAt>=baseline.serverNow+baseline.quotedSeconds
+        and training.endsAt<=after.native.serverNow+baseline.quotedSeconds then return "confirmed" end
     return "pending"
 end
-
+function CrewTrain.evaluate(proposal,before,after,reply,baseline)
+    return reconcile(proposal,before,after,reply,baseline,false)
+end
+function CrewTrain.recoverSaved(data,after)
+    if type(data)~="table" or type(data.reply)~="table" then return nil end
+    local baseline=CrewTrain.capture(data.proposal,data.before)
+    if not baseline or not equal(baseline,data.baseline) then return nil end
+    local outcome=reconcile(data.proposal,data.before,after,data.reply,baseline,true)
+    return (outcome=="confirmed" or outcome=="rejected") and outcome or nil
+end
 return CrewTrain

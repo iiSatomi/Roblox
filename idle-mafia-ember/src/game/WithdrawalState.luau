@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value < math.huge and value >= minimum and value % 1 == 0
 end
 
+local function balance(value)
+    return type(value) == "number" and value == value
+        and value < math.huge and value >= 0
+end
+
 function WithdrawalState.read(raw, context)
     if type(raw) ~= "table" or type(context) ~= "table" then
         return nil, "Missing withdrawal state or context"
@@ -18,9 +23,13 @@ function WithdrawalState.read(raw, context)
     end
     local native, request = raw.native, raw.fundingRequest
     if type(native) ~= "table" or native.fullSync ~= true
-        or not integer(native.cash, 0) or not integer(native.banked, 0)
+        or not balance(native.cash) or not balance(native.banked)
         or type(request) ~= "table"
+        or request.session ~= context.session
         or request.account ~= context.account
+        or request.place ~= context.place
+        or request.release ~= context.release
+        or request.revision ~= context.revision
         or request.capturedAt ~= context.capturedAt
         or (request.purpose ~= "operations"
             and request.purpose ~= "safehouse")

@@ -27,9 +27,12 @@ function Methods:Schedule()
         if not ok or self.driver.alive == false then
             self:Close(); return
         end
-        self:Schedule()
+        local rescheduled = pcall(self.Schedule, self)
+        if not rescheduled then self:Close() end
     end)
-    if handle == nil then error("Timer did not schedule") end
+    if handle == nil or handle == false then
+        error("Timer did not schedule")
+    end
     self.handle = handle
 end
 

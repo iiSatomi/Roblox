@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value >= minimum and value < math.huge and value % 1 == 0
 end
 
+local function timestamp(value)
+    return type(value) == "number" and value == value
+        and value >= 0 and value < math.huge
+end
+
 function GlobalBossAttack.propose(view, settings, reservations)
     if type(view) ~= "table" or type(settings) ~= "table"
         or type(reservations) ~= "table" then
@@ -18,14 +23,14 @@ function GlobalBossAttack.propose(view, settings, reservations)
         or view.phase ~= "live"
         or type(view.runKey) ~= "string" or #view.runKey == 0
         or #view.runKey > 120
-        or not integer(view.serverNow, 0)
+        or not timestamp(view.serverNow)
         or not integer(view.health, 0)
         or type(view.maxHealth) ~= "number"
         or view.maxHealth <= 0
         or not integer(view.stamina, 0)
         or view.staminaCost ~= 1
         or not integer(view.usageHits, 0)
-        or not integer(view.lastServerNow, 0)
+        or not timestamp(view.lastServerNow)
         or not integer(reservations.stamina or 0, 0)
         or not integer(reservations.uncertainStamina or 0, 0) then
         return nil, "Current live Global Boss resources required"

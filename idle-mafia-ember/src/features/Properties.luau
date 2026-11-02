@@ -6,9 +6,17 @@ local function integer(value, minimum)
         and value >= minimum and value < math.huge and value % 1 == 0
 end
 
+local function balance(value)
+    return type(value) == "number" and value == value
+        and value >= 0 and value < math.huge
+end
+
 local function better(candidate, chosen, policy)
     if not chosen then return true end
-    if policy == "Next tier" then
+    if policy == "Highest tier" then
+        if candidate.level ~= chosen.level then return candidate.level > chosen.level end
+        if candidate.incomePerHour ~= chosen.incomePerHour then return candidate.incomePerHour > chosen.incomePerHour end
+    elseif policy == "Next tier" then
         if candidate.level ~= chosen.level then
             return candidate.level < chosen.level end
     elseif policy == "Most income" then
@@ -31,19 +39,43 @@ function Properties.propose(view, settings, reservations)
     if settings.enabled ~= true then return nil, "Property builds disabled" end
     local policy = settings.policy
     if policy ~= "Best value" and policy ~= "Most income"
-        and policy ~= "Next tier"
+        and policy ~= "Next tier" and policy ~= "Highest tier"
         or not integer(settings.cashReserve, 0)
         or not integer(settings.purchaseCap, 0)
         or not integer(settings.ownedLimit, 1)
         or settings.ownedLimit > 10
         or not integer(view.level, 1)
-        or not integer(view.cash, 0)
+        or not balance(view.cash)
         or not integer(view.occupied, 0)
         or not integer(view.capacity, 1)
         or type(view.options) ~= "table"
         or not integer(reservations.cash or 0, 0)
         or not integer(reservations.uncertainCash or 0, 0) then
         return nil, "Invalid Property limits or state"
+    end
+    if settings.limitsEnabled ~= nil and type(settings.limitsEnabled) ~= "boolean" then return nil, "Invalid Property bounds" end
+    local limited = settings.limitsEnabled == true
+    local minLevel, maxLevel = settings.minLevel or 1, settings.maxLevel or 10000
+    if limited and (not integer(minLevel, 1) or not integer(maxLevel, 1) or minLevel > maxLevel) then
+        return nil, "Invalid or inverted Property level bounds"
+    end
+    local selection = settings.selection or "Automatic"
+    if selection ~= "Automatic" and selection ~= "Only selected" then return nil, "Invalid Property selection" end
+    local selected
+    if selection == "Only selected" then
+        if type(settings.selectedIds) ~= "string" or #settings.selectedIds > 4096 then return nil, "Select property IDs" end
+        selected = {}
+        local known, count = {}, 0
+        for _, row in ipairs(view.options) do known[row.id] = true end
+        for token in (settings.selectedIds .. ","):gmatch("(.-),") do
+            local id = token:match("^%s*(.-)%s*$")
+            count = count + 1
+            if count > 64 or #id > 120 or not id:match("^[%w_%-]+$") or not known[id] then
+                return nil, "Selected property ID is empty, invalid or unavailable"
+            end
+            selected[id] = true
+        end
+        if count == 0 then return nil, "Select property IDs" end
     end
     if view.occupied >= view.capacity then
         return nil, "Property block is full"
@@ -57,6 +89,8 @@ function Properties.propose(view, settings, reservations)
             and integer(row.incomePerHour, 1)
             and type(row.id) == "string" and #row.id > 0
             and row.level <= view.level
+            and (not limited or row.level >= minLevel and row.level <= maxLevel)
+            and (not selected or selected[row.id] == true)
             and row.owned < settings.ownedLimit
             and row.cost <= settings.purchaseCap
             and row.cost <= available

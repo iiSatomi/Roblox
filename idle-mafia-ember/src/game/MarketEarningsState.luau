@@ -17,11 +17,15 @@ function MarketEarningsState.read(raw, context)
         end
     end
     local native = raw.native
+    local inventory = type(native) == "table" and native.inventory
+    local gold = type(inventory) == "table"
+        and inventory.gold_bar
+    if gold == nil then gold = 0 end
     if type(native) ~= "table" or native.fullSync ~= true
         or type(native.market) ~= "table"
         or type(native.inventory) ~= "table"
         or not integer(native.market.earnings, 0)
-        or not integer(native.inventory.gold_bar, 0) then
+        or not integer(gold, 0) then
         return nil, "Complete Market earnings and Gold Sync required"
     end
     if native.market.earnings == 0 then
@@ -31,7 +35,7 @@ function MarketEarningsState.read(raw, context)
         place = context.place, release = context.release,
         revision = context.revision, capturedAt = context.capturedAt,
         earnings = native.market.earnings,
-        gold = native.inventory.gold_bar }, nil
+        gold = gold }, nil
 end
 
 return MarketEarningsState

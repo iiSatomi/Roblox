@@ -13,7 +13,7 @@ function RewardsTab.BuildUI(section, feature, bind)
         Description = feature.description, Open = true })
     bind(group, "Toggle", feature.id .. ".enabled", {
         Text = "Allow " .. feature.label,
-        Description = "Select this activity for the prototype.",
+        Description = "Select this activity; the status below shows whether this entry can run it.",
         Default = false, RevertOnClose = true, RevertTo = false,
     })
     if feature.id == "monthlyRewards" then
@@ -30,6 +30,8 @@ function RewardsTab.new(deps)
     assert(type(deps) == "table"
         and type(deps.NativeRewardsCatalog) == "table"
         and type(deps.NativeRewardsCatalog.new) == "function"
+        and type(deps.RewardEffects) == "table"
+        and type(deps.RewardEffects.new) == "function"
         and type(deps.PlaytimeState) == "table"
         and type(deps.PlaytimeState.read) == "function"
         and type(deps.Playtime) == "table"
@@ -54,8 +56,41 @@ function RewardsTab.new(deps)
         "Missing Rewards tab modules")
     local catalog = deps.NativeRewardsCatalog.new(deps.config,
         deps.fingerprint, deps.release)
+    local groupEvidence = type(deps.GroupBonusEvidence.new) == "function"
+        and deps.GroupBonusEvidence.new(catalog) or deps.GroupBonusEvidence
+    local playtimeEvidence, monthlyEvidence = deps.PlaytimeEvidence, deps.MonthlyRewardsEvidence
+    local playtimeReader, monthlyReader = deps.PlaytimeState, deps.MonthlyRewardsState
+    do
+        playtimeEvidence = deps.RewardEffects.new(catalog, playtimeEvidence, "playtime", deps.rewardsSource)
+        monthlyEvidence = deps.RewardEffects.new(catalog, monthlyEvidence, "monthlyRewards")
+        playtimeReader = {read = function(raw, context)
+            local view, reason = deps.PlaytimeState.read(raw, context)
+            if not view then return nil, reason end
+            local ready, skipped = {}, nil
+            for _, row in ipairs(view.ready) do
+                local supported, why = playtimeEvidence:Supports(raw, row.index)
+                if supported then ready[#ready + 1] = row else skipped = skipped or why end
+            end
+            view.ready = ready
+            if #ready == 0 and skipped then return nil, skipped end
+            return view, nil
+        end}
+        monthlyReader = {read = function(raw, context)
+            local view, reason = deps.MonthlyRewardsState.read(raw, context)
+            if not view then return nil, reason end
+            local supported, why = monthlyEvidence:Supports(raw, view.nextDay)
+            if not supported then return nil, why end
+            return view, nil
+        end}
+    end
     return setmetatable({ id = "rewards", deps = deps,
-        catalog = catalog }, Methods)
+        catalog = catalog, groupEvidence = groupEvidence,
+        playtimeEvidence = playtimeEvidence, monthlyEvidence = monthlyEvidence,
+        playtimeReader = playtimeReader, monthlyReader = monthlyReader }, Methods)
+end
+
+function Methods:GroupEffect(snapshot)
+    return self.catalog:GroupEffect(snapshot)
 end
 
 function Methods:Enrich(snapshot)
@@ -65,13 +100,13 @@ end
 function Methods:Descriptors()
     local d = self.deps
     return {
-        { id = "playtime", reader = d.PlaytimeState,
-            planner = d.Playtime, evidence = d.PlaytimeEvidence },
+        { id = "playtime", reader = self.playtimeReader,
+            planner = d.Playtime, evidence = self.playtimeEvidence, recoverSaved = self.playtimeEvidence.recoverSaved },
         { id = "groupBonus", reader = d.GroupBonusState,
-            planner = d.GroupBonus, evidence = d.GroupBonusEvidence },
-        { id = "monthlyRewards", reader = d.MonthlyRewardsState,
+            planner = d.GroupBonus, evidence = self.groupEvidence },
+        { id = "monthlyRewards", reader = self.monthlyReader,
             planner = d.MonthlyRewards,
-            evidence = d.MonthlyRewardsEvidence },
+            evidence = self.monthlyEvidence, recoverSaved = self.monthlyEvidence.recoverSaved },
     }
 end
 

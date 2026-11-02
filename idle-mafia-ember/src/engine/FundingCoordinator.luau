@@ -6,8 +6,15 @@ local function integer(value, minimum)
         and value < math.huge and value >= minimum and value % 1 == 0
 end
 
+local function balance(value)
+    return type(value) == "number" and value == value
+        and value < math.huge and value >= 0
+end
+
 local function request(context, purpose, proposal, requiredCash)
-    return { account = context.account, capturedAt = context.capturedAt,
+    return { session = context.session, account = context.account,
+        place = context.place, release = context.release,
+        revision = context.revision, capturedAt = context.capturedAt,
         purpose = purpose, purchaseKey = proposal.actionKey,
         requiredCash = requiredCash }
 end
@@ -19,7 +26,7 @@ local function operationNeed(raw, context, settings, reserves, modules, banked)
         settings.operations, reserves)
     if current then return nil end
     local potential = view.cash + banked
-    if not integer(potential, 0) then return nil end
+    if not balance(potential) then return nil end
     local hypothetical = {}
     for key, value in pairs(view) do hypothetical[key] = value end
     hypothetical.cash = potential
@@ -61,7 +68,7 @@ function FundingCoordinator.derive(raw, context, settings, reserves, modules)
     end
     local native = raw.native
     if type(native) ~= "table" or native.fullSync ~= true
-        or not integer(native.cash, 0) or not integer(native.banked, 0)
+        or not balance(native.cash) or not balance(native.banked)
         or not integer(reserves.cash or 0, 0)
         or not integer(reserves.uncertainCash or 0, 0) then
         return nil, "Complete Bank balances required for funding"

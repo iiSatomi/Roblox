@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value < math.huge and value >= minimum and value % 1 == 0
 end
 
+local function balance(value, minimum)
+    return type(value) == "number" and value == value
+        and value < math.huge and value >= minimum
+end
+
 local function matching(a, b)
     for _, field in ipairs({ "session", "account", "place", "release" }) do
         if type(a[field]) ~= "string" or #a[field] == 0
@@ -29,6 +34,8 @@ function SafehouseUpgradesEvidence.capture(proposal, before)
         or not integer(intent.fromTier, 1)
         or intent.nextTier ~= intent.fromTier + 1
         or not integer(intent.expectedCost, 1)
+        or type(proposal.resources) ~= "table"
+        or proposal.resources.cash ~= intent.expectedCost
         or not integer(intent.cashReserve, 0)
         or type(intent.catalogKey) ~= "string" or #intent.catalogKey == 0
         or type(before) ~= "table" or not matching(proposal, before)
@@ -40,7 +47,7 @@ function SafehouseUpgradesEvidence.capture(proposal, before)
         and before.safehouseCatalog[intent.nextTier]
     if current ~= intent.fromTier or type(quote) ~= "table"
         or quote.cost ~= intent.expectedCost
-        or not integer(before.native.cash,
+        or not balance(before.native.cash,
             intent.expectedCost + intent.cashReserve)
         or not integer(before.native.level, quote.level)
             and not integer(before.native.maxLevel, quote.level) then
@@ -49,7 +56,9 @@ function SafehouseUpgradesEvidence.capture(proposal, before)
     return { session = proposal.session, account = proposal.account,
         place = proposal.place, release = proposal.release,
         revision = proposal.revision, fromTier = current,
-        nextTier = intent.nextTier, catalogKey = intent.catalogKey }, nil
+        nextTier = intent.nextTier, catalogKey = intent.catalogKey,
+        beforeCash = before.native.cash,
+        expectedCost = intent.expectedCost }, nil
 end
 
 function SafehouseUpgradesEvidence.evaluate(proposal, beforeHeader, after,
@@ -69,9 +78,15 @@ function SafehouseUpgradesEvidence.evaluate(proposal, beforeHeader, after,
     end
     local current = tier(after, baseline.catalogKey)
     if not current then return "pending" end
+    local afterCash = type(after.native) == "table"
+        and after.native.cash or nil
     local advanced = type(after.revision) == "number"
         and after.revision > baseline.revision
         and current == baseline.nextTier
+        and balance(baseline.beforeCash, baseline.expectedCost)
+        and integer(baseline.expectedCost, 1)
+        and balance(afterCash, 0)
+        and afterCash == baseline.beforeCash - baseline.expectedCost
     if reply.ok == false then return advanced and "pending" or "rejected" end
     if reply.ok == true and advanced then return "confirmed" end
     return "pending"

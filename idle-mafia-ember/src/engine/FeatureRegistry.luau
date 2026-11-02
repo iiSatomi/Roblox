@@ -96,7 +96,7 @@ function FeatureRegistry.build(exports, catalog)
             return nil, "Invalid feature evidence: " .. evidenceName
         end
         specs[#specs + 1] = { id = id, reader = reader,
-            planner = planner, evidence = evidence }
+            planner = planner, evidence = evidence, recoverSaved = (id == "operations" or id == "properties") and evidence.recoverSaved or nil }
     end
     return specs, nil
 end
@@ -137,6 +137,14 @@ function FeatureRegistry.fromTabs(tabs, catalog)
             return nil, "Invalid tab descriptors"
         end
         for _, spec in ipairs(descriptors) do
+            if type(spec) == "table" and spec.lifecycle ~= nil then
+                if type(spec.lifecycle) ~= "table" then return nil, "Invalid feature lifecycle" end
+                for _, key in ipairs({"prepare", "authorize", "returned", "resolve", "unsent"}) do
+                    if type(spec.lifecycle[key]) ~= "function" then return nil, "Invalid feature lifecycle hook" end
+                end
+                if spec.lifecycle.recover ~= nil and type(spec.lifecycle.recover) ~= "function" then return nil, "Invalid feature recovery hook" end
+                if spec.lifecycle.recoveryFactory ~= nil and type(spec.lifecycle.recoveryFactory) ~= "function" then return nil, "Invalid feature recovery factory" end
+            end
             if type(spec) ~= "table" or not name(spec.id)
                 or controls[spec.id] ~= tab.id or seenFeatures[spec.id]
                 or type(spec.reader) ~= "table"
@@ -145,13 +153,17 @@ function FeatureRegistry.fromTabs(tabs, catalog)
                 or type(spec.planner.propose) ~= "function"
                 or type(spec.evidence) ~= "table"
                 or type(spec.evidence.capture) ~= "function"
-                or type(spec.evidence.evaluate) ~= "function" then
+                or type(spec.evidence.evaluate) ~= "function"
+                or (spec.canDispatch ~= nil and type(spec.canDispatch) ~= "function")
+                or (spec.recoverSaved ~= nil and type(spec.recoverSaved) ~= "function")
+                or (spec.recordOutcome ~= nil and type(spec.recordOutcome) ~= "function") then
                 return nil, "Invalid tab feature descriptor"
             end
             seenFeatures[spec.id] = true
             specs[#specs + 1] = { id = spec.id, page = tab.id,
                 reader = spec.reader, planner = spec.planner,
-                evidence = spec.evidence }
+                evidence = spec.evidence, canDispatch = spec.canDispatch, lifecycle = spec.lifecycle, recoverSaved = spec.recoverSaved,
+                recordOutcome = spec.recordOutcome }
         end
     end
     return specs, nil

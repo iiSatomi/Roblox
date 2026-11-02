@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value < math.huge and value >= minimum and value % 1 == 0
 end
 
+local function clock(value)
+    return type(value) == "number" and value == value
+        and value >= 0 and value < math.huge
+end
+
 local function openedMap(opened, cases)
     if type(opened) ~= "table" then return nil end
     local selected = nil
@@ -47,7 +52,7 @@ function FreeBriefcasesState.read(raw, context)
     end
     local now = context.serverNow
     local state, board = native.briefcase, native.briefcase.board
-    if not integer(now, 0) or native.serverNow ~= now
+    if not clock(now) or native.serverNow ~= now
         or event.endAt - now <= 5
         or state.season ~= event.season
         or not integer(state.free, 1)

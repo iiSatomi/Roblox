@@ -109,7 +109,8 @@ function JobsEvidence.evaluate(proposal, beforeHeader, after, reply, baseline)
     local record = native.jobs[baseline.jobId]
     local completed = record and record.completions
     if completed ~= nil and not count(completed) then return "pending" end
-    local advanced = count(completed) and completed > baseline.completions
+    local advanced = count(completed)
+        and completed == baseline.completions + 1
     if reply.ok == false then
         return advanced and "pending" or "rejected"
     end

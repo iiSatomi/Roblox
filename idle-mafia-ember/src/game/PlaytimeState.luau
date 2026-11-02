@@ -9,6 +9,11 @@ local function integer(value, minimum)
         and value < math.huge and value >= minimum and value % 1 == 0
 end
 
+local function timestamp(value)
+    return type(value) == "number" and value == value
+        and value >= 0 and value < math.huge
+end
+
 local function array(value, size)
     if type(value) ~= "table" or #value ~= size then return false end
     for key in pairs(value) do
@@ -80,11 +85,16 @@ function PlaytimeState.read(raw, context)
         return nil, "Complete native playtime Sync required"
     end
     local now = context.serverNow
-    if not integer(now, 0) or native.serverNow ~= now
+    if not timestamp(now) or native.serverNow ~= now
         or now % 86400 < 5 or now % 86400 > 86395 then
         return nil, "Current server UTC day required"
     end
-    local today = tonumber(os.date("!%Y%j", now))
+    local dateOk, dateText = pcall(os.date, "!%Y%j",
+        math.floor(now))
+    local today = dateOk and tonumber(dateText)
+    if not integer(today, 1) then
+        return nil, "Current server UTC day required"
+    end
     local weekend = raw.weekendBuff
     if type(weekend) ~= "table" or type(weekend.active) ~= "boolean"
         or weekend.day ~= today then

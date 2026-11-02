@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value < math.huge and value >= minimum and value % 1 == 0
 end
 
+local function balance(value)
+    return type(value) == "number" and value == value
+        and value < math.huge and value >= 0
+end
+
 function BankState.read(raw, context)
     if type(raw) ~= "table" or type(context) ~= "table" then
         return nil, "Missing Bank state or context"
@@ -19,7 +24,7 @@ function BankState.read(raw, context)
     local native, config, savings = raw.native, raw.bankConfig,
         raw.purchaseSavings
     if type(native) ~= "table" or native.fullSync ~= true
-        or not integer(native.cash, 0) or not integer(native.banked, 0)
+        or not balance(native.cash) or not balance(native.banked)
         or type(native.derived) ~= "table"
         or type(native.derived.noBankFees) ~= "boolean"
         or type(config) ~= "table"

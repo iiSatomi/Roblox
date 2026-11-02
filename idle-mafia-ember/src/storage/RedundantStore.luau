@@ -109,6 +109,49 @@ function Methods:Read(key)
     return current and current.value or nil
 end
 
+-- Discovery is read-only and bounded; a damaged slot cannot establish absence.
+function Methods:ListKeys()
+    if type(self.files.ListFiles) ~= "function" then return nil, "Storage discovery unavailable" end
+    local ok, paths = pcall(self.files.ListFiles, self.files, self.directory)
+    if not ok or type(paths) ~= "table" or #paths > 512 then return nil, "Storage discovery unavailable or exceeds limits" end
+    local seenPaths, keys, bytes, count = {}, {}, 0, 0
+    for index, path in pairs(paths) do
+        if type(index) ~= "number" or index % 1 ~= 0 or index < 1 or index > #paths
+            or type(path) ~= "string" or seenPaths[path]
+            or path:sub(1, #self.directory + 1) ~= self.directory .. "/" then
+            return nil, "Invalid storage discovery path"
+        end
+        seenPaths[path] = true
+        count = count + 1
+        local name = path:sub(#self.directory + 2)
+        if name:find("/", 1, true) or name:find("\\", 1, true) then return nil, "Invalid storage discovery path" end
+        local id = name:match("^([%da-f]+)%.[ab]%.json$")
+        if id and #id == 64 then
+            local read, text = pcall(self.files.ReadFile, self.files, path)
+            if not read or type(text) ~= "string" or #text > 2097152 then return nil, "Unreadable discovered storage slot" end
+            bytes = bytes + #text
+            if bytes > 16777216 then return nil, "Storage discovery exceeds byte limit" end
+            local decoded, envelope = pcall(self.codec.Decode, self.codec, text)
+            if not decoded or type(envelope) ~= "table" or not validKey(envelope.key) then
+                return nil, "Damaged discovered storage slot"
+            end
+            local first, second = self:Paths(envelope.key)
+            if path ~= first and path ~= second then return nil, "Discovered storage path/hash mismatch" end
+            if self:Slot(path, envelope.key).status ~= "valid" then return nil, "Damaged discovered storage slot" end
+            keys[envelope.key] = true
+        end
+    end
+    if count ~= #paths then return nil, "Sparse storage discovery" end
+    local result = {}
+    for key in pairs(keys) do
+        local read, value = pcall(self.Read, self, key)
+        if not read or value == nil then return nil, "Discovered storage cannot be recovered" end
+        result[#result + 1] = key
+    end
+    table.sort(result)
+    return result, nil
+end
+
 function Methods:Write(key, value)
     if type(value) ~= "table" then return false end
     local current, target = self:Current(key)

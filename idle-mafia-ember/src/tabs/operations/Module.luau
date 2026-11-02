@@ -3,18 +3,18 @@ local OperationsTab = {}
 local Methods = {}
 Methods.__index = Methods
 
-function OperationsTab.BuildUI(section, feature, bind)
+function OperationsTab.BuildUI(section, feature, bind, numeric)
     assert(type(section) == "table" and type(feature) == "table"
         and feature.page == "operations"
         and (feature.id == "operations" or feature.id == "collect")
         and type(bind) == "function"
-        and type(feature.custom) == "table" and #feature.custom == 0,
+        and type(feature.custom) == "table" and type(numeric) == "table",
         "Invalid Operations UI feature")
     local group = section:Group({ Text = feature.label,
         Description = feature.description, Open = true })
     bind(group, "Toggle", feature.id .. ".enabled", {
         Text = "Allow " .. feature.label,
-        Description = "Select this activity for the prototype.",
+        Description = "Select this activity; the status below shows whether this entry can run it.",
         Default = false, RevertOnClose = true, RevertTo = false,
     })
     if #feature.policies > 0 then
@@ -22,6 +22,22 @@ function OperationsTab.BuildUI(section, feature, bind)
             Text = "Goal", Options = feature.policies,
             Default = feature.policies[1],
         })
+    end
+    if #feature.custom > 0 then
+        local options = group:Group({ Text = "Selection and optional bounds", Open = false })
+        options:Description({ Text = "Use native Operation IDs separated by commas. Empty or unknown selected IDs wait. Duration uses the current catalog quote; the rarity floor uses the primary crate item, not its contents." })
+        for _, field in ipairs(feature.custom) do
+            local key = feature.id .. ".custom." .. field.id
+            if field.type == "boolean" then
+                bind(options, "Toggle", key, { Text = field.label, Default = field.value })
+            elseif field.type == "select" then
+                bind(options, "Dropdown", key, { Text = field.label, Options = field.options, Default = field.value })
+            else
+                assert(field.type == "number" or field.type == "text", "Unsupported Operation constraint")
+                if field.type == "number" then numeric[key] = true end
+                bind(options, "Input", key, { Text = field.label, Default = tostring(field.value), FireOnBlur = true })
+            end
+        end
     end
     if feature.limits then group:Description({ Text = feature.limits }) end
     return { feature = feature, tabOwned = true,
@@ -58,7 +74,7 @@ end
 function Methods:Descriptors()
     return {
         { id = "operations", reader = self.reader,
-            planner = self.start, evidence = self.startEvidence },
+            planner = self.start, evidence = self.startEvidence, recoverSaved = self.startEvidence.recoverSaved },
         { id = "collect", reader = self.reader,
             planner = self.collect, evidence = self.collectEvidence },
     }

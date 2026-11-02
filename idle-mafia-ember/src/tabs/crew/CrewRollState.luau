@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value < math.huge and value >= minimum and value % 1 == 0
 end
 
+local function balance(value)
+    return type(value) == "number" and value == value
+        and value < math.huge and value >= 0
+end
+
 local function same(a, b)
     if type(a) ~= "table" or type(b) ~= "table" then return false end
     for _, field in ipairs({ "session", "account", "place", "release" }) do
@@ -24,7 +29,7 @@ function CrewRollState.read(raw, context)
     local crew = type(native) == "table" and native.crew
     if type(native) ~= "table" or native.fullSync ~= true
         or type(crew) ~= "table" or #crew < 2
-        or #crew > 46 or not integer(native.cash, 0)
+        or #crew > 46 or not balance(native.cash)
         or type(native.derived) ~= "table"
         or type(native.derived.autoRoll) ~= "boolean" then
         return nil, "Current native Crew Auto Roll state required"

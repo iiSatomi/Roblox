@@ -1,4 +1,4 @@
--- Older saved CrewAction("healitem") payload; kept offline until current proof.
+-- Saved guarded item healing with member/sequence/custody/effect evidence.
 local CrewHealItems = {}
 
 local function integer(value, minimum)
@@ -6,12 +6,24 @@ local function integer(value, minimum)
         and value < math.huge and value >= minimum and value % 1 == 0
 end
 
-local function same(a, b)
+local function timestamp(value)
+    return type(value) == "number" and value == value
+        and value >= 0 and value < math.huge
+end
+
+local function same(a, b, restart)
     if type(a) ~= "table" or type(b) ~= "table" then return false end
     for _, field in ipairs({ "session", "account", "place", "release" }) do
-        if type(a[field]) ~= "string" or #a[field] == 0
-            or a[field] ~= b[field] then return false end
+        if type(a[field]) ~= "string" or #a[field] == 0 or type(b[field]) ~= "string" or #b[field] == 0
+            or not (restart and field == "session") and a[field] ~= b[field] then return false end
     end
+    return true
+end
+
+local function equal(a, b)
+    if type(a) ~= "table" or type(b) ~= "table" then return false end
+    for key, value in pairs(a) do if b[key] ~= value then return false end end
+    for key in pairs(b) do if a[key] == nil then return false end end
     return true
 end
 
@@ -28,14 +40,15 @@ local function roster(native)
             if row.name ~= nil or row.rarity ~= nil then
                 if type(row.name) ~= "string" or #row.name == 0
                     or #row.name > 64 or not integer(row.rarity, 1)
-                    or not integer(row.injuredUntil or 0, 0)
-                    or not integer(row.recalledUntil or 0, 0) then
+                    or not timestamp(row.injuredUntil or 0)
+                    or not timestamp(row.recalledUntil or 0) then
                     return nil
                 end
-                local key = #row.name .. ":" .. row.name
-                    .. ":" .. row.rarity
-                if identities[key] then return nil end
-                identities[key] = true
+                if row.healId ~= nil then
+                    if type(row.healId) ~= "string" or #row.healId == 0 or #row.healId > 128
+                        or identities[row.healId] then return nil end
+                    identities[row.healId] = true
+                end
                 if (row.injuredUntil or 0) > native.serverNow
                     and (row.recalledUntil or 0) < row.injuredUntil
                     and row.duty == nil and row.rolling ~= true
@@ -76,11 +89,15 @@ function CrewHealItems.read(raw, context)
         return nil, "Crew item healing snapshot changed"
     end
     local native, catalog = raw.native, raw.healItemCatalog
+    local sequence = type(native) == "table" and native.henchmanConsumableUseSequence
+    local readyAt = type(native) == "table" and native.henchmanConsumableReadyAt
+    if sequence == nil then sequence = 0 end
+    if readyAt == nil then readyAt = 0 end
     if type(native) ~= "table" or native.fullSync ~= true
-        or not integer(native.serverNow, 0)
+        or not timestamp(native.serverNow)
         or context.serverNow ~= native.serverNow
-        or not integer(native.henchmanConsumableUseSequence, 0)
-        or not integer(native.henchmanConsumableReadyAt, 0)
+        or not integer(sequence, 0) or sequence >= 9007199254740991
+        or not timestamp(readyAt)
         or type(catalog) ~= "table"
         or catalog.release ~= context.release
         or catalog.catalogKey ~= context.healItemCatalogKey
@@ -106,8 +123,7 @@ function CrewHealItems.read(raw, context)
         place = context.place, release = context.release,
         revision = context.revision, capturedAt = context.capturedAt,
         serverNow = native.serverNow,
-        sequence = native.henchmanConsumableUseSequence,
-        readyAt = native.henchmanConsumableReadyAt,
+        sequence = sequence, readyAt = readyAt,
         catalog = catalog, injured = injured,
         bound = bound, ordinary = ordinary }, nil
 end
@@ -126,8 +142,8 @@ function CrewHealItems.propose(view, settings)
     if type(id) ~= "string" or type(view.catalog) ~= "table"
         or not integer(view.catalog.items[id], 1)
         or not integer(custom.minRemaining, 1)
-        or not integer(view.serverNow, 0)
-        or not integer(view.readyAt, 0)
+        or not timestamp(view.serverNow)
+        or not timestamp(view.readyAt)
         or view.readyAt > view.serverNow then
         return nil, "Selected item or Crew cooldown unavailable"
     end
@@ -143,10 +159,6 @@ function CrewHealItems.propose(view, settings)
         end
     end
     if not chosen then return nil, "No qualifying Crew injury" end
-    local payload = { itemId = id, fromBound = fromBound,
-        memberId = chosen.healId,
-        injuredUntil = chosen.injuredUntil,
-        sequence = view.sequence }
     return { session = view.session, account = view.account,
         place = view.place, release = view.release,
         revision = view.revision, feature = "crewHealItems",
@@ -154,8 +166,7 @@ function CrewHealItems.propose(view, settings)
             .. ":" .. view.sequence .. ":" .. chosen.slot .. ":"
             .. chosen.healId .. ":" .. id,
         resources = { [id] = 1 },
-        intent = { kind = "crewHealItems", remote = "CrewAction",
-            args = { "healitem", chosen.slot, payload },
+        intent = { kind = "crewHealItems",
             slot = chosen.slot, name = chosen.name,
             rarity = chosen.rarity, memberId = chosen.healId,
             itemId = id, fromBound = fromBound,
@@ -187,6 +198,12 @@ function CrewHealItems.capture(proposal, before)
         or view.sequence ~= intent.sequence then
         return nil, "Current Crew item sequence unavailable"
     end
+    local planned = CrewHealItems.propose(view, { enabled = true, policy = intent.itemId,
+        minRemaining = intent.minRemaining })
+    if not planned or planned.actionKey ~= proposal.actionKey
+        or not equal(planned.intent, intent) or not equal(planned.resources, proposal.resources) then
+        return nil, "Crew healing intent or item exposure changed"
+    end
     local fromBound = (view.bound[intent.itemId] or 0) > 0
     if fromBound ~= intent.fromBound
         or (not fromBound and (view.ordinary[intent.itemId] or 0) < 1) then
@@ -211,45 +228,84 @@ function CrewHealItems.capture(proposal, before)
         injuredUntil = row.injuredUntil,
         itemId = intent.itemId, fromBound = fromBound,
         sequence = view.sequence,
-        count = fromBound and view.bound[intent.itemId]
-            or view.ordinary[intent.itemId] }, nil
+        count = fromBound and view.bound[intent.itemId] or view.ordinary[intent.itemId],
+        otherCount = fromBound and view.ordinary[intent.itemId] or view.bound[intent.itemId],
+        reduction = view.catalog.items[intent.itemId] == 100 and row.remaining
+            or math.min(row.remaining, math.ceil(view.catalog.injurySeconds * view.catalog.items[intent.itemId] / 100)),
+        serverNow = view.serverNow, actionKey = planned.actionKey, intent = planned.intent }, nil
 end
 
-function CrewHealItems.evaluate(proposal, before, after, reply, baseline)
+local function reconcile(proposal, before, after, reply, baseline, restart)
     if type(proposal) ~= "table" or type(reply) ~= "table"
-        or not same(proposal, before) or not same(proposal, after)
+        or not same(proposal, before) or not same(proposal, after, restart)
         or not same(proposal, baseline)
         or proposal.revision ~= baseline.revision
         or before.revision ~= baseline.revision
-        or not integer(after.revision, baseline.revision + 1) then
+        or proposal.actionKey ~= baseline.actionKey or not equal(proposal.intent, baseline.intent)
+        or not equal(proposal.resources, {[baseline.itemId] = 1})
+        or not integer(after.revision, restart and after.session ~= before.session and 0 or baseline.revision + 1) then
         return "pending"
     end
-    if reply.ok == false then return "rejected" end
     local native = after.native
     local crew = type(native) == "table" and native.crew
     local member = type(crew) == "table" and crew[baseline.slot]
     local inventory = type(native) == "table"
         and (baseline.fromBound and native.inventoryBound
             or native.inventory)
-    if reply.ok ~= true or type(native) ~= "table"
+    local other = type(native) == "table"
+        and (baseline.fromBound and native.inventory or native.inventoryBound)
+    if reply.pending == true then return "pending" end
+    if reply.ok == false then
+        return type(native) == "table" and native.fullSync == true
+            and type(member) == "table" and member.healId == baseline.memberId
+            and member.name == baseline.name and member.rarity == baseline.rarity
+            and member.injuredUntil == baseline.injuredUntil
+            and count(inventory, baseline.itemId) == baseline.count
+            and count(other, baseline.itemId) == baseline.otherCount and "rejected" or "pending"
+    end
+    if reply.ok ~= true or reply.pending == true or reply.code == "rate_limited"
+        or type(native) ~= "table"
         or native.fullSync ~= true
-        or not integer(native.serverNow, 0)
+        or not timestamp(native.serverNow)
+        or native.serverNow < baseline.serverNow
         or not integer(reply.sequence, baseline.sequence + 1)
         or reply.sequence ~= baseline.sequence + 1
-        or not integer(reply.readyAt, 0)
+        or not timestamp(reply.readyAt)
         or native.henchmanConsumableUseSequence ~= reply.sequence
         or native.henchmanConsumableReadyAt ~= reply.readyAt
         or count(inventory, baseline.itemId) ~= baseline.count - 1
+        or count(other, baseline.itemId) ~= baseline.otherCount
         or type(member) ~= "table"
         or member.name ~= baseline.name
         or member.rarity ~= baseline.rarity
-        or not integer(member.injuredUntil or 0, 0)
-        or (member.healId ~= baseline.memberId
-            and (member.injuredUntil or 0) > native.serverNow)
-        or member.injuredUntil >= baseline.injuredUntil then
+        or not timestamp(member.injuredUntil or 0)
+        or member.healId ~= baseline.memberId
+        or (member.injuredUntil or 0) >= baseline.injuredUntil then
         return "pending"
     end
-    return "confirmed"
+    local full = baseline.reduction >= baseline.injuredUntil - baseline.serverNow
+    if full and (member.injuredUntil or 0) <= native.serverNow
+        or (not full and member.injuredUntil == baseline.injuredUntil - baseline.reduction) then
+        return "confirmed"
+    end
+    return "pending"
+end
+
+function CrewHealItems.evaluate(proposal, before, after, reply, baseline)
+    return reconcile(proposal, before, after, reply, baseline, false)
+end
+function CrewHealItems.recoverSaved(data, after)
+    if type(data) ~= "table" or type(data.baseline) ~= "table" then return nil end
+    local expected = CrewHealItems.capture(data.proposal, data.before)
+    if not expected then return nil end
+    for key, value in pairs(expected) do
+        if key == "intent" then
+            if not equal(value, data.baseline.intent) then return nil end
+        elseif data.baseline[key] ~= value then return nil end
+    end
+    for key in pairs(data.baseline) do if expected[key] == nil then return nil end end
+    local result = reconcile(data.proposal, data.before, after, data.reply, data.baseline, true)
+    return (result == "confirmed" or result == "rejected") and result or nil
 end
 
 return CrewHealItems

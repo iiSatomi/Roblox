@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value < math.huge and value >= minimum and value % 1 == 0
 end
 
+local function timestamp(value)
+    return type(value) == "number" and value == value
+        and value >= 0 and value < math.huge
+end
+
 local function tiers(value)
     if type(value) ~= "table" or #value ~= 5 then return false end
     for key, tier in pairs(value) do
@@ -74,7 +79,7 @@ function ContractBonusesState.read(raw, context)
     local now = context.serverNow
     local dayReset, weekReset = native.derived.contractDayReset,
         native.derived.contractWeekReset
-    if not integer(now, 0) or native.serverNow ~= now
+    if not timestamp(now) or native.serverNow ~= now
         or not integer(dayReset, 1) or not integer(weekReset, 1)
         or dayReset - now <= 5 or weekReset - now <= 5 then
         return nil, "Current Contract reset window required"

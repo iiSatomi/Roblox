@@ -58,7 +58,11 @@ function Methods:Accept(request, reply)
     if self.closed or request ~= self.current then
         return nil, "Stale Residency reply"
     end
-    if type(reply) ~= "table" or reply.ok ~= true
+    local rent = type(reply) == "table" and reply.rent
+    if rent == nil then rent = 0 end
+    if type(reply) ~= "table" or reply.ok ~= true or reply.pending == true
+        or reply.code == "rate_limited" or reply.code == "presence"
+        or (reply.owned ~= nil and type(reply.owned) ~= "boolean")
         or reply.districtId ~= request.districtId
         or (reply.status ~= nil and reply.status ~= "resident"
             and reply.status ~= "pending")
@@ -66,7 +70,7 @@ function Methods:Accept(request, reply)
         or not ({ open = true, closed = true,
             request = true })[reply.admission]
         or type(reply.kind) ~= "string" or #reply.kind == 0
-        or not bounded(reply.rent or 0, 10)
+        or not bounded(rent, 10)
         or (reply.share ~= nil and not bounded(reply.share, 1))
         or (reply.myRent ~= nil and not bounded(reply.myRent, 10))
         or (reply.count ~= nil and not integer(reply.count, 0))
@@ -76,10 +80,10 @@ function Methods:Accept(request, reply)
         return nil, "Residency view unavailable"
     end
     self.current = nil
-    return { districtId = reply.districtId,
+    return { districtId = reply.districtId, owned = reply.owned,
         header = request.header,
         status = reply.status or "none", admission = reply.admission,
-        kind = reply.kind, rent = reply.rent or 0,
+        kind = reply.kind, rent = rent,
         myRent = reply.myRent, share = reply.share,
         count = reply.count, capacity = reply.capacity,
         minLevel = reply.minLevel, elsewhere = reply.elsewhere }, nil

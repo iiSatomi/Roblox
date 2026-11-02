@@ -45,6 +45,7 @@ function NativeExecutorCapabilities.new(env, scheduler, http)
         makefolder = env.makefolder,
         isfile = env.isfile,
         readfile = env.readfile,
+        listfiles = method(env, "listfiles"),
         writefile = env.writefile,
         jsonEncode = function(value)
             return http:JSONEncode(value)

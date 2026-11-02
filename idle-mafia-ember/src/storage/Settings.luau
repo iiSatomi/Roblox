@@ -24,16 +24,28 @@ local function accepts(spec, value)
         end
     end
     if spec.kind == "text" then
-        return type(value) == "string" and #value > 0
-            and #value <= (spec.maxLength or 120)
-            and value:match("^[%w_%-]+$") ~= nil
+        if type(value) ~= "string" or #value > (spec.maxLength or 120) then return false end
+        if spec.csv == true then
+            if value:match("^%s*$") then return true end
+            local count = 0
+            for rawToken in (value .. ","):gmatch("(.-),") do
+                count = count + 1
+                local token = rawToken:match("^%s*(.-)%s*$")
+                if count > 64 or #token > 120
+                    or not token:match("^[%w_%-]+$") then return false end
+            end
+            return count > 0
+        end
+        return value == "" and spec.allowEmpty == true
+            or value:match("^[%w_%-]+$") ~= nil
     end
     return false
 end
 
-function Settings.new(catalog)
+function Settings.new(catalog, runByDefault)
     local self = setmetatable({
-        values = {}, specs = {}, groups = {}, paused = true, stopped = false,
+        values = {}, specs = {}, groups = {},
+        paused = runByDefault ~= true, stopped = false,
     }, Model)
     local function add(key, value, spec)
         assert(not self.specs[key], "Duplicate preference: " .. key)
@@ -51,16 +63,25 @@ function Settings.new(catalog)
             assert(type(field.id) == "string", "Custom preference needs a stable ID")
             add(feature.id .. ".custom." .. field.id, field.value, {
                 kind = field.type == "select" and "enum"
-                    or field.type == "text" and "text" or "number",
+                    or field.type == "text" and "text"
+                    or field.type == "boolean" and "boolean" or "number",
                 options = field.options, min = field.min, max = field.max,
                 integer = field.integer, maxLength = field.maxLength,
+                csv = field.csv, allowEmpty = field.allowEmpty,
             })
         end
     end
+    for _, field in ipairs(catalog.shared or {}) do
+        assert(field.type == "number" and type(field.id) == "string", "Unsupported shared preference")
+        add("shared." .. field.id, field.value, { kind = "number", min = field.min,
+            max = field.max, integer = field.integer })
+    end
+    self.defaults = copy(self.values)
     return self
 end
 
-function Model:Validate(profile)
+-- Single-control patches preserve current choices; profile replacement starts at defaults.
+function Model:Validate(profile, replace)
     if type(profile) ~= "table" or profile.schema ~= 1 or type(profile.values) ~= "table" then
         return nil, "Unsupported profile schema"
     end
@@ -78,7 +99,7 @@ function Model:Validate(profile)
             selected[group] = key
         end
     end
-    local nextValues = copy(self.values)
+    local nextValues = copy(replace == true and self.defaults or self.values)
     for key, value in pairs(profile.values) do nextValues[key] = value end
     for group, owner in pairs(selected) do
         for peer, peerGroup in pairs(self.groups) do

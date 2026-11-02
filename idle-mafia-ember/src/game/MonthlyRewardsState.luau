@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value < math.huge and value >= minimum and value % 1 == 0
 end
 
+local function timestamp(value)
+    return type(value) == "number" and value == value
+        and value >= 0 and value < math.huge
+end
+
 local function calendarDays(year, month)
     local days = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
     if month == 2 and (year % 4 == 0 and year % 100 ~= 0
@@ -32,16 +37,26 @@ function MonthlyRewardsState.read(raw, context)
         return nil, "Native monthly calendar is disabled"
     end
     local now = context.serverNow
-    if not integer(now, 0) or native.serverNow ~= now then
+    if not timestamp(now) or native.serverNow ~= now then
         return nil, "Trusted server UTC time required"
     end
     local daySeconds = now % 86400
     if daySeconds < 5 or daySeconds > 86395 then
         return nil, "Monthly claim waits across UTC boundary"
     end
-    local utc = os.date("!*t", now)
-    local month = os.date("!%Y-%m", now)
-    local today = tonumber(os.date("!%Y%j", now))
+    local epochSecond = math.floor(now)
+    local dateOk, utc, month, dayText = pcall(function()
+        return os.date("!*t", epochSecond),
+            os.date("!%Y-%m", epochSecond),
+            os.date("!%Y%j", epochSecond)
+    end)
+    local today = dateOk and tonumber(dayText)
+    if not dateOk or type(utc) ~= "table"
+        or not integer(utc.year, 1)
+        or not integer(utc.month, 1) or utc.month > 12
+        or type(month) ~= "string" or not integer(today, 1) then
+        return nil, "Trusted server UTC time required"
+    end
     local total = calendarDays(utc.year, utc.month)
     local record = native.monthly
     if record ~= nil and (type(record) ~= "table"

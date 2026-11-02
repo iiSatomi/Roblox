@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value >= minimum and value < math.huge and value % 1 == 0
 end
 
+local function balance(value, minimum)
+    return type(value) == "number" and value == value
+        and value >= minimum and value < math.huge
+end
+
 local function better(candidate, chosen, policy)
     if not chosen then return true end
     if policy == "Best chest"
@@ -37,7 +42,7 @@ function HeistStart.propose(view, settings, reservations)
         or not integer(view.bustWait, 0) or view.bustWait > 0
         or not integer(view.serverDay, 0)
         or not integer(view.level, 1)
-        or not integer(view.cash, 0)
+        or not balance(view.cash, 0)
         or not integer(view.energy, 0)
         or type(view.options) ~= "table"
         or type(view.catalogKey) ~= "string" or #view.catalogKey == 0
@@ -47,10 +52,12 @@ function HeistStart.propose(view, settings, reservations)
         or not integer(reservations.uncertainEnergy or 0, 0) then
         return nil, "Current Heist capacity and resource proof required"
     end
+    local floor = settings.energyReserve or 0
+    if not integer(floor, 0) or floor > 1000000000000 then return nil, "Invalid shared energy reserve" end
     local cash = view.cash - (reservations.cash or 0)
         - (reservations.uncertainCash or 0)
     local energy = view.energy - (reservations.energy or 0)
-        - (reservations.uncertainEnergy or 0)
+        - (reservations.uncertainEnergy or 0) - floor
     local chosen
     for _, row in ipairs(view.options) do
         if type(row) == "table" and type(row.id) == "string"

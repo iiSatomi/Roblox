@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value < math.huge and value >= minimum and value % 1 == 0
 end
 
+local function timestamp(value)
+    return type(value) == "number" and value == value
+        and value >= 0 and value < math.huge
+end
+
 local function counts(map)
     if type(map) ~= "table" then return false end
     local size = 0
@@ -41,18 +46,18 @@ function RosterState.read(raw, context)
     local members, wornBorders, seen = {}, {}, {}
     local size = 0
     for index, member in pairs(native.crew) do
-        if not integer(index, 1) or index > 32
+        if not integer(index, 1) or index > 46
             or type(member) ~= "table"
             or (index > 1 and ((member.name ~= nil
                 and (type(member.name) ~= "string" or #member.name == 0))
                 or (member.rarity ~= nil
                     and not integer(member.rarity, 0))))
             or (member.injuredUntil ~= nil
-                and not integer(member.injuredUntil, 0)) then
+                and not timestamp(member.injuredUntil)) then
             return nil, "Invalid Crew member"
         end
         size = size + 1
-        if size > 32 then return nil, "Too many Crew members" end
+        if size > 46 then return nil, "Too many Crew members" end
         local border = index == 1 and native.equippedBorder or member.border
         if border ~= nil and (type(border) ~= "string"
             or type(items[border]) ~= "table"

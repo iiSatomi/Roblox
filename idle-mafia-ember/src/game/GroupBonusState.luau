@@ -33,6 +33,8 @@ function GroupBonusState.read(raw, context)
         or membership.isMember ~= true
         or type(membership.checkedAt) ~= "number"
         or membership.checkedAt ~= membership.checkedAt
+        or membership.checkedAt < 0
+        or membership.checkedAt >= math.huge
         or membership.checkedAt > context.capturedAt
         or context.capturedAt - membership.checkedAt > 30 then
         return nil, "Current matching Group membership proof required"

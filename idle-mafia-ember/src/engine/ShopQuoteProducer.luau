@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value >= minimum and value < math.huge and value % 1 == 0
 end
 
+local function finiteAtLeast(value, minimum)
+    return type(value) == "number" and value == value
+        and value >= minimum and value < math.huge
+end
+
 function ShopQuoteProducer.derive(raw, context, source)
     local native = type(raw) == "table" and raw.native
     local catalog = type(raw) == "table" and raw.shopCatalog
@@ -13,7 +18,7 @@ function ShopQuoteProducer.derive(raw, context, source)
         or type(source.Stock) ~= "function"
         or type(source.CashQuote) ~= "function"
         or type(native) ~= "table" or native.fullSync ~= true
-        or not integer(native.serverNow, 0)
+        or not finiteAtLeast(native.serverNow, 0)
         or type(native.shopRotation) ~= "table"
         or type(catalog) ~= "table"
         or catalog.release ~= context.release

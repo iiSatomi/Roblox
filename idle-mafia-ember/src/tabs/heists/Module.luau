@@ -19,7 +19,7 @@ function HeistsTab.BuildUI(section, feature, bind)
         Description = feature.description, Open = true })
     bind(group, "Toggle", feature.id .. ".enabled", {
         Text = "Allow " .. feature.label,
-        Description = "Select this activity for the prototype.",
+        Description = "Select this activity; the status below shows whether this entry can run it.",
         Default = false, RevertOnClose = true, RevertTo = false,
     })
     if #feature.policies > 0 then
@@ -45,6 +45,8 @@ function HeistsTab.new(deps)
         and type(deps.SequenceRecovery.classify) == "function"
         and type(deps.BoardQuery) == "table"
         and type(deps.BoardQuery.new) == "function"
+        and type(deps.BoardReadRuntime) == "table"
+        and type(deps.BoardReadRuntime.new) == "function"
         and type(deps.HeistBoardState) == "table"
         and type(deps.HeistBoardState.read) == "function"
         and type(deps.HeistStart) == "table"
@@ -70,7 +72,7 @@ function HeistsTab.new(deps)
     local boardQuery = deps.BoardQuery.new(deps.identity)
     return setmetatable({ id = "heists", deps = deps,
         catalog = catalog, recovery = deps.SequenceRecovery,
-        boardQuery = boardQuery }, Methods)
+        boardQuery = boardQuery, closed = false }, Methods)
 end
 
 function Methods:Enrich(snapshot)
@@ -86,7 +88,41 @@ function Methods:BoardCall()
 end
 
 function Methods:StageBoard(snapshot, reply)
-    return self.boardQuery:Stage(snapshot, reply)
+    if self.closed then return nil, "Heists tab closed" end
+    local staged, reason = self.boardQuery:Stage(snapshot, reply)
+    if not staged then return nil, reason end
+    local proof = staged.heistBoardProof
+    proof.sourceKey, proof.header = self.catalog.catalogKey, {}
+    for _, field in ipairs({"session", "account", "place", "release", "revision", "capturedAt"}) do
+        proof.header[field] = snapshot[field]
+    end
+    return staged, nil
+end
+
+function Methods:ReadSources(reader)
+    if self.closed or type(reader) ~= "table" or type(reader.AttachHeistBoard) ~= "function" then return {} end
+    return {{id = "heistBoard", interval = 5,
+        enabled = function(settings)
+            for _, id in ipairs({"heists", "heistCollect", "sabotage", "favors"}) do
+                if type(settings[id]) == "table" and settings[id].enabled == true then return true end
+            end
+            return false
+        end,
+        prepare = function()
+            if self.closed then return nil, "Heists tab closed" end
+            return self:BoardCall()
+        end,
+        accept = function(snapshot, _, reply) return self:StageBoard(snapshot, reply) end,
+        commit = function(staged) return not self.closed and reader:AttachHeistBoard(staged) end,
+    }}
+end
+
+function Methods:Close() self.closed = true end
+
+function Methods:NewBoardRead(budget, executor, currentSnapshot,
+    onResult)
+    return self.deps.BoardReadRuntime.new(budget, self.boardQuery,
+        executor, currentSnapshot, onResult)
 end
 
 function Methods:Descriptors()

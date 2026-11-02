@@ -55,6 +55,30 @@ function ExecutorStorageAdapter.new(api)
         end
         return result
     end
+    function files:ListFiles(path)
+        if not safePath(path) or type(api.listfiles) ~= "function" then
+            return nil, "File discovery unavailable"
+        end
+        local ok, paths = pcall(api.listfiles, path)
+        if not ok or type(paths) ~= "table" or #paths > 512 then
+            return nil, "File discovery failed or exceeds limits"
+        end
+        local result, seen, count = {}, {}, 0
+        for index, value in pairs(paths) do
+            if type(index) ~= "number" or index % 1 ~= 0 or index < 1 or index > #paths
+                or type(value) ~= "string" then return nil, "Invalid file discovery" end
+            local normalized = value:gsub("\\", "/")
+            local child = normalized:sub(#path + 2)
+            if not safePath(normalized) or normalized:sub(1, #path + 1) ~= path .. "/"
+                or child == "" or child:find("/", 1, true) or seen[normalized] then
+                return nil, "Unreviewed file discovery path"
+            end
+            seen[normalized], result[index] = true, normalized
+            count = count + 1
+        end
+        if count ~= #paths then return nil, "Sparse file discovery" end
+        return result, nil
+    end
     function files:WriteFile(path, value)
         if not safePath(path) or type(value) ~= "string"
             or #value > 2097152 then return false end

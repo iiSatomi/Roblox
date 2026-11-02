@@ -46,9 +46,12 @@ function EarnedTrophiesState.read(raw, context)
     local readyCount = array(native.derived.trophyReady, 256)
     local catalogCount = array(raw.trophyCatalog, 512)
     local inventory = counts(native.inventory)
-    local bound = counts(native.inventoryBound or {})
+    local bound = counts(native.inventoryBound)
+    local collection = counts(native.collection)
+    local collectionBound = counts(native.collectionBound)
     if not readyCount or not catalogCount or catalogCount == 0
         or not inventory or not bound
+        or not collection or not collectionBound
         or not nonempty(raw.catalogKey) then
         return nil, "Trophy readiness, catalog or ownership incomplete"
     end
@@ -78,7 +81,9 @@ function EarnedTrophiesState.read(raw, context)
     for _, item in ipairs(raw.trophyCatalog) do
         local id = item.id
         if catalog[id] and ready[id]
-            and (inventory[id] or 0) + (bound[id] or 0) == 0 then
+            and (inventory[id] or 0) + (bound[id] or 0)
+                + (collection[id] or 0)
+                + (collectionBound[id] or 0) == 0 then
             eligible[#eligible + 1] = id
         end
     end

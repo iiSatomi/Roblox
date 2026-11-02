@@ -30,10 +30,31 @@ function RuntimeHost.start(deps)
         or type(deps.RuntimeLoop.new) ~= "function"
         or type(deps.NativeCallPlan) ~= "table"
         or type(deps.NativeCallPlan.describe) ~= "function"
+        or type(deps.NativeCallPlan.withCrew) ~= "function"
+        or type(deps.NativeCallPlan.withInventory) ~= "function"
+        or type(deps.NativeCallPlan.withCollection) ~= "function"
+        or type(deps.NativeCallPlan.withCombat) ~= "function"
+        or type(deps.NativeCallPlan.withMarket) ~= "function"
+        or type(deps.CrewCallPlan) ~= "table"
+        or type(deps.CrewCallPlan.describe) ~= "function"
+        or type(deps.InventoryCallPlan) ~= "table"
+        or type(deps.InventoryCallPlan.describe) ~= "function"
+        or type(deps.CollectionCallPlan) ~= "table"
+        or type(deps.CollectionCallPlan.describe) ~= "function"
+        or type(deps.CombatCallPlan) ~= "table"
+        or type(deps.CombatCallPlan.describe) ~= "function"
+        or type(deps.MarketCallPlan) ~= "table"
+        or type(deps.MarketCallPlan.describe) ~= "function"
         or type(deps.NativeDispatchAdapter) ~= "table"
         or type(deps.NativeDispatchAdapter.new) ~= "function"
         or type(deps.NativeRemoteResolver) ~= "table"
         or type(deps.NativeRemoteResolver.new) ~= "function"
+        or type(deps.RequestLane) ~= "table"
+        or type(deps.RequestLane.new) ~= "function"
+        or type(deps.ResourceReservations) ~= "table"
+        or type(deps.ResourceReservations.new) ~= "function"
+        or type(deps.PendingAction) ~= "table"
+        or type(deps.PendingAction.Capture) ~= "function"
         or type(deps.NativeEventAdapter) ~= "table"
         or type(deps.NativeEventAdapter.fromFolder) ~= "function"
         or type(deps.ExecutorRuntimeAdapter) ~= "table"
@@ -72,17 +93,28 @@ function RuntimeHost.start(deps)
     local executorRuntimeApi = deps.executorRuntimeApi
     local executorStorageApi = deps.executorStorageApi
     local clock = deps.clock
+    local currentShop = deps.currentShop
+    local currentCrateLuck = deps.currentCrateLuck
+    local currentGlobalBoss = deps.currentGlobalBoss
+    local currentEventShop = deps.currentEventShop
+    local currentTerritorySeason = deps.currentTerritorySeason
     local currentDailyBuffRules = deps.currentDailyBuffRules
     local groupLookup = deps.groupLookup
     local rewardsConfig = deps.config
+    local clientBindings
     if currentClient then
         local bound, bindings = pcall(deps.NativeClientBindings.read,
-            deps.clientGame, deps.clientRequire)
+            deps.clientGame, deps.clientRequire, deps.executorEnv and deps.executorEnv.getupvalues)
         if not bound or type(bindings) ~= "table"
             or bindings.remotesFolder == nil
-            or type(bindings.nativeState) ~= "table" then
+            or type(bindings.nativeState) ~= "table"
+            or type(bindings.gameData) ~= "table"
+            or type(bindings.config) ~= "table"
+            or type(bindings.gearSets) ~= "table"
+            or type(bindings.combatRules) ~= "table" then
             return nil, "Current client bindings unavailable"
         end
+        clientBindings = bindings
         local observed, observer = pcall(deps.NativeClientObserver.new,
             deps.clientGame, deps.clientRequire, deps.clientHash)
         if not observed or type(observer) ~= "table"
@@ -92,6 +124,11 @@ function RuntimeHost.start(deps)
         remotesFolder = bindings.remotesFolder
         nativeState = bindings.nativeState
         sourceObserver = observer
+        currentShop = bindings.currentShop
+        currentCrateLuck = bindings.currentCrateLuck
+        currentGlobalBoss = bindings.currentGlobalBoss
+        currentEventShop = bindings.currentEventShop
+        currentTerritorySeason = bindings.currentTerritorySeason
         currentDailyBuffRules = bindings.currentDailyBuffRules
         groupLookup = bindings.groupLookup
         rewardsConfig = bindings.config
@@ -119,10 +156,12 @@ function RuntimeHost.start(deps)
     if not gateOk or type(compatibility) ~= "table" then
         return nil, "Current client compatibility unavailable"
     end
-    local compatible, accepted = pcall(compatibility.Verify,
+    local compatible, accepted, gateReason = pcall(compatibility.Verify,
         compatibility)
     if not compatible or accepted ~= true then
-        return nil, "Current client compatibility not verified"
+        return nil, "Current client compatibility not verified: "
+            .. (compatible and tostring(gateReason or "Unspecified mismatch")
+                or "Verification raised")
     end
     local host
     local appDeps = {}
@@ -133,13 +172,27 @@ function RuntimeHost.start(deps)
     appDeps.executorRuntimeApi = executorRuntimeApi
     appDeps.executorStorageApi = executorStorageApi
     appDeps.clock = clock
+    if clientBindings then
+        appDeps.gameData = clientBindings.gameData
+        appDeps.marketPresence = clientBindings.marketPresence
+        appDeps.config = clientBindings.config
+        appDeps.gearSets = clientBindings.gearSets
+        appDeps.combatRules = clientBindings.combatRules
+        appDeps.bossStages = clientBindings.bossStages
+    end
+    local laneCreated, requestLane = pcall(deps.RequestLane.new, clock)
+    if not laneCreated or type(requestLane) ~= "table" then return nil, "Shared request lane unavailable" end
+    local nativeRemoteLink
+    if currentClient then nativeRemoteLink = clientBindings.nativeRemoteLink
+    else nativeRemoteLink = deps.nativeRemoteLink end
     local resolved, resolver = pcall(
-        deps.NativeRemoteResolver.new, remotesFolder)
+        deps.NativeRemoteResolver.new, remotesFolder, requestLane, nativeRemoteLink)
     if not resolved or type(resolver) ~= "table"
         or type(resolver.Invoke) ~= "function"
         or type(resolver.Close) ~= "function" then
         return nil, "Current Remotes folder unavailable"
     end
+    appDeps.requestLane = requestLane
     local eventsOk, events = pcall(deps.NativeEventAdapter.fromFolder,
         remotesFolder, nativeState)
     if not eventsOk or type(events) ~= "table" then
@@ -148,7 +201,7 @@ function RuntimeHost.start(deps)
     end
     local runtimeApi = {}
     for key, value in pairs(executorRuntimeApi) do
-        if key ~= "invoke" then runtimeApi[key] = value end
+        if key ~= "invoke" and key ~= "invokeOwned" then runtimeApi[key] = value end
     end
     runtimeApi.invoke = function(remote, ...)
         local checked, current = pcall(compatibility.Verify,
@@ -159,12 +212,24 @@ function RuntimeHost.start(deps)
         end
         return resolver:Invoke(remote, ...)
     end
+    runtimeApi.invokeOwned = function(token, remote, ...)
+        local checked, current = pcall(compatibility.Verify, compatibility)
+        if not checked or current ~= true then
+            if host then host:Destroy() else resolver:Close() end
+            error("Current client compatibility not verified")
+        end
+        return resolver:InvokeOwned(token, remote, ...)
+    end
     local runtimeOk, runtimeCaps = pcall(
         deps.ExecutorRuntimeAdapter.new,
         runtimeApi)
-    if not runtimeOk or type(runtimeCaps) ~= "table" then
+    if not runtimeOk or type(runtimeCaps) ~= "table"
+        or type(runtimeCaps.nativeExecutor) ~= "table" then
         resolver:Close()
         return nil, "Executor runtime startup failed"
+    end
+    runtimeCaps.nativeExecutor.InFlight = function()
+        return resolver:InFlight()
     end
     local storageOk, storage = pcall(
         deps.ExecutorStorageAdapter.new,
@@ -176,22 +241,123 @@ function RuntimeHost.start(deps)
     appDeps.files = storage.files
     appDeps.codec = storage.codec
     appDeps.sha256 = storage.sha256
+    local callPlan = deps.NativeCallPlan.withMarket(
+        deps.NativeCallPlan.withCombat(
+            deps.NativeCallPlan.withCollection(
+                deps.NativeCallPlan.withInventory(
+                    deps.NativeCallPlan.withCrew(deps.CrewCallPlan, deps.CrewReplacement),
+                    deps.InventoryCallPlan), deps.CollectionCallPlan),
+            deps.CombatCallPlan), deps.MarketCallPlan)
+    if type(deps.FamilyCallPlan) == "table" then
+        callPlan = deps.NativeCallPlan.withFamily(callPlan, deps.FamilyCallPlan)
+    end
+    if type(deps.TerritoryCallPlan) == "table" then
+        callPlan = deps.NativeCallPlan.withTerritory(callPlan, deps.TerritoryCallPlan)
+    end
+    if type(deps.PrestigeReset) == "table" then
+        callPlan = deps.NativeCallPlan.withPrestige(callPlan, deps.PrestigeReset)
+    end
+    if type(deps.EventShopBuyer) == "table" then
+        callPlan = deps.NativeCallPlan.withEvents(callPlan, deps.EventShopBuyer)
+    end
+    appDeps.playerInfoSource = currentClient and clientBindings.currentPlayerInfo or not currentClient and deps.playerInfoSource or nil
+    appDeps.nativePrestigeController = currentClient and clientBindings.currentPrestigeController
+        or not currentClient and deps.nativePrestigeController or nil
+    appDeps.fightReceipts = nil
+    local notifications = currentClient and clientBindings and clientBindings.currentFightNotifications
+        or not currentClient and deps.nativeFightNotifications
+    local resolverCurrent = resolver.Current
+    local notificationCurrent = type(notifications) == "table" and notifications.Current
+    appDeps.nativeReadSource = {Current = function(_, name)
+        if type(resolverCurrent) ~= "function" or resolver.Current ~= resolverCurrent then return false end
+        if currentClient or notifications then
+            if type(notificationCurrent) ~= "function" or notifications.Current ~= notificationCurrent then return false end
+            local ok, current = pcall(notificationCurrent, notifications)
+            if not ok or current ~= true then return false end
+        end
+        local ok, current = pcall(resolverCurrent, resolver, name)
+        return ok and current == true
+    end}
+    local nativeFrame = type(notifications) == "table" and notifications.CombatFrame
+    appDeps.nativeReadSource.CombatFrame = function(_, native, targets)
+        if type(nativeFrame) ~= "function" or notifications.CombatFrame ~= nativeFrame
+            or not appDeps.nativeReadSource:Current("GetHitList") then return nil end
+        local ok, value = pcall(nativeFrame, notifications, native, targets)
+        if not ok or type(value) ~= "table" or not appDeps.nativeReadSource:Current("GetHitList")
+            or notifications.CombatFrame ~= nativeFrame then return nil end
+        return value
+    end
+    local nativeFriendship = type(notifications) == "table" and notifications.Friendship
+    appDeps.nativeReadSource.Friendship = function(_, target)
+        if type(nativeFriendship) ~= "function" or notifications.Friendship ~= nativeFriendship
+            or not appDeps.nativeReadSource:Current("PlayerProfile") then return nil end
+        local ok, value = pcall(nativeFriendship, notifications, target)
+        if not ok or type(value) ~= "boolean" or not appDeps.nativeReadSource:Current("PlayerProfile")
+            or notifications.Friendship ~= nativeFriendship then return nil end
+        return value
+    end
+    if type(notifications) == "table" and type(deps.FightReceipts) == "table"
+        and type(deps.FightReceipts.new) == "function" then
+        local ok, owner = pcall(deps.FightReceipts.new, deps.identity, clock, requestLane, notifications, deps.fingerprint)
+        if ok and type(owner) == "table" and type(owner.Close) == "function" then appDeps.fightReceipts = owner end
+    end
     local transportOk, transport = pcall(
-        deps.NativeDispatchAdapter.new, deps.NativeCallPlan,
-        runtimeCaps.nativeExecutor)
+        deps.NativeDispatchAdapter.new, callPlan,
+        runtimeCaps.nativeExecutor, requestLane, clock, appDeps.fightReceipts)
     if not transportOk or type(transport) ~= "table" then
+        if appDeps.fightReceipts then appDeps.fightReceipts:Close() end
         resolver:Close()
         return nil, "Native transport startup failed"
     end
     appDeps.transport = transport
     appDeps.shopQuoteSource = nil
     appDeps.rewardsSource = nil
+    appDeps.crateLuckSource = nil
+    appDeps.globalBossSource = nil
+    appDeps.eventShopSource = nil
+    appDeps.territorySeasonSource = nil
+    if type(currentTerritorySeason) == "table" and type(deps.TerritorySeasonSource) == "table"
+        and type(deps.TerritorySeasonSource.new) == "function" then
+        local ok, source = pcall(deps.TerritorySeasonSource.new, currentTerritorySeason.readLive,
+            currentTerritorySeason.status, deps.fingerprint, deps.release)
+        if ok and type(source) == "table" and type(source.Enrich) == "function"
+            and type(source.Close) == "function" and source.release == deps.release
+            and source.sourceKey == deps.fingerprint:lower() then appDeps.territorySeasonSource = source end
+    end
+    if type(currentEventShop) == "table" and type(deps.NativeEventShopSource) == "table"
+        and type(deps.NativeEventShopSource.new) == "function" then
+        local ok, source = pcall(deps.NativeEventShopSource.new, currentEventShop.definition,
+            currentEventShop.readAttributes, deps.fingerprint, deps.release)
+        if ok and type(source) == "table" and type(source.Enrich) == "function"
+            and type(source.Close) == "function" and source.release == deps.release
+            and source.sourceKey == deps.fingerprint:lower() then appDeps.eventShopSource = source end
+    end
+    if type(currentGlobalBoss) == "table" and type(deps.NativeGlobalBossSource) == "table"
+        and type(deps.NativeGlobalBossSource.new) == "function" and type(deps.GlobalBossState) == "table" then
+        local ok, source = pcall(deps.NativeGlobalBossSource.new, currentGlobalBoss.rule,
+            currentGlobalBoss.readAttributes, deps.GlobalBossState, currentGlobalBoss.userId,
+            deps.fingerprint, deps.release)
+        if ok and type(source) == "table" and type(source.Enrich) == "function"
+            and type(source.Close) == "function" then appDeps.globalBossSource = source end
+    end
+    if currentClient
+        and type(deps.NativeCrateLuckSource) == "table"
+        and type(deps.NativeCrateLuckSource.new) == "function"
+        and type(currentCrateLuck) == "table"
+        and type(deps.release) == "string" then
+        local ok, source = pcall(deps.NativeCrateLuckSource.new,
+            currentCrateLuck, deps.release)
+        if ok and type(source) == "table"
+            and source.release == deps.release then
+            appDeps.crateLuckSource = source
+        end
+    end
     if type(deps.NativeQuoteSource) == "table"
         and type(deps.NativeQuoteSource.new) == "function"
-        and type(deps.currentShop) == "table"
+        and type(currentShop) == "table"
         and type(deps.release) == "string" then
         local ok, source = pcall(deps.NativeQuoteSource.new,
-            deps.currentShop, deps.release, deps.fingerprint)
+            currentShop, deps.release, deps.fingerprint)
         if ok and type(source) == "table"
             and source.release == deps.release
             and source.catalogKey == deps.fingerprint:lower() then
@@ -219,8 +385,8 @@ function RuntimeHost.start(deps)
         end
     end
     local function closeSources()
-        for _, key in ipairs({ "shopQuoteSource",
-            "rewardsSource" }) do
+        for _, key in ipairs({ "shopQuoteSource", "globalBossSource", "eventShopSource", "territorySeasonSource",
+            "rewardsSource", "fightReceipts", "nativePrestigeController" }) do
             local source = appDeps[key]
             if type(source) == "table"
                 and type(source.Close) == "function" then
@@ -228,6 +394,14 @@ function RuntimeHost.start(deps)
             end
         end
     end
+    local created, reader = pcall(deps.NativeSnapshotReader.new, deps.identity, clock, deps.fingerprint)
+    if not created or type(reader) ~= "table" then
+        closeSources()
+        resolver:Close()
+        requestLane:Close()
+        return nil, "Native reader startup failed"
+    end
+    appDeps.nativeReader, appDeps.nativeExecutor = reader, runtimeCaps.nativeExecutor
     appDeps.onAppClosed = function()
         if host then host:Destroy() end
     end
@@ -236,21 +410,22 @@ function RuntimeHost.start(deps)
         or app.alive ~= true
         or type(app.Destroy) ~= "function"
         or type(app.Step) ~= "function" then
+        local failure = "App startup returned invalid handle"
+        if not made then
+            local firstLine = tostring(app):match("^[^\r\n]+")
+                or "Unknown construction error"
+            failure = "App construction raised: "
+                .. firstLine:sub(1, 88)
+        end
         if made and type(app) == "table"
             and type(app.Destroy) == "function" then
             pcall(app.Destroy, app)
         end
         closeSources()
         resolver:Close()
-        return nil, "App startup failed"
-    end
-    local created, reader = pcall(deps.NativeSnapshotReader.new,
-        deps.identity, clock)
-    if not created or type(reader) ~= "table" then
-        closeSources()
-        resolver:Close()
-        pcall(app.Destroy, app)
-        return nil, "Native reader startup failed"
+        reader:Close()
+        requestLane:Close()
+        return nil, failure
     end
     local driverOk, driver = pcall(deps.RuntimeDriver.new,
         app, reader)
@@ -271,31 +446,42 @@ function RuntimeHost.start(deps)
     end
     local handles = {}
     host = { app = app, driver = driver, loop = loop,
+        requestLane = requestLane,
         resolver = resolver,
         handles = handles, active = true }
-    local refreshQueued = false
+    local refreshQueued = nil
     function host:RefreshGroupMembership()
         local source = appDeps.rewardsSource
-        if not self.active or refreshQueued
+        if not self.active or (refreshQueued and requestLane:Owns(refreshQueued))
             or type(source) ~= "table"
             or type(source.Refresh) ~= "function" then
             return false
         end
-        refreshQueued = true
-        local scheduled = pcall(runtimeCaps.nativeExecutor.Schedule,
+        local token = requestLane:TryAcquire("membership", "group:membership", clock:Now() + 5)
+        if not token then return false end
+        refreshQueued = token
+        local scheduled, accepted = pcall(runtimeCaps.nativeExecutor.Schedule,
             runtimeCaps.nativeExecutor, function()
-                if self.active then
+                if self.active and requestLane:Owns(token) then
                     pcall(source.Refresh, source,
-                        deps.identity.account, groupId)
+                        deps.identity.account, groupId, function()
+                            return self.active and requestLane:Owns(token)
+                        end)
                 end
-                refreshQueued = false
+                requestLane:Release(token, "membership_returned")
+                if refreshQueued == token then refreshQueued = nil end
             end)
-        if not scheduled then refreshQueued = false end
-        return scheduled
+        if not scheduled or accepted == false then
+            requestLane:Release(token, "membership_schedule_failed")
+            if refreshQueued == token then refreshQueued = nil end
+            return false
+        end
+        return true
     end
     function host:Destroy()
         if not self.active then return false end
         self.active = false
+        requestLane:Close()
         closeSources()
         self.resolver:Close()
         disconnect(self.handles)
@@ -306,9 +492,9 @@ function RuntimeHost.start(deps)
         if key == "alive" then return app.alive end
         return nil
     end })
-    for _, method in ipairs({ "Set", "Pause", "Resume", "Stop",
+    for _, method in ipairs({ "CanReplace", "Set", "Pause", "Resume", "Stop",
         "Step", "Refresh", "ApplyProfile", "SaveProfile",
-        "PreviewProfile" }) do
+        "PreviewProfile", "SetAutoload", "SetNextLoad", "DeleteProfile", "SetProfileSync" }) do
         if type(app[method]) == "function" then
             host[method] = function(_, ...)
                 return app[method](app, ...)
@@ -362,6 +548,19 @@ function RuntimeHost.start(deps)
         return nil, "Changed-state subscription failed"
     end
     handles[#handles + 1] = changed
+
+    if currentClient then
+        local latestOk, latest = pcall(clientBindings.nativeState.latest)
+        if not latestOk or type(latest) ~= "table" then
+            host:Destroy()
+            return nil, "Current client snapshot unavailable"
+        end
+        local seeded, accepted = pcall(reader.ObserveSync, reader, latest)
+        if not seeded or accepted ~= true then
+            host:Destroy()
+            return nil, "Current client snapshot invalid"
+        end
+    end
     if not loop:Start() then
         host:Destroy()
         return nil, "Runtime timer failed"

@@ -14,7 +14,7 @@ function PropertyTab.BuildUI(section, feature, bind, numeric)
         Description = feature.description, Open = true })
     bind(group, "Toggle", "properties.enabled", {
         Text = "Allow " .. feature.label,
-        Description = "Select this activity for the prototype.",
+        Description = "Select this activity; the status below shows whether this entry can run it.",
         Default = false, RevertOnClose = true, RevertTo = false,
     })
     bind(group, "Dropdown", "properties.policy", {
@@ -27,13 +27,18 @@ function PropertyTab.BuildUI(section, feature, bind, numeric)
             Default = "Off — UI only" }) }
     row.custom = group:Group({ Text = "Build limits", Open = false })
     for _, field in ipairs(feature.custom) do
-        assert(field.type == "number", "Invalid Property limit")
         local key = "properties.custom." .. field.id
-        numeric[key] = true
-        bind(row.custom, "Input", key, {
-            Text = field.label, Default = tostring(field.value),
-            FireOnBlur = true,
-        })
+        if field.type == "number" then
+            numeric[key] = true
+            bind(row.custom, "Input", key, { Text = field.label, Default = tostring(field.value), FireOnBlur = true })
+        elseif field.type == "boolean" then
+            bind(row.custom, "Toggle", key, { Text = field.label, Default = field.value })
+        elseif field.type == "select" then
+            bind(row.custom, "Dropdown", key, { Text = field.label, Options = field.options, Default = field.value })
+        else
+            assert(field.type == "text", "Invalid Property constraint")
+            bind(row.custom, "Input", key, { Text = field.label, Default = field.value, FireOnBlur = true })
+        end
     end
     return row
 end
@@ -63,7 +68,7 @@ end
 function Methods:Descriptors()
     local d = self.deps
     return { { id = "properties", reader = d.PropertiesState,
-        planner = d.Properties, evidence = d.PropertiesEvidence } }
+        planner = d.Properties, evidence = d.PropertiesEvidence, recoverSaved = d.PropertiesEvidence.recoverSaved } }
 end
 
 return PropertyTab

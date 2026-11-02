@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value >= minimum and value < math.huge and value % 1 == 0
 end
 
+local function timestamp(value)
+    return type(value) == "number" and value == value
+        and value >= 0 and value < math.huge
+end
+
 local function key(value)
     return type(value) == "string" and #value > 0
 end
@@ -48,7 +53,7 @@ local function current(raw, id)
         or not integer(player.userId, 1)
         or proof.query ~= nil or type(board) ~= "table"
         or board.ok ~= true or type(board.rows) ~= "table"
-        or not integer(board.serverNow, 0)
+        or not timestamp(board.serverNow)
         or not integer(board.favorsLeft, 0)
         or not integer(usage.day, 0)
         or not integer(usage.attempts, 0)

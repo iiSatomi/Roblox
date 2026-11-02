@@ -23,7 +23,8 @@ function SequenceRecovery.statusCall(record, identity)
         or record.sent ~= true or not actions[record.actionName]
         or not integer(record.sequence, 1)
         or not nonempty(record.actionKey)
-        or not integer(record.sentAt, 0)
+        or type(record.sentAt)~="number" or record.sentAt~=record.sentAt
+        or record.sentAt<0 or record.sentAt>9007199254740991
         or (record.actionName == "collect" and record.arg1 ~= nil)
         or (record.actionName ~= "collect" and not nonempty(record.arg1)) then
         return nil, "No owned sent Heist sequence to recover"

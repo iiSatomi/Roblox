@@ -13,7 +13,7 @@ function SkillsTab.BuildUI(section, feature, bind, numeric)
         Description = feature.description, Open = true })
     bind(group, "Toggle", "skills.enabled", {
         Text = "Allow skill allocation",
-        Description = "Select this activity for the prototype.",
+        Description = "Select this activity; the status below shows whether this entry can run it.",
         Default = false, RevertOnClose = true, RevertTo = false,
     })
     for _, field in ipairs(feature.custom) do

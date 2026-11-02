@@ -23,13 +23,14 @@ local function equipment(raw)
         or type(crew) ~= "table" then return nil end
     local result, count = {}, 0
     for index, member in pairs(crew) do
-        if not integer(index, 1) or index > 32
+        if not integer(index, 1) or index > 46
             or type(member) ~= "table" then return nil end
         if member.name ~= nil and (type(member.name) ~= "string"
             or #member.name > 64) then return nil end
         count = count + 1
-        if count > 32 then return nil end
-        local row = { index = index,
+        if count > 46 then return nil end
+        if member.healId~=nil and (type(member.healId)~="string" or #member.healId==0 or #member.healId>128) then return nil end
+        local row = { healId=member.healId,index = index,
             name = member.name, rarity = member.rarity,
             duty = member.duty ~= nil, rolling = member.rolling == true }
         for _, slot in ipairs(slots) do
@@ -50,7 +51,7 @@ local function identitiesEqual(a, b)
     local total = 0
     for index, before in pairs(a) do
         local after = b[index]
-        if not after or before.name ~= after.name
+        if not after or before.healId~=after.healId or before.name ~= after.name
             or before.rarity ~= after.rarity
             or before.duty ~= after.duty
             or before.rolling ~= after.rolling then return false end
@@ -81,11 +82,12 @@ local function fingerprint(raw, gear)
             hash = (hash * 131 + string.byte(token, index)) % 2147483647
         end
     end
-    for index = 1, 32 do
+    for index = 1, 46 do
         local member = gear[index]
         if member then
             add(index)
             add(member.name or "")
+            add(member.healId or "")
             add(member.rarity or "")
             add(member.duty)
             add(member.rolling)
@@ -139,8 +141,7 @@ function AutoEquipCrew.propose(view, settings)
         place = view.place, release = view.release,
         revision = view.revision, feature = "crew",
         actionKey = "crewAutoEquip:" .. view.fingerprint,
-        resources = {}, intent = { kind = "crewAutoEquip",
-            remote = "AutoEquipCrew", args = {} } }, nil
+        resources = {}, intent = { kind = "crewAutoEquip" } }, nil
 end
 
 function AutoEquipCrew.capture(proposal, before)
@@ -155,29 +156,54 @@ function AutoEquipCrew.capture(proposal, before)
     if not gear then return nil, "Crew Auto Equip baseline unavailable" end
     return { session = proposal.session, account = proposal.account,
         place = proposal.place, release = proposal.release,
-        revision = proposal.revision, equipment = gear }, nil
+        revision = proposal.revision, equipment = gear,serverNow=before.native.serverNow }, nil
 end
 
-function AutoEquipCrew.evaluate(proposal, before, after, reply, baseline)
+local function reconcile(proposal,before,after,reply,baseline,restart)
     if type(proposal) ~= "table" or type(reply) ~= "table"
-        or not same(proposal, before) or not same(proposal, after)
+        or not same(proposal, before) or type(after)~="table"
+        or (not restart and not same(proposal, after))
+        or proposal.account~=after.account or proposal.place~=after.place or proposal.release~=after.release
         or not same(proposal, baseline)
         or proposal.revision ~= baseline.revision
         or before.revision ~= baseline.revision
-        or not integer(after.revision, baseline.revision + 1) then
+        or not integer(after.revision,0)
+        or not (after.session==baseline.session and after.revision>baseline.revision
+            or restart and after.session~=baseline.session and type(after.native)=="table"
+                and type(baseline.serverNow)=="number" and baseline.serverNow>=0 and baseline.serverNow<math.huge
+                and type(after.native.serverNow)=="number" and after.native.serverNow>baseline.serverNow and after.native.serverNow<math.huge) then
         return "pending"
     end
     local current = equipment(after)
     if not current or not identitiesEqual(baseline.equipment, current) then
         return "pending"
     end
-    if reply.ok == false then return "rejected" end
+    if reply.pending==true or reply.code=="rate_limited" or reply.code=="presence" then return "pending" end
+    local changed = gearChanged(baseline.equipment, current)
+    if reply.ok == false then return not changed and "rejected" or "pending" end
     if reply.ok ~= true or type(reply.changed) ~= "boolean" then
         return "pending"
     end
-    local changed = gearChanged(baseline.equipment, current)
     if changed == reply.changed then return "confirmed" end
     return "pending"
 end
 
+function AutoEquipCrew.evaluate(proposal,before,after,reply,baseline)
+    return reconcile(proposal,before,after,reply,baseline,false)
+end
+local function equal(a,b)
+    if type(a)~=type(b) then return false end
+    if type(a)~="table" then return a==b end
+    for k,v in pairs(a) do if not equal(v,b[k]) then return false end end
+    for k in pairs(b) do if a[k]==nil then return false end end
+    return true
+end
+function AutoEquipCrew.recoverSaved(data,after)
+    if type(data)~="table" or type(data.proposal)~="table" or type(data.baseline)~="table"
+        or type(data.reply)~="table" then return nil end
+    local baseline=AutoEquipCrew.capture(data.proposal,data.before)
+    if not baseline or not equal(baseline,data.baseline) then return nil end
+    local outcome=reconcile(data.proposal,data.before,after,data.reply,baseline,true)
+    return (outcome=="confirmed" or outcome=="rejected") and outcome or nil
+end
 return AutoEquipCrew

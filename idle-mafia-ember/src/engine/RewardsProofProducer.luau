@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value >= minimum and value < math.huge and value % 1 == 0
 end
 
+local function timestamp(value)
+    return type(value) == "number" and value == value
+        and value >= 0 and value < math.huge
+end
+
 function RewardsProofProducer.derive(raw, context, source)
     local native = type(raw) == "table" and raw.native
     if type(context) ~= "table" or type(source) ~= "table"
@@ -20,12 +25,12 @@ function RewardsProofProducer.derive(raw, context, source)
         return nil, "Fresh Rewards source required"
     end
     local result = {}
-    if integer(native.serverNow, 0)
+    if timestamp(native.serverNow)
         and type(source.IsWeekend) == "function" then
         local ok, active = pcall(source.IsWeekend,
             source, native.serverNow)
         local dateOk, textDay = pcall(function()
-            return os.date("!%Y%j", native.serverNow)
+            return os.date("!%Y%j", math.floor(native.serverNow))
         end)
         local day = dateOk and tonumber(textDay)
         if ok and type(active) == "boolean" and integer(day, 1) then

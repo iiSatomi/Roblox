@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value >= minimum and value < math.huge and value % 1 == 0
 end
 
+local function finiteAtLeast(value, minimum)
+    return type(value) == "number" and value == value
+        and value >= minimum and value < math.huge
+end
+
 local function same(a, b)
     if type(a) ~= "table" or type(b) ~= "table" then return false end
     for _, field in ipairs({ "session", "account", "place", "release" }) do
@@ -26,6 +31,8 @@ function ShopBuyEvidence.capture(proposal, before)
         or not integer(intent.beforeOwned, 0)
         or not integer(intent.beforeBought, 0)
         or not integer(intent.cashReserve, 0)
+        or type(proposal.resources) ~= "table"
+        or proposal.resources.cash ~= intent.expectedCost
         or proposal.revision ~= before.revision then
         return nil, "Shop baseline mismatch"
     end
@@ -35,22 +42,29 @@ function ShopBuyEvidence.capture(proposal, before)
         and type(catalog.offers) == "table"
         and catalog.offers[intent.itemId]
     if type(native) ~= "table" or native.fullSync ~= true
-        or not integer(native.serverNow, 0)
+        or not finiteAtLeast(native.serverNow, 0)
         or math.floor(native.serverNow / 300) ~= intent.slot
         or native.serverNow % 300 > 295
         or type(native.shopRotation) ~= "table"
         or native.shopRotation.slot ~= intent.slot
         or type(native.shopRotation.bought) ~= "table"
-        or native.shopRotation.bought[intent.itemId] == true
-        or type(native.shopBought) ~= "table"
-        or (native.shopBought[intent.itemId] or 0) ~= intent.beforeBought
+        or (native.shopRotation.bought[intent.itemId] ~= nil
+            and native.shopRotation.bought[intent.itemId] ~= false)
+        or (native.shopBought ~= nil
+            and type(native.shopBought) ~= "table")
+        or (type(native.shopBought) == "table"
+            and (native.shopBought[intent.itemId] or 0) or 0)
+            ~= intent.beforeBought
         or type(native.inventory) ~= "table"
         or (native.inventory[intent.itemId] or 0) ~= intent.beforeOwned
         or type(native.autoBuyRules) == "table"
             and native.autoBuyRules.on == true
-        or not integer(native.cash,
+        or not finiteAtLeast(native.cash,
             intent.expectedCost + intent.cashReserve)
         or type(proof) ~= "table"
+        or type(catalog) ~= "table"
+        or catalog.release ~= proposal.release
+        or catalog.key ~= intent.catalogKey
         or proof.session ~= proposal.session
         or proof.account ~= proposal.account
         or proof.place ~= proposal.place
@@ -64,6 +78,9 @@ function ShopBuyEvidence.capture(proposal, before)
         or type(proof.quotes) ~= "table"
         or proof.quotes[intent.itemId] ~= intent.expectedCost
         or type(offer) ~= "table"
+        or not integer(native.level, 1)
+        or not integer(offer.level, 1)
+        or offer.level > native.level
         or (offer.limit ~= nil
             and intent.beforeBought >= offer.limit) then
         return nil, "Shop stock, quote or custody changed"
@@ -72,7 +89,9 @@ function ShopBuyEvidence.capture(proposal, before)
         place = proposal.place, release = proposal.release,
         revision = proposal.revision, itemId = intent.itemId,
         slot = intent.slot, beforeOwned = intent.beforeOwned,
-        beforeBought = intent.beforeBought }, nil
+        beforeBought = intent.beforeBought,
+        cashBefore = native.cash, cost = intent.expectedCost,
+        trackedBought = type(native.shopBought) == "table" }, nil
 end
 
 function ShopBuyEvidence.evaluate(proposal, beforeHeader, after,
@@ -87,16 +106,27 @@ function ShopBuyEvidence.evaluate(proposal, beforeHeader, after,
     local native = after.native
     if type(native) ~= "table" or native.fullSync ~= true
         or type(native.inventory) ~= "table"
-        or type(native.shopBought) ~= "table"
+        or type(native.shopRotation) ~= "table"
+        or native.shopRotation.slot ~= baseline.slot
+        or type(native.shopRotation.bought) ~= "table"
+        or native.shopRotation.bought[baseline.itemId] ~= true
+        or (native.shopBought ~= nil
+            and type(native.shopBought) ~= "table")
+        or (type(native.shopBought) == "table")
+            ~= baseline.trackedBought
         or not integer(native.inventory[baseline.itemId] or 0, 0)
-        or not integer(native.shopBought[baseline.itemId] or 0, 0)
+        or (baseline.trackedBought
+            and not integer(native.shopBought[baseline.itemId] or 0, 0))
+        or not finiteAtLeast(native.cash, 0)
         or not integer(after.revision, baseline.revision + 1) then
         return "pending"
     end
     local granted = native.inventory[baseline.itemId]
         == baseline.beforeOwned + 1
-        and native.shopBought[baseline.itemId]
-        == baseline.beforeBought + 1
+        and native.cash == baseline.cashBefore - baseline.cost
+        and (not baseline.trackedBought
+            or native.shopBought[baseline.itemId]
+                == baseline.beforeBought + 1)
     if reply.ok == false then return granted and "pending" or "rejected" end
     if reply.ok == true and granted then return "confirmed" end
     return "pending"

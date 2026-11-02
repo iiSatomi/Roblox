@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value >= minimum and value < math.huge and value % 1 == 0
 end
 
+local function balance(value, minimum)
+    return type(value) == "number" and value == value
+        and value >= minimum and value < math.huge
+end
+
 local function key(value)
     return type(value) == "string" and #value > 0
 end
@@ -51,10 +56,10 @@ function HeistStartEvidence.capture(proposal, before)
     if not current or current.mine ~= nil or current.result ~= nil
         or current.startsLeft ~= intent.startsBefore
         or current.bustWait ~= 0
-        or not integer(current.serverNow, 0)
+        or not balance(current.serverNow, 0)
         or math.floor(current.serverNow / 86400) ~= intent.serverDay
         or not integer(native.level, 1)
-        or not integer(native.cash, intent.expectedStake)
+        or not balance(native.cash, intent.expectedStake)
         or type(native.pools) ~= "table"
         or not integer(native.pools.energy, intent.expectedEnergy) then
         return nil, "Heist board or resources changed"

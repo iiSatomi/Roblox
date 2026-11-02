@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value >= minimum and value < math.huge and value % 1 == 0
 end
 
+local function timestamp(value)
+    return type(value) == "number" and value == value
+        and value >= 0 and value < math.huge
+end
+
 local function key(value)
     return type(value) == "string" and #value > 0
 end
@@ -40,7 +45,7 @@ function SabotageState.read(raw, context)
     local native = raw.native
     if type(heists) ~= "table"
         or not integer(heists.serverDay, 0)
-        or not integer(heists.serverNow, 0)
+        or not timestamp(heists.serverNow)
         or type(proof) ~= "table" or proof.account ~= context.account
         or proof.capturedAt ~= context.capturedAt
         or proof.query ~= nil or type(board) ~= "table"

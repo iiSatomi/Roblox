@@ -3,11 +3,11 @@ local JobsTab = {}
 local Methods = {}
 Methods.__index = Methods
 
-function JobsTab.BuildUI(section, feature, bind, active)
+function JobsTab.BuildUI(section, feature, bind, active, numeric)
     assert(type(section) == "table" and type(feature) == "table"
         and feature.id == "jobs" and feature.page == "jobs"
-        and type(bind) == "function" and type(active) == "function"
-        and type(feature.custom) == "table" and #feature.custom == 1
+        and type(bind) == "function" and type(active) == "function" and type(numeric) == "table"
+        and type(feature.custom) == "table" and #feature.custom == 8
         and feature.custom[1].id == "selectedJobId"
         and feature.custom[1].type == "select",
         "Invalid Jobs UI feature")
@@ -15,13 +15,16 @@ function JobsTab.BuildUI(section, feature, bind, active)
         Description = feature.description, Open = true })
     bind(group, "Toggle", "jobs.enabled", {
         Text = "Allow " .. feature.label,
-        Description = "Select this activity for the prototype.",
+        Description = "Select this activity; the status below shows whether this entry can run it.",
         Default = false, RevertOnClose = true, RevertTo = false,
     })
     bind(group, "Dropdown", "jobs.policy", {
         Text = "Goal", Options = feature.policies,
         Default = feature.policies[1],
     })
+    local city = feature.custom[7]
+    assert(city.id == "city" and city.type == "select", "Missing Job city control")
+    bind(group, "Dropdown", "jobs.custom.city", { Text = city.label, Options = city.options, Default = city.value })
     local chosen = group:Group({ Text = "Selected Job", Open = false })
     local field = feature.custom[1]
     local selected = bind(chosen, "Dropdown", "jobs.custom.selectedJobId", {
@@ -47,8 +50,26 @@ function JobsTab.BuildUI(section, feature, bind, active)
             end
             selected:SetOptions(options, true)
         end })
+    local bounds = group:Group({ Text = "Optional Job bounds", Open = false })
+    bounds:Description({ Text = "Bounds are inclusive. Energy limits use the current native cost after mastery discounts. Inverted bounds wait for correction." })
+    for index = 2, 6 do
+        local limit = feature.custom[index]
+        local key = "jobs.custom." .. limit.id
+        if limit.type == "boolean" then
+            bind(bounds, "Toggle", key, { Text = limit.label, Default = limit.value })
+        else
+            assert(limit.type == "number", "Unsupported Job bound control")
+            numeric[key] = true
+            bind(bounds, "Input", key, { Text = limit.label, Default = tostring(limit.value), FireOnBlur = true })
+        end
+    end
+    local mastery = feature.custom[8]
+    assert(mastery.id == "masteryTarget" and mastery.type == "select", "Missing Mastery target control")
+    local target = group:Group({ Text = "Mastery target", Open = false })
+    target:Description({ Text = "Used only for the Mastery goal. Named targets follow the native rule names; missing or ambiguous names hold this goal." })
+    bind(target, "Dropdown", "jobs.custom.masteryTarget", { Text = mastery.label, Options = mastery.options, Default = mastery.value })
     if feature.limits then group:Description({ Text = feature.limits }) end
-    return { feature = feature, tabOwned = true, custom = chosen,
+    return { feature = feature, tabOwned = true, custom = chosen, bounds = bounds,
         customPolicy = "Selected job",
         status = group:Status({ Text = "Activity", Default = "Off — UI only" }) }
 end

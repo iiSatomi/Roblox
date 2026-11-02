@@ -8,6 +8,38 @@ local function finite(value)
         and value >= 0 and value < math.huge
 end
 
+local function itemResources(resources, native, fullSync)
+    if not fullSync or type(native.inventory) ~= "table"
+        or type(native.inventoryBound) ~= "table" then return end
+    local ids, size = {}, 0
+    for _, field in ipairs({ "inventory", "inventoryBound" }) do
+        for id in pairs(native[field]) do
+            if type(id) ~= "string" or #id == 0 or #id > 120 then
+                return
+            end
+            if not ids[id] then
+                ids[id] = true
+                size = size + 1
+                if size > 1000 then return end
+            end
+        end
+    end
+    for id in pairs(ids) do
+        local loose = native.inventory[id] or 0
+        local bound = native.inventoryBound[id] or 0
+        if not finite(loose) or loose % 1 ~= 0
+            or not finite(bound) or bound % 1 ~= 0
+            or not finite(loose + bound)
+            or (resources[id] ~= nil) then
+            return
+        end
+    end
+    for id in pairs(ids) do
+        resources[id] = native.inventory[id] or 0
+        resources[id] = resources[id] + (native.inventoryBound[id] or 0)
+    end
+end
+
 local function entitlement(derived, key)
     if type(derived) ~= "table" then return nil end
     if derived[key] == true then return true end
@@ -123,6 +155,7 @@ function Methods:Read(raw, expectedSession, now, maxAge)
     end
     if finite(native.cash) then resources.cash = native.cash end
     if finite(native.skillPoints) then resources.skillPoints = native.skillPoints end
+    itemResources(resources, native, fullSync)
     local serverNow = finite(native.serverNow) and native.serverNow or nil
     local view = {
         session = header.session, account = header.account, place = header.place,

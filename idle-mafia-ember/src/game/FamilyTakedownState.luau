@@ -1,9 +1,20 @@
 -- Read-only weekly Family Takedown view and regenerated free charges.
 local FamilyTakedownState = {}
+local function familyId(value)
+    return type(value) == "string" and #value > 0 and #value <= 120
+        and not value:find("[%c]")
+        or type(value) == "number" and value == value and value >= 1
+            and value <= 9007199254740991 and value % 1 == 0
+end
 
 local function integer(value, minimum)
     return type(value) == "number" and value == value
         and value >= minimum and value < math.huge and value % 1 == 0
+end
+
+local function timestamp(value, minimum)
+    return type(value) == "number" and value == value
+        and value >= minimum and value < math.huge
 end
 
 function FamilyTakedownState.read(raw, context)
@@ -19,17 +30,17 @@ function FamilyTakedownState.read(raw, context)
     local native, proof = raw.native, raw.familyTakedownProof
     local state = type(proof) == "table" and proof.state
     if type(native) ~= "table" or native.fullSync ~= true
-        or not integer(native.serverNow, 0)
+        or not timestamp(native.serverNow, 0)
         or context.serverNow ~= native.serverNow
         or type(proof) ~= "table"
         or proof.account ~= context.account
         or proof.capturedAt ~= context.capturedAt
         or type(state) ~= "table"
         or not integer(state.week, 1)
-        or not integer(state.famId, 1)
+        or not familyId(state.famId)
         or type(state.inFamily) ~= "boolean"
         or not integer(state.stage, 1) or state.stage > 6
-        or not integer(state.resetAt, native.serverNow + 1)
+        or not timestamp(state.resetAt, native.serverNow + 1)
         or not integer(state.freeMax, 0) or state.freeMax > 100
         or not integer(state.freeUsed, 0)
         or state.freeUsed > state.freeMax
@@ -40,7 +51,7 @@ function FamilyTakedownState.read(raw, context)
         or (state.claimedStages ~= nil
             and type(state.claimedStages) ~= "table")
         or (state.nextFreeAt ~= nil
-            and not integer(state.nextFreeAt, 0)) then
+            and not timestamp(state.nextFreeAt, 0)) then
         return nil, "Current weekly Family Takedown state required"
     end
     local free = math.max(0, state.freeMax - state.freeUsed)
@@ -65,7 +76,7 @@ function FamilyTakedownState.read(raw, context)
                 or not integer(row.stage, 0)
                 or row.stage > 100
                 or (row.expiresAt ~= nil
-                    and not integer(row.expiresAt, 0)) then
+                    and not timestamp(row.expiresAt, 0)) then
                 return nil, "Invalid Family Takedown claim"
             end
             local key = tostring(row.week) .. ":"
@@ -76,9 +87,9 @@ function FamilyTakedownState.read(raw, context)
             seen[key] = true
             if row.expiresAt ~= nil
                 and row.expiresAt > native.serverNow then
-                claims[#claims + 1] = { week = row.week,
-                    stage = row.stage,
-                    expiresAt = row.expiresAt }
+                claims[#claims + 1] = { week = row.week, stage = row.stage, expiresAt = row.expiresAt,
+                    cash = row.cash, gold = row.gold, crates = row.crates,
+                    crateId = row.crateId, medal = row.medal, border = row.border }
             end
         end
         for key in pairs(state.claims) do

@@ -52,7 +52,7 @@ local function equal(a, b)
     return true
 end
 
-function NativeSnapshotReader.new(identity, clock)
+function NativeSnapshotReader.new(identity, clock, sourceKey)
     assert(type(identity) == "table" and type(clock) == "table"
         and type(clock.Now) == "function", "Missing native reader inputs")
     local bound = {}
@@ -61,9 +61,13 @@ function NativeSnapshotReader.new(identity, clock)
             "Invalid native reader identity")
         bound[key] = identity[key]
     end
+    assert(sourceKey == nil or (type(sourceKey) == "string" and #sourceKey == 64
+        and sourceKey:match("^[%x]+$")), "Invalid native reader source key")
     return setmetatable({ identity = bound, clock = clock,
+        sourceKey = sourceKey and sourceKey:lower() or nil,
         revision = 0, data = nil, capturedAt = nil,
-        fullSync = false, closed = false }, Methods)
+        fullSync = false, heistBoardProof = nil, familyTakedownProof = nil, familyContributionProof = nil,
+        territoryReads = {}, closed = false }, Methods)
 end
 
 local function record(self, raw, fullSync)
@@ -80,6 +84,10 @@ local function record(self, raw, fullSync)
     self.data = data
     self.capturedAt = capturedAt
     self.fullSync = fullSync
+    self.heistBoardProof = nil
+    self.familyTakedownProof = nil
+    self.familyContributionProof = nil
+    self.territoryReads = {}
     return true
 end
 
@@ -90,6 +98,35 @@ end
 function Methods:ObserveChanged(raw)
     if not self.data then return false end
     return record(self, raw, false)
+end
+
+function Methods:AttachHeistBoard(staged)
+    if self.closed or not self.fullSync or not self.data
+        or type(staged) ~= "table"
+        or type(staged.native) ~= "table"
+        or staged.native.fullSync ~= true
+        or staged.revision ~= self.revision
+        or staged.capturedAt ~= self.capturedAt then return false end
+    for _, key in ipairs(identityKeys) do
+        if staged[key] ~= self.identity[key] then return false end
+    end
+    local native = copied(self.data)
+    native.fullSync = true
+    if not equal(staged.native, native) then return false end
+    local proof = copied(staged.heistBoardProof)
+    if type(proof) ~= "table"
+        or proof.account ~= self.identity.account
+        or proof.capturedAt ~= self.capturedAt
+        or type(proof.board) ~= "table"
+        or proof.board.ok ~= true
+        or type(proof.board.rows) ~= "table" then return false end
+    if self.sourceKey ~= nil then
+        if proof.sourceKey ~= self.sourceKey or type(proof.header) ~= "table" then return false end
+        for _, key in ipairs(identityKeys) do if proof.header[key] ~= self.identity[key] then return false end end
+        if proof.header.revision ~= self.revision or proof.header.capturedAt ~= self.capturedAt then return false end
+    end
+    self.heistBoardProof = proof
+    return true
 end
 
 function Methods:Capture()
@@ -103,7 +140,35 @@ function Methods:Capture()
     for _, key in ipairs(identityKeys) do
         view[key] = self.identity[key]
     end
+    if self.heistBoardProof then
+        view.heistBoardProof = copied(self.heistBoardProof)
+    end
+    if self.familyTakedownProof then view.familyTakedownProof = copied(self.familyTakedownProof) end
+    if self.familyContributionProof then view.familyContributionProof = copied(self.familyContributionProof) end
+    for field, value in pairs(self.territoryReads) do view[field] = copied(value) end
     return view, nil
+end
+
+function Methods:AttachFamilyBoss(staged)
+    if self.closed or not self.fullSync or not self.data or type(staged) ~= "table"
+        or type(staged.native) ~= "table" or staged.native.fullSync ~= true
+        or staged.revision ~= self.revision or staged.capturedAt ~= self.capturedAt then return false end
+    for _, key in ipairs(identityKeys) do if staged[key] ~= self.identity[key] then return false end end
+    local native = copied(self.data)
+    native.fullSync = true
+    if not equal(staged.native, native) then return false end
+    local proof = copied(staged.familyTakedownProof)
+    if type(proof) ~= "table" or type(proof.header) ~= "table"
+        or self.sourceKey == nil or proof.sourceKey ~= self.sourceKey
+        or type(proof.sourceKey) ~= "string" or #proof.sourceKey ~= 64
+        or not proof.sourceKey:match("^[%x]+$") or type(proof.state) ~= "table"
+        or proof.account ~= self.identity.account or proof.capturedAt ~= self.capturedAt then return false end
+    for _, key in ipairs(identityKeys) do if proof.header[key] ~= self.identity[key] then return false end end
+    if proof.header.revision ~= self.revision or proof.header.capturedAt ~= self.capturedAt
+        or type(native.family) ~= "table" or proof.state.famId ~= native.family.id
+        or proof.header.familyId ~= native.family.id or proof.header.serverNow ~= native.serverNow then return false end
+    self.familyTakedownProof = proof
+    return true
 end
 
 function Methods:Close()
@@ -111,6 +176,65 @@ function Methods:Close()
     self.data = nil
     self.capturedAt = nil
     self.fullSync = false
+    self.heistBoardProof = nil
+    self.familyTakedownProof = nil
+    self.familyContributionProof = nil
+    self.territoryReads = {}
+end
+
+local territoryFields = {territoryMap = true, territoryDistrict = true, residencyView = true, fortificationView = true}
+function Methods:ClearTerritoryRead(field)
+    if not territoryFields[field] then return false end
+    self.territoryReads[field] = nil
+    if field == "territoryMap" then
+        self.territoryReads.territoryDistrict, self.territoryReads.fortificationView = nil, nil
+    end
+    return true
+end
+
+function Methods:AttachTerritoryRead(staged)
+    if self.closed or not self.fullSync or not self.data or type(staged) ~= "table"
+        or type(staged.native) ~= "table" or staged.native.fullSync ~= true
+        or staged.revision ~= self.revision or staged.capturedAt ~= self.capturedAt then return false end
+    for _, key in ipairs(identityKeys) do if staged[key] ~= self.identity[key] then return false end end
+    local native = copied(self.data)
+    native.fullSync = true
+    if not equal(staged.native, native) then return false end
+    local proof = copied(staged.territoryRead)
+    if type(proof) ~= "table" or self.sourceKey == nil or proof.sourceKey ~= self.sourceKey
+        or not territoryFields[proof.field] or type(proof.value) ~= "table"
+        or type(proof.value.header) ~= "table" then return false end
+    local bound = proof.value.header
+    for _, key in ipairs(identityKeys) do if bound[key] ~= self.identity[key] then return false end end
+    if bound.revision ~= self.revision or bound.capturedAt ~= self.capturedAt then return false end
+    if (proof.field == "territoryDistrict" or proof.field == "fortificationView")
+        and (type(native.family) ~= "table" or proof.value.familyId ~= native.family.id) then return false end
+    if proof.field == "territoryMap" then
+        local capacity = proof.value.territoryCapacity or native.territoryCapacity
+        if type(native.family) ~= "table" or type(capacity) ~= "table" or capacity.familyId ~= native.family.id
+            or type(proof.value.cityId) ~= "string" or type(proof.value.districts) ~= "table" then return false end
+    end
+    if proof.field == "territoryMap" then self:ClearTerritoryRead("territoryMap") end
+    self.territoryReads[proof.field] = proof.value
+    return true
+end
+
+function Methods:AttachFamilyContribution(staged)
+    if self.closed or not self.fullSync or not self.data or type(staged) ~= "table"
+        or type(staged.native) ~= "table" or staged.native.fullSync ~= true
+        or staged.revision ~= self.revision or staged.capturedAt ~= self.capturedAt then return false end
+    for _, key in ipairs(identityKeys) do if staged[key] ~= self.identity[key] then return false end end
+    local native = copied(self.data)
+    native.fullSync = true
+    if not equal(staged.native, native) then return false end
+    local proof = copied(staged.familyContributionProof)
+    if type(proof) ~= "table" or self.sourceKey == nil or proof.sourceKey ~= self.sourceKey
+        or type(proof.family) ~= "table" or type(native.family) ~= "table"
+        or proof.family.familyId ~= native.family.id or proof.family.actorId ~= tonumber(self.identity.account)
+        or proof.revision ~= self.revision or proof.capturedAt ~= self.capturedAt then return false end
+    for _, key in ipairs(identityKeys) do if proof[key] ~= self.identity[key] then return false end end
+    self.familyContributionProof = proof
+    return true
 end
 
 return NativeSnapshotReader

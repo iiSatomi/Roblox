@@ -29,7 +29,7 @@ function GlobalBossAttackState.read(raw, context)
         or usage.capturedAt ~= context.capturedAt
         or usage.runKey ~= boss.runKey
         or not integer(usage.hits, 0)
-        or not integer(usage.lastServerNow, 0)
+        or not finite(usage.lastServerNow, 0)
         or type(native) ~= "table" or native.fullSync ~= true
         or type(native.stats) ~= "table"
         or not finite(native.stats.maxHealth, 1)

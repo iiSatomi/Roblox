@@ -43,10 +43,13 @@ local function rows(raw)
     return result
 end
 
-function MarketBrowse.new(maxPages)
+function MarketBrowse.new(maxPages, clock)
     assert(integer(maxPages, 1, 5), "Invalid saved Market page cap")
+    assert(clock == nil or (type(clock) == "table"
+        and type(clock.Now) == "function"),
+        "Invalid Market browse clock")
     return setmetatable({ maxPages = maxPages, current = nil,
-        nextToken = 0, closed = false }, Methods)
+        nextToken = 0, clock = clock, closed = false }, Methods)
 end
 
 function Methods:Prepare(scope)
@@ -74,7 +77,8 @@ function Methods:Prepare(scope)
     self.nextToken = self.nextToken + 1
     local request = { remote = "MarketAction", method = "InvokeServer",
         arity = 4, args = { "browse", scope.kind, scope.arg, scope.page },
-        token = self.nextToken, page = scope.page }
+        token = self.nextToken, page = scope.page,
+        kind = scope.kind, arg = scope.arg }
     self.current = request
     return request, nil
 end
@@ -88,8 +92,12 @@ function Methods:Accept(request, reply)
     end
     local accepted = rows(reply.rows)
     if not accepted then return nil, "Invalid Market browse rows" end
-    local pages = reply.pages or 1
-    if not integer(pages, 1, self.maxPages) then
+    local pages = reply.pages
+    if pages == nil then
+        pages = math.min(self.maxPages,
+            request.page + (reply.more == true and 1 or 0))
+    end
+    if not integer(pages, request.page, self.maxPages) then
         return nil, "Invalid Market browse pages"
     end
     for _, field in ipairs({ "more", "stale", "small" }) do
@@ -99,6 +107,8 @@ function Methods:Accept(request, reply)
     end
     self.current = nil
     return { page = request.page, pages = pages,
+        kind = request.kind, arg = request.arg,
+        capturedAt = self.clock and self.clock:Now() or nil,
         more = reply.more == true, stale = reply.stale == true,
         small = reply.small == true, rows = accepted }, nil
 end

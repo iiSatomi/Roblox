@@ -3,7 +3,7 @@ local Adapter = {}
 Adapter.__index = Adapter
 
 local ICONS = {
-    overview = "home", heists = "lock", jobs = "briefcase", operations = "clock",
+    overview = "home", player = "user-round", heists = "lock", jobs = "briefcase", operations = "clock",
     favors = "handshake", combat = "swords", crew = "users", inventory = "backpack",
     collection = "library", money = "wallet", property = "building", safehouse = "shield",
     prestige = "trending-up", shop = "shopping-cart", blackMarket = "store",
@@ -20,6 +20,7 @@ function Adapter.new(ember, catalog, callbacks)
     local self = setmetatable({
         handles = {}, features = {}, numeric = {}, order = {}, alive = true,
         degraded = false, lastError = nil,
+        allowedFeatures = callbacks.allowedFeatures,
     }, Adapter)
     ember.Configure({
         Storage = false,
@@ -31,7 +32,9 @@ function Adapter.new(ember, catalog, callbacks)
         Size = Vector2.new(920, 620), MinSize = Vector2.new(640, 420), Rail = 184,
         Keybind = Enum.KeyCode.F8, Search = true, SaveLayout = false,
         ReapplyOnRespawn = false, ReplaceExisting = true,
-        StatusBar = { Text = "UI prototype only — no gameplay connected" },
+        StatusBar = { Text = callbacks.runtimeConnected
+            and "Runtime connected — features off until enabled"
+            or "UI prototype only — no gameplay connected" },
     })
     -- Register teardown before constructing any value controls.
     self.window:OnDestroy(function()
@@ -74,7 +77,9 @@ function Adapter.new(ember, catalog, callbacks)
                 callbacks, userOrigin)
             self.sessionStatus = self.overview.sessionStatus
         else
-            overview:Description({ Text = "Local UI preview. Feature choices do not start Jobs, fights or purchases." })
+            overview:Description({ Text = callbacks.runtimeConnected
+                and "Runtime connected. Feature switches start off; enabled actions run automatically."
+                or "Local UI preview. Feature choices do not start Jobs, fights or purchases." })
             self.sessionStatus = overview:Status({ Text = "Session", Default = "Paused — UI only" })
             button(overview, "Pause", "pause")
             button(overview, "Resume", "resume")
@@ -82,6 +87,10 @@ function Adapter.new(ember, catalog, callbacks)
             button(overview, "Unload", "unload", true)
         end
 
+        if sections.player then
+            if callbacks.playerModule then self.playerTab = callbacks.playerModule.new(sections.player)
+            else sections.player:Status({Text = "Player information", Default = "Unavailable — player module not attached"}) end
+        end
         for _, feature in ipairs(catalog.features) do
             local row
             if feature.page == "heists" and callbacks.heistsModule then
@@ -91,19 +100,25 @@ function Adapter.new(ember, catalog, callbacks)
                 row = callbacks.jobsModule.BuildUI(
                     sections.jobs, feature, bind, function()
                         return self.alive and not self.degraded
-                    end)
+                    end, self.numeric)
             elseif feature.page == "operations" and callbacks.operationsModule then
                 row = callbacks.operationsModule.BuildUI(
-                    sections.operations, feature, bind)
+                    sections.operations, feature, bind, self.numeric)
             elseif feature.page == "favors" and callbacks.favorsModule then
                 row = callbacks.favorsModule.BuildUI(
-                    sections.favors, feature, bind)
+                    sections.favors, feature, bind, self.numeric)
             elseif feature.page == "combat" and callbacks.combatModule then
                 row = callbacks.combatModule.BuildUI(
                     sections.combat, feature, bind, self.numeric)
             elseif feature.page == "crew" and callbacks.crewModule then
                 row = callbacks.crewModule.BuildUI(
-                    sections.crew, feature, bind, self.numeric)
+                    sections.crew, feature, bind, self.numeric, {
+                        available = type(callbacks.featureRecoveryAvailable) == "function"
+                            and callbacks.featureRecoveryAvailable(feature.id) == true,
+                        alive = function() return self.alive end,
+                        preview = function() return callbacks.featureRecoveryPreview(feature.id) end,
+                        confirm = function() return callbacks.featureRecoveryConfirm(feature.id) end,
+                    })
             elseif feature.page == "inventory" and callbacks.inventoryModule then
                 row = callbacks.inventoryModule.BuildUI(
                     sections.inventory, feature, bind, self.numeric)
@@ -121,19 +136,25 @@ function Adapter.new(ember, catalog, callbacks)
                     sections.safehouse, feature, bind, self.numeric)
             elseif feature.page == "prestige" and callbacks.prestigeModule then
                 row = callbacks.prestigeModule.BuildUI(
-                    sections.prestige, feature, bind)
+                    sections.prestige, feature, bind, self.numeric, callbacks.prestigeResetAvailable == true)
             elseif feature.page == "shop" and callbacks.shopModule then
                 row = callbacks.shopModule.BuildUI(
                     sections.shop, feature, bind, self.numeric)
             elseif feature.page == "blackMarket" and callbacks.blackMarketModule then
                 row = callbacks.blackMarketModule.BuildUI(
-                    sections.blackMarket, feature, bind)
+                    sections.blackMarket, feature, bind, self.numeric, {
+                        available = type(callbacks.featureRecoveryAvailable)=="function"
+                            and callbacks.featureRecoveryAvailable(feature.id)==true,
+                        alive = function() return self.alive end,
+                        preview = function() return callbacks.featureRecoveryPreview(feature.id) end,
+                        confirm = function() return callbacks.featureRecoveryConfirm(feature.id) end,
+                    })
             elseif feature.page == "family" and callbacks.familyModule then
                 row = callbacks.familyModule.BuildUI(
-                    sections.family, feature, bind)
+                    sections.family, feature, bind, self.numeric)
             elseif feature.page == "territory" and callbacks.territoryModule then
                 row = callbacks.territoryModule.BuildUI(
-                    sections.territory, feature, bind)
+                    sections.territory, feature, bind, self.numeric)
             elseif feature.page == "contracts" and callbacks.contractsModule then
                 row = callbacks.contractsModule.BuildUI(
                     sections.contracts, feature, bind)
@@ -148,7 +169,7 @@ function Adapter.new(ember, catalog, callbacks)
                     sections.rewards, feature, bind)
             elseif feature.page == "events" and callbacks.eventsModule then
                 row = callbacks.eventsModule.BuildUI(
-                    sections.events, feature, bind)
+                    sections.events, feature, bind, self.numeric)
             else
                 local group = sections[feature.page]:Group({
                     Text = feature.label, Description = feature.description, Open = true,
@@ -174,6 +195,9 @@ function Adapter.new(ember, catalog, callbacks)
                             bind(row.custom, "Input", key, {
                                 Text = field.label, Default = tostring(field.value), FireOnBlur = true,
                             })
+                        elseif field.type == "boolean" then
+                            bind(row.custom, "Toggle", key, {Text = field.label, Default = field.value,
+                                RevertOnClose = true, RevertTo = false})
                         else
                             bind(row.custom, "Dropdown", key, {
                                 Text = field.label, Default = field.value, Options = field.options,
@@ -200,7 +224,8 @@ function Adapter.new(ember, catalog, callbacks)
         if callbacks.settingsModule then
             self.settings = callbacks.settingsModule.new(
                 sections.settings, ember, userOrigin,
-                function() return self.alive end)
+                function() return self.alive end, callbacks, self.window,
+                { fields = catalog.shared or {}, bind = bind, numeric = self.numeric })
         else
             sections.settings:Dropdown({ Text = "Theme", Options = ember.ThemeNames(), Default = "Midnight",
                 Save = false, FireOnStart = false, Callback = function(value, _, origin)
@@ -281,11 +306,22 @@ function Adapter:Render(model)
     end
     if self.overview then self.overview:Render(model)
     else self.sessionStatus:Set(session .. sessionDetail, true) end
+    if self.profiles then self.profiles:Render(model) end
     for id, row in pairs(self.features) do
+        if row.memoryStatus then
+            local memory = model.automationRuntime and model.automationRuntime.combatMemory
+            local text = type(memory) == "table" and memory.known == true
+                and (tostring(memory.count) .. " retained high-value targets")
+                or ("Unknown — " .. tostring(type(memory) == "table" and memory.reason or "current owned history required"))
+            row.memoryStatus:Set(text, true)
+        end
         local selected = model.values[id .. ".enabled"]
         local label = "Off"
         if selected then label = model.stopped and "Stopped" or (model.paused and "Paused" or "Selected") end
-        if row.blockedReason then
+        if type(self.allowedFeatures) == "table"
+            and self.allowedFeatures[id] ~= true then
+            row.status:Set("Unavailable in this runtime preview", true)
+        elseif row.blockedReason then
             row.status:Set("Blocked — " .. row.blockedReason, true)
         elseif model.automationRuntime
             and type(model.automationRuntime.availableFeatures) == "table"
@@ -304,6 +340,14 @@ function Adapter:Render(model)
                 label = "Unconfirmed — duplicate risk; blocked"
             elseif not selected or model.stopped then
                 label = label .. " — shared broker"
+            elseif runtime.goals and runtime.goals[id] and runtime.goals[id].state == "owned" then
+                label = "Goal complete — Trophy ownership observed"
+            elseif runtime.goals and runtime.goals[id] and runtime.goals[id].state == "complete" then
+                label = "Goal complete — native objective observed"
+            elseif runtime.goals and runtime.goals[id] and runtime.goals[id].state == "ready" then
+                label = "Ready — separate Trophy claim switch required"
+            elseif runtime.goals and runtime.goals[id] and runtime.goals[id].state == "progressed" then
+                label = "Objective progress observed"
             elseif outcome == "confirmed" then
                 label = "Last confirmed by replicated state"
             elseif outcome == "rejected" then
@@ -334,10 +378,11 @@ function Adapter:Render(model)
             row.status:Set(label .. " — UI only", true)
         end
         if row.custom then
-            row.custom:SetVisible(#row.feature.policies == 0
+            row.custom:SetVisible(row.alwaysShowCustom == true or #row.feature.policies == 0
                 or model.values[id .. ".policy"] == (row.customPolicy or "Custom"))
         end
     end
+    if self.playerTab then self.playerTab:Render(model) end
     if self.activityTab then self.activityTab:Render(model, self.lastError)
     else self.errorStatus:Set(self.lastError or "No errors", true) end
     return true, nil

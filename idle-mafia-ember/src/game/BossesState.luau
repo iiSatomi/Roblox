@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value >= minimum and value < math.huge and value % 1 == 0
 end
 
+local function timestamp(value)
+    return type(value) == "number" and value == value
+        and value >= 0 and value < math.huge
+end
+
 function BossesState.read(raw, context)
     if type(raw) ~= "table" or type(context) ~= "table" then
         return nil, "Missing Boss planning input"
@@ -24,7 +29,7 @@ function BossesState.read(raw, context)
         or usage.day ~= stages.dayStamp
         or not integer(usage.hits, 0)
         or not integer(usage.stamina, 0)
-        or not integer(usage.lastServerNow, 0) then
+        or not timestamp(usage.lastServerNow) then
         return nil, "Current Boss stage and daily attempt proof required"
     end
     local view = {}

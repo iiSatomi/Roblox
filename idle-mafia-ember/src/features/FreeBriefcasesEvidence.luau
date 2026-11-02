@@ -35,7 +35,19 @@ local function state(raw, baseline)
     local prize = board.opened["c" .. baseline.index]
     if prize ~= nil and (type(prize) ~= "table"
         or type(prize.p) ~= "string" or #prize.p == 0) then return nil end
-    return true, briefcase.free, prize ~= nil
+    local opened, count = {}, 0
+    for key, row in pairs(board.opened) do
+        local index = type(key) == "string"
+            and tonumber(key:match("^c(%d+)$"))
+        if type(index) ~= "number" or index % 1 ~= 0
+            or index < 1 or index > 12 or key ~= "c" .. index
+            or type(row) ~= "table" or type(row.p) ~= "string"
+            or #row.p == 0 then return nil end
+        opened[key] = row.p
+        count = count + 1
+        if count > 12 then return nil end
+    end
+    return true, briefcase.free, prize ~= nil, opened, count
 end
 
 function FreeBriefcasesEvidence.capture(proposal, before)
@@ -49,7 +61,7 @@ function FreeBriefcasesEvidence.capture(proposal, before)
         or proposal.revision ~= before.revision then
         return nil, "Free Briefcase baseline mismatch"
     end
-    local valid, free, opened = state(before, intent)
+    local valid, free, opened, prizes, count = state(before, intent)
     if not valid or free ~= intent.free or opened then
         return nil, "Selected free Briefcase is no longer ready"
     end
@@ -58,7 +70,8 @@ function FreeBriefcasesEvidence.capture(proposal, before)
         revision = proposal.revision, index = intent.index,
         season = intent.season, board = intent.board,
         free = intent.free, endAt = intent.endAt,
-        catalogKey = intent.catalogKey }, nil
+        catalogKey = intent.catalogKey,
+        priorPrizes = prizes, priorCount = count }, nil
 end
 
 function FreeBriefcasesEvidence.evaluate(proposal, beforeHeader, after,
@@ -75,11 +88,19 @@ function FreeBriefcasesEvidence.evaluate(proposal, beforeHeader, after,
         or proposal.intent.index ~= baseline.index
         or proposal.intent.season ~= baseline.season
         or proposal.intent.board ~= baseline.board then return "pending" end
-    local valid, free, opened = state(after, baseline)
+    local valid, free, opened, prizes, count = state(after, baseline)
     if not valid then return "pending" end
+    local unchanged = type(baseline.priorPrizes) == "table"
+        and type(baseline.priorCount) == "number"
+        and count == baseline.priorCount + 1
+    if unchanged then
+        for key, prize in pairs(baseline.priorPrizes) do
+            if prizes[key] ~= prize then unchanged = false; break end
+        end
+    end
     local advanced = type(after.revision) == "number"
         and after.revision > baseline.revision
-        and free == baseline.free - 1 and opened
+        and free == baseline.free - 1 and opened and unchanged
     if reply.ok == false then return advanced and "pending" or "rejected" end
     if reply.ok == true and reply.source == "free" and advanced then
         return "confirmed"

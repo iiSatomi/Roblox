@@ -4,9 +4,10 @@ local Methods = {}
 Methods.__index = Methods
 local running = {}
 
-local function conflict(proposal, unresolved)
+local function conflict(proposal, unresolved, reservations)
     if proposal.actionKey == unresolved.actionKey
         or proposal.feature == unresolved.feature then return true end
+    if reservations ~= nil then return false end -- Quantities/origins belong to the trusted custody owner.
     if type(proposal.resources) ~= "table" then return false end
     for resource, amount in pairs(proposal.resources) do
         if type(amount) == "number" and amount > 0
@@ -34,15 +35,27 @@ function Session.new(broker, checkpoint, identity)
     running[key] = self
     broker.policy.canOffer = function() return self.state == "running" and not self.storageFault end
     broker.policy.canSend = function() return self.state == "running" and not self.storageFault end
-    broker.policy.beforeSend = function(proposal)
-        local saved, reason = checkpoint:Save(proposal)
+    broker.policy.beforeSend = function(proposal, before, baseline)
+        local saved, reason = checkpoint:Save(proposal, before, baseline)
         if not saved then self.storageFault = reason end
         return saved, reason
     end
-    broker.policy.afterResolve = function(proposal)
-        local resolved, reason = checkpoint:Resolve(proposal.actionKey)
+    if type(checkpoint.RecordUnsent) == "function" then
+        broker.policy.abandonedUnsent = function(proposal, before, baseline)
+            return checkpoint:RecordUnsent(proposal, before, baseline)
+        end
+    end
+    broker.policy.afterResolve = function(proposal, outcome)
+        local resolved, reason = checkpoint:Resolve(proposal.actionKey, outcome)
         if not resolved then self.storageFault = reason end
         return resolved
+    end
+    if checkpoint.pendingModule then
+        broker.policy.recordReply = function(proposal, reply)
+            local saved, reason = checkpoint:RecordReply(proposal.actionKey, reply)
+            if not saved then self.storageFault = reason or "Result persistence failed" end
+            return saved
+        end
     end
     return self
 end
@@ -52,7 +65,7 @@ function Methods:Offer(proposal, snapshot)
     if self.storageFault then return "blocked", self.storageFault end
     if type(proposal) ~= "table" then return "blocked", "Missing proposal" end
     for _, unresolved in ipairs(self.checkpoint:Records()) do
-        if conflict(proposal, unresolved) then
+        if conflict(proposal, unresolved, self.broker.policy.reservations) then
             return "blocked", "Unresolved action exposure"
         end
     end

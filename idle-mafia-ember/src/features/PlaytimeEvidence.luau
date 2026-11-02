@@ -18,12 +18,14 @@ local function state(raw, index, day)
         or type(native.serverNow) ~= "number"
         or native.serverNow ~= native.serverNow
         or native.serverNow < 0 or native.serverNow >= math.huge
-        or tonumber(os.date("!%Y%j", native.serverNow)) ~= day
         or type(playtime) ~= "table"
         or type(playtime.todaySeconds) ~= "number"
         or playtime.todaySeconds < 0
         or playtime.todaySeconds >= math.huge
         or type(claimed) ~= "table" then return nil end
+    local dateOk, dateText = pcall(os.date, "!%Y%j",
+        math.floor(native.serverNow))
+    if not dateOk or tonumber(dateText) ~= day then return nil end
     local marker = claimed[tostring(index)]
     if marker ~= nil and (type(marker) ~= "number" or marker < 1
         or marker > 4 or marker % 1 ~= 0) then return nil end
@@ -50,16 +52,23 @@ function PlaytimeEvidence.capture(proposal, before)
     end
     return { session = proposal.session, account = proposal.account,
         place = proposal.place, release = proposal.release,
-        revision = proposal.revision, catalogKey = intent.catalogKey,
+        revision = proposal.revision, serverNow = before.native.serverNow, catalogKey = intent.catalogKey,
         day = intent.day, index = intent.index }, nil
 end
 
-function PlaytimeEvidence.evaluate(proposal, beforeHeader, after, reply, baseline)
+local function reconcile(proposal, beforeHeader, after, reply, baseline, restart)
     if type(proposal) ~= "table" or type(beforeHeader) ~= "table"
         or type(after) ~= "table" or type(reply) ~= "table"
         or type(baseline) ~= "table"
         or not matching(proposal, beforeHeader)
-        or not matching(proposal, after)
+        or after.account ~= proposal.account or after.place ~= proposal.place or after.release ~= proposal.release
+        or (not restart and after.session ~= proposal.session)
+        or type(after.revision) ~= "number" or after.revision % 1 ~= 0
+        or type(after.native) ~= "table" or type(after.native.serverNow) ~= "number"
+        or type(baseline.serverNow) ~= "number" or after.native.serverNow < baseline.serverNow
+        or not (after.session == baseline.session and after.revision > baseline.revision
+            or restart and after.session ~= baseline.session and after.native.serverNow > baseline.serverNow)
+        or reply.pending == true or reply.code == "rate_limited" or reply.code == "presence"
         or not matching(proposal, baseline)
         or proposal.revision ~= baseline.revision
         or beforeHeader.revision ~= baseline.revision
@@ -69,11 +78,24 @@ function PlaytimeEvidence.evaluate(proposal, beforeHeader, after, reply, baselin
         or after.catalogKey ~= baseline.catalogKey then return "pending" end
     local valid, marker = state(after, baseline.index, baseline.day)
     if not valid then return "pending" end
-    local advanced = type(after.revision) == "number"
-        and after.revision > baseline.revision and marker ~= nil
+    local advanced = marker ~= nil
     if reply.ok == false then return advanced and "pending" or "rejected" end
-    if reply.ok == true and advanced then return "confirmed" end
+    if reply.ok == true and reply.pending ~= true and reply.code ~= "rate_limited"
+        and advanced then return "confirmed" end
     return "pending"
+end
+
+function PlaytimeEvidence.evaluate(proposal, before, after, reply, baseline)
+    return reconcile(proposal, before, after, reply, baseline, false)
+end
+function PlaytimeEvidence.recoverSaved(data, after)
+    if type(data) ~= "table" or type(data.reply) ~= "table" or type(data.baseline) ~= "table" then return nil end
+    local baseline = PlaytimeEvidence.capture(data.proposal, data.before)
+    if not baseline then return nil end
+    for key, value in pairs(baseline) do if data.baseline[key] ~= value then return nil end end
+    for key in pairs(data.baseline) do if baseline[key] == nil then return nil end end
+    local outcome = reconcile(data.proposal, data.before, after, data.reply, baseline, true)
+    return (outcome == "confirmed" or outcome == "rejected") and outcome or nil
 end
 
 return PlaytimeEvidence

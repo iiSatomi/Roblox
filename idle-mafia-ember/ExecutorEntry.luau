@@ -37,6 +37,8 @@ function ExecutorEntry.start(release, services, activateRuntime)
         clientRequire = services.clientRequire,
         clientHash = env.crypt.hash,
         executorEnv = env,
+        executionRegistry = services.executionRegistry,
+        legacyRegistry = services.legacyRegistry,
         scheduler = services.scheduler,
         Ember = services.Ember,
     }, activateRuntime)

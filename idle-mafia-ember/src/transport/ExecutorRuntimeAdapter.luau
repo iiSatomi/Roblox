@@ -45,6 +45,13 @@ function ExecutorRuntimeAdapter.new(api)
         end
         return api.invoke(remote, ...)
     end
+    if type(api.invokeOwned) == "function" then
+        function nativeExecutor:InvokeOwned(token, remote, method, ...)
+            if type(token) ~= "table" or type(remote) ~= "string" or #remote == 0
+                or method ~= "InvokeServer" then error("Invalid owned native invocation") end
+            return api.invokeOwned(token, remote, ...)
+        end
+    end
     return { timer = timer,
         nativeExecutor = nativeExecutor }, nil
 end

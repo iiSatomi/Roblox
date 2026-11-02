@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value >= minimum and value < math.huge and value % 1 == 0
 end
 
+local function balance(value)
+    return type(value) == "number" and value == value
+        and value >= 0 and value < math.huge
+end
+
 local function quote(base, owned, discount)
     local grown = math.floor(base * 1.18 ^ owned + 0.5)
     if not integer(grown, 1) then return nil end
@@ -26,7 +31,7 @@ function PropertiesState.read(raw, context)
     local native, proof, catalog = raw.native, raw.propertyProof,
         raw.propertyCatalog
     if type(native) ~= "table" or native.fullSync ~= true
-        or not integer(native.level, 1) or not integer(native.cash, 0)
+        or not integer(native.level, 1) or not balance(native.cash)
         or type(native.properties) ~= "table"
         or type(proof) ~= "table" or proof.account ~= context.account
         or proof.capturedAt ~= context.capturedAt

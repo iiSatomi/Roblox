@@ -47,7 +47,7 @@ local function crateScore(id, chance, crates)
     return chance * rarity / weight
 end
 
-local function copyCatalog(raw, crates)
+local function copyCatalog(raw, crates, itemRarities)
     local size = arraySize(raw, 256)
     if not size or size == 0 then return nil end
     local copied, seen = {}, {}
@@ -58,7 +58,7 @@ local function copyCatalog(raw, crates)
             or not integer(item.respect or 0, 0)
             or not finite(item.cost) or not finite(item.cash)
             or not finite(item.xp) or not finite(item.duration)
-            or item.duration <= 0 then return nil end
+            or item.duration <= 0 or not finite(item.crateCount or 1) then return nil end
         for _, pair in ipairs({ { item.crate, item.crateChance },
             { item.bonusCrate, item.bonusCrateChance } }) do
             local crateId, chance = pair[1], pair[2]
@@ -71,11 +71,17 @@ local function copyCatalog(raw, crates)
         local bonus = crateScore(item.bonusCrate, item.bonusCrateChance, crates)
         local chest = nil
         if primary ~= nil and bonus ~= nil then chest = primary + bonus end
+        local crateRarity = item.crate == nil and 0
+            or type(itemRarities) == "table" and itemRarities[item.crate] or nil
+        if crateRarity ~= nil and (not integer(crateRarity, 0) or crateRarity > 9) then return nil end
+        local primaryExpected = item.crate == nil and 0
+            or item.crateChance * math.max(1, item.crateCount or 1)
+        if not finite(primaryExpected) then return nil end
         copied[index] = {
             id = item.id, order = index, level = item.level or 1,
             respect = item.respect or 0, cost = item.cost,
             cash = item.cash, xp = item.xp, duration = item.duration,
-            chestScore = chest,
+            chestScore = chest, crateRarity = crateRarity, primaryExpected = primaryExpected,
         }
     end
     return copied, seen
@@ -102,7 +108,7 @@ function OperationsState.read(raw, context)
         or type(raw.catalogKey) ~= "string" or #raw.catalogKey == 0 then
         return nil, "Operations player state incomplete"
     end
-    local operations, known = copyCatalog(raw.operationCatalog, raw.crateCatalog)
+    local operations, known = copyCatalog(raw.operationCatalog, raw.crateCatalog, raw.operationCrateRarities)
     if not operations then return nil, "Operations catalog missing or invalid" end
     local running = native.operations
     local active = running and running.active

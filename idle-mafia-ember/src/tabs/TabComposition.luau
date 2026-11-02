@@ -64,6 +64,7 @@ function TabComposition.build(tabs, catalog, registry, assemblerModule,
         assembler = value
     end
     return { features = features, featurePages = featurePages,
+        tabs = tabs,
         snapshotAssembler = assembler }, nil
 end
 

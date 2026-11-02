@@ -41,12 +41,12 @@ local function current(raw)
         or not integer(event.endAt, event.startAt + 1)
         or not finite(event.hp, 10000)
         or not finite(event.dmg, 0)
-        or not integer(native.serverNow, 0)
+        or not finite(native.serverNow, 0)
         or not integer(player.userId, 1)
         or (event.testUserId ~= nil
             and event.testUserId ~= player.userId)
         or not integer(usage.hits, 0)
-        or not integer(usage.lastServerNow, 0) then
+        or not finite(usage.lastServerNow, 0) then
         return nil
     end
     local run = event.id .. "_" .. tostring(event.startAt)
@@ -68,9 +68,9 @@ function GlobalBossAttackEvidence.capture(proposal, before)
         or type(intent) ~= "table"
         or intent.kind ~= "globalBossAttack"
         or not key(intent.runKey)
-        or not integer(intent.serverNow, 0)
+        or not finite(intent.serverNow, 0)
         or not integer(intent.hitsBefore, 0)
-        or not integer(intent.lastServerNowBefore, 0)
+        or not finite(intent.lastServerNowBefore, 0)
         or not integer(intent.mineHitsBefore, 0)
         or not finite(intent.mineDamageBefore, 0)
         or intent.expectedStaminaCost ~= 1
@@ -111,33 +111,72 @@ function GlobalBossAttackEvidence.capture(proposal, before)
         revision = proposal.revision, runKey = run,
         mineHitsBefore = hits,
         mineDamageBefore = damage,
-        usageHitsBefore = usage.hits }, nil
+        usageHitsBefore = usage.hits, serverNow = native.serverNow,
+        staminaBefore = native.pools.stamina, sourceKey = before.globalBossProof.sourceKey,
+        userId = before.localUserIdProof.userId }, nil
 end
 
-function GlobalBossAttackEvidence.evaluate(proposal, beforeHeader,
-    after, reply, baseline)
+local function reconcile(proposal, beforeHeader,
+    after, reply, baseline, restart)
     if type(proposal) ~= "table" or type(beforeHeader) ~= "table"
         or type(after) ~= "table" or type(reply) ~= "table"
         or type(baseline) ~= "table"
         or not matching(proposal, beforeHeader)
-        or not matching(proposal, after)
+        or proposal.account ~= after.account or proposal.place ~= after.place or proposal.release ~= after.release
+        or (not restart and not matching(proposal, after))
         or not matching(proposal, baseline)
         or proposal.revision ~= baseline.revision
-        or beforeHeader.revision ~= baseline.revision then
+        or beforeHeader.revision ~= baseline.revision
+        or not integer(after.revision, 0)
+        or not (after.session == baseline.session and after.revision > baseline.revision
+            or restart and after.session ~= baseline.session and type(after.native) == "table"
+                and finite(after.native.serverNow, 0) and finite(baseline.serverNow, 0)
+                and after.native.serverNow > baseline.serverNow)
+        or reply.pending == true or reply.code == "rate_limited" or reply.code == "presence" then
         return "pending"
     end
-    local event, _, usage, run, hits, damage = current(after)
-    if not event then return "pending" end
-    local advanced = type(after.revision) == "number"
-        and after.revision > baseline.revision
-        and run == baseline.runKey
-        and usage.hits >= baseline.usageHitsBefore + 1
+    local event, native, usage, run, hits, damage = current(after)
+    if not event or run ~= baseline.runKey or not finite(baseline.serverNow, 0)
+        or native.serverNow < baseline.serverNow or after.globalBossProof.sourceKey ~= baseline.sourceKey
+        or after.localUserIdProof.userId ~= baseline.userId then return "pending" end
+    local advanced = run == baseline.runKey
+        and usage.hits == baseline.usageHitsBefore + 1
         and integer(reply.dmg, 1)
         and hits == baseline.mineHitsBefore + 1
-        and damage >= baseline.mineDamageBefore + reply.dmg
-    if reply.ok == false then return advanced and "pending" or "rejected" end
+        and damage == baseline.mineDamageBefore + reply.dmg
+    if reply.ok == false then
+        return hits == baseline.mineHitsBefore and damage == baseline.mineDamageBefore
+            and type(native.pools) == "table" and native.pools.stamina == baseline.staminaBefore
+            and "rejected" or "pending"
+    end
     if reply.ok == true and advanced then return "confirmed" end
     return "pending"
 end
 
+function GlobalBossAttackEvidence.evaluate(proposal, before, after, reply, baseline)
+    return reconcile(proposal, before, after, reply, baseline, false)
+end
+local function equal(a, b)
+    if type(a) ~= type(b) then return false end
+    if type(a) ~= "table" then return a == b end
+    for k, v in pairs(a) do if not equal(v, b[k]) then return false end end
+    for k in pairs(b) do if a[k] == nil then return false end end
+    return true
+end
+function GlobalBossAttackEvidence.recoverSaved(data, after)
+    if type(data) ~= "table" or type(data.reply) ~= "table" then return nil end
+    local baseline = GlobalBossAttackEvidence.capture(data.proposal, data.before)
+    if not baseline or not equal(baseline, data.baseline) then return nil end
+    local result = reconcile(data.proposal, data.before, after, data.reply, baseline, true)
+    return (result == "confirmed" or result == "rejected") and result or nil
+end
+function GlobalBossAttackEvidence.canDispatch(proposal, snapshot)
+    local intent = type(proposal) == "table" and proposal.intent
+    if type(snapshot) ~= "table" or type(intent) ~= "table" then return false end
+    local before = {}
+    for key, value in pairs(snapshot) do before[key] = value end
+    before.globalAttackUsageProof = { account = proposal.account, capturedAt = snapshot.capturedAt,
+        runKey = intent.runKey, hits = intent.hitsBefore, lastServerNow = intent.lastServerNowBefore }
+    return GlobalBossAttackEvidence.capture(proposal, before) ~= nil
+end
 return GlobalBossAttackEvidence

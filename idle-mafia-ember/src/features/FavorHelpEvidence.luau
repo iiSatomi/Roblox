@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value >= minimum and value < math.huge and value % 1 == 0
 end
 
+local function timestamp(value)
+    return type(value) == "number" and value == value
+        and value >= 0 and value < math.huge
+end
+
 local function key(value)
     return type(value) == "string" and #value > 0
 end
@@ -41,7 +46,7 @@ local function current(raw, id)
         or usage.capturedAt ~= raw.capturedAt
         or proof.query ~= nil or type(board) ~= "table"
         or board.ok ~= true or type(board.rows) ~= "table"
-        or not integer(board.serverNow, 0)
+        or not timestamp(board.serverNow)
         or not integer(board.favorsLeft, 0)
         or not integer(usage.day, 0)
         or not integer(usage.attempts, 0)
@@ -68,6 +73,15 @@ function FavorHelpEvidence.capture(proposal, before)
         or not integer(intent.expectedEnergyCost, 0)
         or not integer(intent.serverDay, 0)
         or not integer(intent.usageAttemptsBefore, 0)
+        or not integer(intent.maxDailyAttempts, 1)
+        or intent.maxDailyAttempts > 100
+        or not integer(intent.minFavorReserve, 0)
+        or intent.minFavorReserve > 1000000
+        or not integer(intent.minEnergyReserve, 0)
+        or intent.minEnergyReserve > 1000000000000
+        or (intent.relations ~= "Friends or Family"
+            and intent.relations ~= "Friends only"
+            and intent.relations ~= "Family only")
         or intent.needsSequence ~= true
         or type(before) ~= "table" or not matching(proposal, before)
         or proposal.revision ~= before.revision then
@@ -82,17 +96,24 @@ function FavorHelpEvidence.capture(proposal, before)
         or board.helpEnergyCost ~= intent.expectedEnergyCost
         or usage.day ~= intent.serverDay
         or usage.attempts ~= intent.usageAttemptsBefore
-        or usage.attempts >= 5
-        or board.favorsLeft - board.helpFavorCost < 5
+        or usage.attempts >= intent.maxDailyAttempts
+        or board.favorsLeft - board.helpFavorCost
+            < intent.minFavorReserve
         or type(before.native) ~= "table"
         or type(before.native.pools) ~= "table"
         or not integer(before.native.pools.energy, 0)
-        or before.native.pools.energy - board.helpEnergyCost < 10
+        or before.native.pools.energy - board.helpEnergyCost
+            < intent.minEnergyReserve
         or not integer(board.helpMaxPerHeist, 1)
         or intent.helpsBefore >= board.helpMaxPerHeist
         or not integer(row.endsAt, board.serverNow)
         or row.endsAt <= board.serverNow
-        or not (row.friend == true or row.famRel == "family")
+        or not ((intent.relations == "Friends or Family"
+                and (row.friend == true or row.famRel == "family"))
+            or (intent.relations == "Friends only"
+                and row.friend == true)
+            or (intent.relations == "Family only"
+                and row.famRel == "family"))
         or (row.sabosUsed or (row.sabotaged and 1 or 0)) ~= 0 then
         return nil, "Selected Favor row changed"
     end

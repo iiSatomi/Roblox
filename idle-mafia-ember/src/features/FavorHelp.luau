@@ -6,6 +6,11 @@ local function integer(value, minimum)
         and value >= minimum and value < math.huge and value % 1 == 0
 end
 
+local function timestamp(value)
+    return type(value) == "number" and value == value
+        and value >= 0 and value < math.huge
+end
+
 local function rowId(value)
     return (type(value) == "string" and #value > 0)
         or integer(value, 1)
@@ -36,7 +41,22 @@ function FavorHelp.propose(view, settings, reservations)
     if policy ~= "Best reward" and policy ~= "Highest tier" then
         return nil, "Invalid Favor policy"
     end
-    if not integer(view.serverNow, 0)
+    local floor = settings.energyReserve or 0
+    if not integer(floor, 0) or floor > 1000000000000 then return nil, "Invalid shared energy reserve" end
+    local custom = type(settings.custom) == "table"
+        and settings.custom or settings
+    if not integer(custom.maxDailyAttempts, 1)
+        or custom.maxDailyAttempts > 100
+        or not integer(custom.minFavorReserve, 0)
+        or custom.minFavorReserve > 1000000
+        or not integer(custom.minEnergyReserve, 0)
+        or custom.minEnergyReserve > 1000000
+        or (custom.relations ~= "Friends or Family"
+            and custom.relations ~= "Friends only"
+            and custom.relations ~= "Family only") then
+        return nil, "Favor policy limits required"
+    end
+    if not timestamp(view.serverNow)
         or not integer(view.serverDay, 0)
         or not integer(view.usageAttempts, 0)
         or not integer(view.favorsLeft, 0)
@@ -52,16 +72,17 @@ function FavorHelp.propose(view, settings, reservations)
         or not integer(reservations.uncertainEnergy or 0, 0) then
         return nil, "Current Favor capacity and resource proof required"
     end
-    -- Legacy defaults until the simplified Favors controls are mapped.
-    if view.usageAttempts >= 5 then
+    if view.usageAttempts >= custom.maxDailyAttempts then
         return nil, "Daily Favor attempt cap reached"
     end
     if view.favorsLeft - view.favorCost
         - (reservations.favors or 0)
-        - (reservations.uncertainFavors or 0) < 5
+        - (reservations.uncertainFavors or 0)
+            < custom.minFavorReserve
         or view.energy - view.energyCost
         - (reservations.energy or 0)
-        - (reservations.uncertainEnergy or 0) < 10 then
+        - (reservations.uncertainEnergy or 0)
+            < math.max(custom.minEnergyReserve, floor) then
         return nil, "Favor or energy reserve blocks help"
     end
     local best
@@ -74,7 +95,12 @@ function FavorHelp.propose(view, settings, reservations)
             and integer(row.sabosUsed, 0)
             and integer(row.rewardCash, 0)
             and integer(row.rewardXp, 0)
-            and (row.friend == true or row.family == true)
+            and ((custom.relations == "Friends or Family"
+                    and (row.friend == true or row.family == true))
+                or (custom.relations == "Friends only"
+                    and row.friend == true)
+                or (custom.relations == "Family only"
+                    and row.family == true))
             and row.level <= view.level
             and row.endsAt > view.serverNow
             and row.sabosUsed == 0
@@ -100,6 +126,10 @@ function FavorHelp.propose(view, settings, reservations)
             rewardXp = best.rewardXp,
             serverDay = view.serverDay,
             usageAttemptsBefore = view.usageAttempts,
+            maxDailyAttempts = custom.maxDailyAttempts,
+            minFavorReserve = custom.minFavorReserve,
+            minEnergyReserve = math.max(custom.minEnergyReserve, floor),
+            relations = custom.relations,
             needsSequence = true } }, nil
 end
 

@@ -40,6 +40,7 @@ function Broker.new(clock, transport, journal, policy)
         spacing = spacing, freshness = freshness,
         cooldown = boundedCooldown(policy.cooldownSeconds),
         active = nil, lastSendAt = nil, serial = 0, seen = {}, cooldownUntil = {},
+        seenFeatures = {},
         stopped = false,
     }, Methods)
 end
@@ -61,10 +62,38 @@ function Methods:Fresh(raw, now)
     return snapshot, nil
 end
 
+function Methods:Reserve(proposal, raw, checkOnly)
+    local owner = self.policy.reservations
+    if owner == nil then return true end
+    local ok, claims, reason = pcall(owner.Check, owner, proposal, raw)
+    if not ok or type(claims) ~= "table" then
+        return false, ok and (reason or "Reservation refused") or "Reservation owner raised"
+    end
+    if checkOnly then
+        local expected = proposal.custody
+        if type(expected) ~= "table" or expected.allCrew ~= claims.allCrew
+            or expected.allItems ~= claims.allItems then return false, "Reserved identity changed" end
+        for _, field in ipairs({"members", "items", "funds"}) do
+            for key, value in pairs(claims[field]) do
+                if expected[field][key] ~= value then return false, "Reserved identity changed" end
+            end
+            for key, value in pairs(expected[field]) do
+                if claims[field][key] ~= value then return false, "Reserved identity changed" end
+            end
+        end
+    else
+        proposal.custody = claims
+    end
+    return true
+end
+
 function Methods:Expire(active, now)
     if not self.active or self.active.token ~= active.token then return end
     self:Record("skipped_unconfirmed", active, now,
         "No action-specific confirmation by first send + 45s", true)
+    if type(self.transport.ReleaseExpired) == "function" then
+        pcall(self.transport.ReleaseExpired, self.transport, active.proposal)
+    end
     self.cooldownUntil[active.proposal.feature] = now + self.cooldown
     self.active = nil
 end
@@ -84,14 +113,23 @@ function Methods:Offer(rawProposal, rawSnapshot)
     if not snapshot then return "blocked", reason end
     local proposal, proposalReason = self.policy.contracts.validateProposal(rawProposal, snapshot)
     if not proposal then return "blocked", proposalReason end
+    local reserved, reservationReason = self:Reserve(proposal, rawSnapshot)
+    if not reserved then return "blocked", reservationReason end
     if self.seen[proposal.actionKey] then return "blocked", "Action key already sent" end
     if now < (self.cooldownUntil[proposal.feature] or 0) then
         return "blocked", "Feature cooling down"
+    end
+    local dispatchToken
+    if type(self.policy.dispatchToken) == "function" then
+        local ok, value = pcall(self.policy.dispatchToken, proposal)
+        if not ok or value == nil then return "blocked", "Feature choices unavailable" end
+        dispatchToken = value
     end
     self.serial = self.serial + 1
     self.active = {
         token = self.serial, proposal = proposal, before = snapshot,
         phase = "admitted", sentAt = nil, reply = nil,
+        dispatchToken = dispatchToken,
     }
     self:Record("admitted", self.active, now)
     return "admitted", nil
@@ -108,6 +146,7 @@ function Methods:Tick(rawSnapshot)
         end
         return active.phase
     end
+    if active.preparing then return "preparing" end
 
     if self.stopped then
         self.active = nil
@@ -130,8 +169,10 @@ function Methods:Tick(rawSnapshot)
 
     -- An injected transport may reject an unsupported native call before
     -- the checkpoint records an attempt. Generic fake transports need not.
+    active.preparing = true -- Includes yielding feature/checkpoint write-ahead.
+    local nativeCallToken
     if type(self.transport.Validate) == "function" then
-        local checked, valid, transportReason = pcall(
+        local checked, valid, transportReason, token = pcall(
             self.transport.Validate, self.transport, active.proposal)
         if not checked or valid ~= true then
             self:Record("transport_blocked", active, now,
@@ -140,6 +181,7 @@ function Methods:Tick(rawSnapshot)
             self.active = nil
             return "transport_blocked"
         end
+        nativeCallToken = token
     end
 
     if type(self.policy.captureBefore) == "function" then
@@ -154,38 +196,61 @@ function Methods:Tick(rawSnapshot)
         active.beforeEvidence = baseline
     end
 
+    if self.stopped or self.active ~= active then return "stopped" end
+
+    local reserved, reservationReason = self:Reserve(active.proposal, rawSnapshot, true)
+    if not reserved then
+        self:Record("reservation_blocked", active, now, reservationReason)
+        self.active = nil
+        return "reservation_blocked"
+    end
+    if self.stopped or self.active ~= active then return "stopped" end
     if type(self.policy.beforeSend) == "function" then
-        local ok, saved, saveReason = pcall(self.policy.beforeSend, active.proposal)
+        local ok, saved, saveReason = pcall(self.policy.beforeSend, active.proposal, rawSnapshot, active.beforeEvidence)
         if not ok or saved ~= true then
+            if type(self.policy.abandonedUnsent) == "function" then
+                pcall(self.policy.abandonedUnsent, active.proposal, rawSnapshot, active.beforeEvidence)
+            end
             self:Record("checkpoint_failed", active, now,
                 ok and (saveReason or "Checkpoint rejected") or "Checkpoint raised")
-            self.active = nil
+            if self.active == active then self.active = nil end
             return "checkpoint_failed"
         end
+    end
+    if self.stopped or self.active ~= active then
+        if type(self.policy.abandonedUnsent) == "function" then
+            pcall(self.policy.abandonedUnsent, active.proposal, rawSnapshot, active.beforeEvidence)
+        end
+        return "stopped"
     end
 
     active.sentAt = now -- Immutable first-send time, even if transport raises.
     active.phase = "sent"
     active.latestObservedRevision = snapshot.revision
-    self.lastSendAt = now
-    self.seen[active.proposal.actionKey] = true
-    self:Record("sent", active, now)
     local token = active.token
     local function canDispatch()
-        local dispatchAt = self.clock:Now()
-        return not self.stopped and self.active == active
-            and active.phase == "sent"
-            and dispatchAt - active.sentAt < 45
-            and dispatchAt >= snapshot.capturedAt
-            and dispatchAt - snapshot.capturedAt <= self.freshness
-            and active.latestObservedRevision == snapshot.revision
-            and (type(self.policy.canSend) ~= "function"
-                or self.policy.canSend())
+        local function current()
+            local sending = type(self.policy.canSend) ~= "function" or self.policy.canSend()
+            local dispatchAt = self.clock:Now()
+            return sending and not self.stopped and self.active == active and active.phase == "sent"
+                and dispatchAt - active.sentAt < 45 and dispatchAt >= snapshot.capturedAt
+                and dispatchAt - snapshot.capturedAt <= self.freshness
+                and active.latestObservedRevision == snapshot.revision
+        end
+        if not current() then return false end
+        local selectionAllowed = true
+        if type(self.policy.canDispatch) == "function" then
+            local ok, allowed = pcall(self.policy.canDispatch, active.proposal, active.dispatchToken)
+            selectionAllowed = ok and allowed == true
+        end
+        return selectionAllowed
+            and self:Reserve(active.proposal, rawSnapshot, true) == true
+            and current()
     end
-    local sendOk = pcall(self.transport.Send, self.transport, active.proposal, function(reply)
+    local sendOk, scheduled = pcall(self.transport.Send, self.transport, active.proposal, function(reply)
         local current = self.active
         local callbackAt = self.clock:Now()
-        if not current or current.token ~= token then
+        if self.stopped or not current or current.token ~= token then
             self:Record("late_return", active, callbackAt, "Owner changed")
             return
         end
@@ -197,8 +262,61 @@ function Methods:Tick(rawSnapshot)
         if current.phase == "returned" then return end
         current.reply = reply
         current.phase = "returned"
+        if type(self.policy.recordReply) == "function" then
+            local persisted, saved = pcall(self.policy.recordReply, current.proposal, reply)
+            if not persisted or saved ~= true then
+                self:Record("checkpoint_failed", current, callbackAt, "Returned result was not persisted")
+            end
+        end
         self:Record("returned", current, callbackAt)
-    end, canDispatch)
+    end, canDispatch, nativeCallToken, function()
+        if active.phase ~= "sent" then return end -- A returned invocation cannot become unsent.
+        if type(self.policy.abandonedUnsent) == "function" then
+            pcall(self.policy.abandonedUnsent, active.proposal, rawSnapshot, active.beforeEvidence)
+        end
+        if self.stopped or self.active ~= active then
+            -- Old owners may append exact unsent facts, never rewrite the main checkpoint.
+            return
+        end
+        local cleared, resolved = true, true
+        if type(self.policy.afterResolve) == "function" then
+            cleared, resolved = pcall(self.policy.afterResolve, active.proposal, "schedule_failed")
+        end
+        if self.active == active then self.active = nil end
+        self.seen[active.proposal.actionKey] = nil
+        self.seenFeatures[active.proposal.actionKey] = nil
+        self:Record(cleared and resolved == true and "cancelled_unsent" or "checkpoint_failed",
+            active, self.clock:Now(), "Native invocation did not begin")
+    end, self.policy.authorize and (not self.policy.requiresAuthorization or self.policy.requiresAuthorization(active.proposal)) and function()
+        return self.policy.authorize(active.proposal, rawSnapshot, active.beforeEvidence)
+    end or nil)
+    if sendOk and scheduled == false and type(self.policy.abandonedUnsent) == "function" then
+        pcall(self.policy.abandonedUnsent, active.proposal, rawSnapshot, active.beforeEvidence)
+    end
+    if self.stopped then return "stopped" end
+    if self.active ~= active then return "cancelled_unsent" end
+    if sendOk and scheduled == false then
+        -- The transport explicitly refused scheduling and fenced its callback.
+        -- No native invocation occurred, so clear the write-ahead record.
+        local cleared, resolved = true, true
+        if type(self.policy.afterResolve) == "function" then
+            cleared, resolved = pcall(self.policy.afterResolve,
+                active.proposal, "schedule_failed")
+        end
+        self.active = nil
+        if not cleared or resolved ~= true then
+            self:Record("checkpoint_failed", active, self.clock:Now(),
+                "Unsent checkpoint clear failed")
+            return "checkpoint_failed"
+        end
+        self:Record("schedule_failed", active, self.clock:Now(),
+            "Native scheduling refused")
+        return "schedule_failed"
+    end
+    self.lastSendAt = now
+    self.seen[active.proposal.actionKey] = true
+    self.seenFeatures[active.proposal.actionKey] = active.proposal.feature
+    self:Record("sent", active, now)
     if not sendOk then self:Record("transport_error", active, self.clock:Now(), "Send raised") end
     return "sent"
 end
@@ -238,8 +356,11 @@ function Methods:Observe(rawSnapshot)
             self.cooldownUntil[feature] or 0, now + retry)
     end
     self:Record(result, active, now)
+    if type(self.transport.ReleaseResolved) == "function" then
+        pcall(self.transport.ReleaseResolved, self.transport, active.proposal, result)
+    end
     if type(self.policy.afterResolve) == "function" then
-        local resolveOk, resolved = pcall(self.policy.afterResolve, active.proposal, result)
+        local resolveOk, resolved = pcall(self.policy.afterResolve, active.proposal, result, rawSnapshot)
         if not resolveOk or resolved ~= true then
             self:Record("checkpoint_failed", active, now, "Checkpoint clear failed")
         end
@@ -251,6 +372,15 @@ end
 function Methods:Stop()
     self.stopped = true
     if self.active and self.active.sentAt == nil then self.active = nil end
+end
+
+function Methods:ClearCompletedFeatureKeys(feature)
+    if self.active or self.stopped then return false end
+    for key, owner in pairs(self.seenFeatures) do
+        if owner == feature then self.seen[key], self.seenFeatures[key] = nil, nil end
+    end
+    -- Server retry cooldown and global send spacing remain in force.
+    return true
 end
 
 function Methods:Status()

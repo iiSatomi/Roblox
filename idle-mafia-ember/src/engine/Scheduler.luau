@@ -68,17 +68,23 @@ function Methods:Choose(context, desired, brokerStatus, now)
     if #eligible == 0 then
         return nil, resourceBlocked and "Resource unavailable" or "No eligible proposals"
     end
+    local function rank(proposal)
+        local value = priority[proposal.feature] or 5
+        -- Preserve native Heist/Favor and ready-collection urgency ahead of goals.
+        if value >= 4 and type(desired.goalKeys) == "table" and desired.goalKeys[proposal.actionKey] == true then return 3.5 end
+        return value
+    end
     table.sort(eligible, function(a, b)
-        local pa, pb = priority[a.feature] or 5, priority[b.feature] or 5
+        local pa, pb = rank(a), rank(b)
         if pa ~= pb then return pa < pb end
         return a.actionKey < b.actionKey
     end)
-    local firstPriority = priority[eligible[1].feature] or 5
+    local firstPriority = rank(eligible[1])
     local chosen = eligible[1]
     local last = self.lastKey[firstPriority]
     if last then
         for _, proposal in ipairs(eligible) do
-            if (priority[proposal.feature] or 5) ~= firstPriority then break end
+            if rank(proposal) ~= firstPriority then break end
             if proposal.actionKey > last then
                 chosen = proposal
                 break
