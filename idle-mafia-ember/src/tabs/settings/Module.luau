@@ -16,8 +16,8 @@ function SettingsTab.new(section, ember, userOrigin, alive, callbacks, window, p
     local themeUpdate = appearance:Status({ Text = "Theme update", Default = "No changes" })
     local modeStatus = windowGroup:Status({ Text = "Connection mode",
         Default = callbacks and callbacks.runtimeConnected
-            and "Runtime attached â€” check each feature status"
-            or "UI only â€” actions disconnected" })
+            and "Runtime attached — check each feature status"
+            or "UI only — actions disconnected" })
     local view = { tabOwned = true, themeStatus = themeStatus, themeUpdate = themeUpdate,
         modeStatus = modeStatus }
     if preferences and type(preferences.bind) == "function" and type(preferences.numeric) == "table" then
@@ -35,7 +35,7 @@ function SettingsTab.new(section, ember, userOrigin, alive, callbacks, window, p
         local ok, accepted, reason = pcall(ember.SetTheme, value)
         if not ok or accepted == false then
             view.lastError = ok and (reason or "Theme change refused") or "Theme change failed"
-            themeUpdate:Set("Unchanged â€” " .. tostring(view.lastError), true)
+            themeUpdate:Set("Unchanged — " .. tostring(view.lastError), true)
             pcall(theme.Set, theme, appliedTheme, true)
             return false
         end
