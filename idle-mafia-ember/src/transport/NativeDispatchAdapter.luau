@@ -170,6 +170,9 @@ function Methods:Send(proposal, onReturn, canDispatch, preflightToken, onUnsent,
         if ok and type(reply) == "table" and (not lease or self.lane:Owns(lease.token)) then
             if call.remote == "Attack" then pcall(self.fightReceipts.Bind, self.fightReceipts, lease.token, reply) end
             onReturn(reply)
+            if call.remote == "Attack" and type(self.fightReceipts.Persist) == "function" then
+                self.fightReceipts:Persist()
+            end
         end
     end)
     if scheduled == false and not ran then

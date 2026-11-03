@@ -397,6 +397,14 @@ function AutomationRuntime.new(deps)
         scheduler = m.Scheduler.new(), requested = false,
         goalStates = {}, goalObserved = {}, outcomes = {}, recoveries = {}, recoveryControls = {}, reasons = {}, globalReason = "Paused",
     }, Methods)
+    for _, tab in ipairs(self.tabInstances) do
+        if type(tab.BindFightPersistence) == "function" then
+            tab:BindFightPersistence(checkpoint, function()
+                if self.closed or self.closing then return nil end
+                return self.latestOutcomeSnapshot
+            end, function(why) self.session.storageFault = why or "Fight receipt persistence failed" end)
+        end
+    end
     self.nativePrestigeController = m.nativePrestigeController
     self.nativePrestigeRead = type(m.nativePrestigeController) == "table" and m.nativePrestigeController.Read or nil
     self.nativePrestigeCurrent = type(m.nativePrestigeController) == "table" and m.nativePrestigeController.Current or nil

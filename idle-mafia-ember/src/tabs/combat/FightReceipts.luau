@@ -77,6 +77,7 @@ function FightReceipts.new(identity, clock, lane, source, fingerprint)
     local bound = {}
     for _, k in ipairs(identities) do assert(text(identity[k], 200), "Invalid fight receipt scope"); bound[k] = identity[k] end
     local active, connection, closed, generation = nil, nil, false, 0
+    local persistence, persisting = nil, false
     local function retire()
         generation = generation + 1
         active = nil
@@ -106,16 +107,33 @@ function FightReceipts.new(identity, clock, lane, source, fingerprint)
         row.receipt = p
         return true
     end
+    local function persist()
+        local row = active
+        if persisting or not persistence or not owns(row) or row.persisted or row.ambiguous
+            or not row.initial or not settled(row.receipt) then return end
+        persisting = true
+        local ok, saved = pcall(persistence)
+        persisting = false
+        if ok and saved == true and active == row then row.persisted = true end
+    end
     local function receive(kind, _, raw)
         local row = active
-        if kind ~= "fightcash" or not owns(row) then return end
+        if kind ~= "fightcash" or not owns(row) or row.sealed then return end
         local p = packet(raw)
         if not p then return end
-        if row.initial then accept(row, p); return end
+        if row.initial then accept(row, p); persist(); return end
         if #row.buffer >= 32 then row.ambiguous = true; return end
         row.buffer[#row.buffer + 1] = p
     end
     local result = {sourceKey = fingerprint:lower(), release = bound.release}
+    function result:SetPersistence(callback)
+        if closed or persistence ~= nil or type(callback) ~= "function" then return false end
+        persistence = callback
+        return true
+    end
+    -- Called again after the initial reply is durable: a terminal notification
+    -- can arrive while InvokeServer is still returning and was buffered above.
+    function result:Persist() persist() end
     function result:Begin(token, proposal, target)
         local status = lane:Status()
         if not current() or not lane:Owns(token) or not status.active or status.active.kind ~= "mutation"
@@ -171,6 +189,7 @@ function FightReceipts.new(identity, clock, lane, source, fingerprint)
     function result:Bind(token, raw)
         local row = active
         if not owns(row) or row.token ~= token then return false, "Fight receipt owner changed" end
+        if row.sealed then return false, "Fight receipt already finalized" end
         local p = packet(raw)
         if type(source.HandleReply) == "function" then pcall(source.HandleReply, source, raw) end
         if not p or p.cashStage ~= 1 or p.ok ~= true or type(p.won) ~= "boolean"
@@ -186,6 +205,23 @@ function FightReceipts.new(identity, clock, lane, source, fingerprint)
         row.buffer = {}
         if p.staminaCost ~= row.expectedStamina then return false, "Native Stamina charge differs from reservation" end
         return true, nil
+    end
+    -- Same terminal acceptance as graceful close, without discarding the proof
+    -- that normal reconciliation still needs. Seal before Disconnect can yield.
+    function result:Seal(attempt)
+        local row = active
+        if type(attempt) ~= "table" or not owns(row) or active ~= row or row.ambiguous
+            or not row.initial or not settled(row.receipt) or attempt.status ~= "settled"
+            or attempt.actionKey ~= row.actionKey or attempt.target ~= row.target
+            or attempt.feature ~= row.feature or not equal(attempt.initial, row.initial)
+            or not equal(attempt.receipt, row.receipt) then return false end
+        if row.sealed then return true end
+        row.sealed = true
+        generation = generation + 1
+        local previous = connection
+        connection = nil
+        if previous then pcall(previous.Disconnect, previous) end
+        return active == row and not closed
     end
     function result:Release(token)
         if active and active.token == token then retire(); return true end
@@ -209,6 +245,7 @@ function FightReceipts.new(identity, clock, lane, source, fingerprint)
         return out
     end
     function result:Close()
+        persistence = nil
         if closed then return false end
         closed = true
         retire()

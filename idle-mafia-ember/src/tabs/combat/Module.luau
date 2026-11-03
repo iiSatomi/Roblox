@@ -362,25 +362,41 @@ function Methods:AcceptFamilyBossRead(snapshot, request, reply)
     return self.familyBossQuery:Accept(snapshot, request, reply)
 end
 
-function Methods:FlushBeforeClose(checkpoint, snapshot)
+function Methods:BindFightPersistence(checkpoint, currentSnapshot, fault)
+    if not self.fightReceipts or type(self.fightReceipts.SetPersistence) ~= "function" then return end
+    self.fightReceipts:SetPersistence(function()
+        if self.closed then return nil end
+        local ok, saved, why = pcall(self.PersistFightReceipt, self, checkpoint, currentSnapshot(), false)
+        if not ok or saved == false then fault(ok and why or "Fight receipt persistence failed") end
+        return ok and saved or nil
+    end)
+end
+
+function Methods:PersistFightReceipt(checkpoint, snapshot, closing)
     if self.closed or self.playerLedgerFault or not self.playerLedger or not self.playerEvidence
         or not self.fightReceipts or type(snapshot) ~= "table" or type(checkpoint) ~= "table"
-        or type(checkpoint.Recovery) ~= "function" then return true end
+        or type(checkpoint.Recovery) ~= "function" then return nil end
     local proof = self.fightReceipts:Read(snapshot)
     if type(proof) ~= "table" or type(proof.attempts) ~= "table" or #proof.attempts ~= 1
-        or proof.attempts[1].status ~= "settled" then return true end
+        or proof.attempts[1].status ~= "settled" then return nil end
     local attempt = proof.attempts[1]
     local data = checkpoint:Recovery(attempt.actionKey)
-    if not data or type(data.proposal.intent) ~= "table" or data.proposal.intent.kind ~= "playerAttack" then return true end
+    if not data or type(data.proposal.intent) ~= "table" or data.proposal.intent.kind ~= "playerAttack" then return nil end
     local after = {}
     for k, v in pairs(snapshot) do after[k] = v end
     after.playerFightProof = proof
     after.playerFightHistoryProof = self.playerLedger:Proof(snapshot)
-    if not self.playerEvidence.outcome(data, after) then return true end
-    -- Freeze this owned terminal observation before a storage write can yield.
-    -- This closes only our listener; it never changes native game flags/state.
-    self.fightReceipts:Close()
+    if not self.playerEvidence.outcome(data, after) then return nil end
+    -- Persist a detached, exact terminal observation. Keep main checkpoint
+    -- custody and allowance intact; normal reconciliation owns their cleanup.
+    if type(self.fightReceipts.Seal) ~= "function" or not self.fightReceipts:Seal(attempt) then return nil end
+    if closing then self.fightReceipts:Close() end
     return self.playerLedger:Record(data, after)
+end
+
+function Methods:FlushBeforeClose(checkpoint, snapshot)
+    local saved, why = self:PersistFightReceipt(checkpoint, snapshot, true)
+    return saved ~= false, why
 end
 
 function Methods:Close()
