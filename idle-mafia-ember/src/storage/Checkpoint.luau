@@ -119,7 +119,7 @@ local function validResources(raw)
     return copy
 end
 
-local function copyRecord(raw, scope, familyUsageModule, reservationModule, pendingModule, eventUsageModule, skipRecovery, rentUsageModule, hireUsageModule, fightUsageModule)
+local function copyRecord(raw, scope, familyUsageModule, reservationModule, pendingModule, eventUsageModule, skipRecovery, rentUsageModule, hireUsageModule, fightUsageModule, chestUsageModule)
     if type(raw) ~= "table" or not nonempty(raw.feature)
         or not nonempty(raw.actionKey) or raw.account ~= scope.account
         or raw.place ~= scope.place or raw.release ~= scope.release then
@@ -154,6 +154,19 @@ local function copyRecord(raw, scope, familyUsageModule, reservationModule, pend
         if not eventUsageModule then return nil end
         record.eventCharge = eventUsageModule.copyCharge(raw.eventCharge, raw.feature, resources)
         if not record.eventCharge then return nil end
+    end
+    if raw.chestCharge ~= nil then
+        if not chestUsageModule then return nil end
+        record.chestCharge = chestUsageModule.copyCharge(raw.chestCharge, raw.feature, resources)
+        if not record.chestCharge then return nil end
+        if record.recovery and not skipRecovery then
+            local data = pendingModule.Decode(record.recovery, record)
+            local intent = data and data.proposal.intent
+            if not intent or intent.kind ~= "chests" then return nil end
+            for _, key in ipairs({"itemId", "amount", "attemptedBefore", "spentBefore"}) do
+                if intent[key] ~= record.chestCharge[key] then return nil end
+            end
+        end
     end
     if raw.rentCharge ~= nil then
         if not rentUsageModule then return nil end
@@ -200,7 +213,7 @@ local function scopeKey(account, place, release)
         .. #release .. ":" .. release
 end
 
-function Checkpoint.new(storage, familyUsageModule, reservationModule, pendingModule, eventUsageModule, rentUsageModule, hireUsageModule, fightUsageModule)
+function Checkpoint.new(storage, familyUsageModule, reservationModule, pendingModule, eventUsageModule, rentUsageModule, hireUsageModule, fightUsageModule, chestUsageModule)
     assert(type(storage) == "table" and type(storage.Read) == "function"
         and type(storage.Write) == "function", "Missing checkpoint storage")
     -- A two-slot file store used for write-ahead actions must not revive an
@@ -219,6 +232,9 @@ function Checkpoint.new(storage, familyUsageModule, reservationModule, pendingMo
     assert(eventUsageModule == nil or (type(eventUsageModule) == "table" and type(eventUsageModule.copy) == "function"
         and type(eventUsageModule.copyCharge) == "function" and type(eventUsageModule.charge) == "function"
         and type(eventUsageModule.holds) == "function" and type(eventUsageModule.rollback) == "function"), "Invalid Event Shop usage owner")
+    assert(chestUsageModule == nil or type(chestUsageModule) == "table" and type(chestUsageModule.copy) == "function"
+        and type(chestUsageModule.copyCharge) == "function" and type(chestUsageModule.charge) == "function"
+        and type(chestUsageModule.holds) == "function" and type(chestUsageModule.rollback) == "function", "Invalid chest usage owner")
     assert(rentUsageModule == nil or (type(rentUsageModule) == "table" and type(rentUsageModule.copy) == "function"
         and type(rentUsageModule.copyCharge) == "function" and type(rentUsageModule.charge) == "function"
         and type(rentUsageModule.holds) == "function" and type(rentUsageModule.rollback) == "function"), "Invalid rental usage owner")
@@ -232,6 +248,7 @@ function Checkpoint.new(storage, familyUsageModule, reservationModule, pendingMo
     return setmetatable({ storage = storage, scope = nil, key = nil,
         hireUsageModule=hireUsageModule,crewHireUsage=nil,
         fightUsageModule=fightUsageModule,playerFightUsage=nil,
+        chestUsageModule = chestUsageModule, chestUsage = nil,
         rentUsageModule = rentUsageModule, marketRentUsage = nil,
         reservationModule = reservationModule,
         pendingModule = pendingModule,
@@ -269,6 +286,7 @@ function Methods:Load(account, place, release)
     self.familyAttackUsage = nil
     self.bossShopUsage = nil
     self.familyContributionUsage = self.familyUsageModule and self.familyUsageModule.copy(nil) or nil
+    self.chestUsage = nil
     self.eventShopUsage = nil
     self.marketRentUsage = nil
     self.crewHireUsage=nil
@@ -307,7 +325,7 @@ function Methods:Load(account, place, release)
     end
     local records, seen, ids, prestigeOrdinals = {}, {}, {}, {}
     for index, raw in ipairs(data.records) do
-        local record = copyRecord(raw, self.scope, self.familyUsageModule, self.reservationModule, self.pendingModule, self.eventUsageModule, nil, self.rentUsageModule,self.hireUsageModule,self.fightUsageModule)
+        local record = copyRecord(raw, self.scope, self.familyUsageModule, self.reservationModule, self.pendingModule, self.eventUsageModule, nil, self.rentUsageModule,self.hireUsageModule,self.fightUsageModule,self.chestUsageModule)
         if not record or seen[record.actionKey]
             or record.prestigeOrdinal ~= nil and (record.prestigeOrdinal > prestigeAttempts or prestigeOrdinals[record.prestigeOrdinal])
             or (record.requestId ~= nil and (record.requestId > highwater or ids[record.requestId]))
@@ -315,6 +333,12 @@ function Methods:Load(account, place, release)
                 and record.fightCharge == nil) then
             self.fault = "Corrupt checkpoint"
             return nil, self.fault
+        end
+        if record.feature == "chests" and record.recovery and not record.chestCharge then
+            local data = self.pendingModule.Decode(record.recovery, record)
+            if data and data.proposal.intent.attemptedBefore ~= nil then
+                self.fault = "Missing chest allowance charge"; return nil, self.fault
+            end
         end
         seen[record.actionKey] = true
         if record.requestId then ids[record.requestId] = true end
@@ -357,6 +381,25 @@ function Methods:Load(account, place, release)
     for _, record in ipairs(records) do
         if record.fightCharge and not self.fightUsageModule.holds(playerFightUsage, record.fightCharge) then
             self.fault = "Missing player Stamina allowance charge"; return nil, self.fault
+        end
+    end
+    local chestUsage
+    if data.chestUsageInitialized ~= nil and (data.chestUsageInitialized ~= true or data.chestUsage == nil) then
+        self.fault = "Initialized chest usage is missing or invalid"; return nil, self.fault
+    end
+    if data.chestUsage ~= nil then
+        chestUsage = self.chestUsageModule and self.chestUsageModule.copy(data.chestUsage)
+        if not chestUsage then self.fault = "Missing or invalid chest usage owner"; return nil, self.fault end
+    end
+    for _, record in ipairs(records) do
+        if record.feature == "chests" and not record.chestCharge then
+            if not self.chestUsageModule then self.fault = "Legacy chest usage owner required"; return nil, self.fault end
+            chestUsage = self.chestUsageModule.copy(chestUsage)
+            if not chestUsage then self.fault = "Invalid legacy chest usage"; return nil, self.fault end
+            chestUsage.unknown = true -- Exact settlement cannot establish the prior run total.
+        end
+        if record.chestCharge and not self.chestUsageModule.holds(chestUsage, record.chestCharge) then
+            self.fault = "Chest charge missing from saved usage"; return nil, self.fault
         end
     end
     local eventShopUsage
@@ -490,6 +533,7 @@ function Methods:Load(account, place, release)
     self.marketRentUsage = marketRentUsage
     self.crewHireUsage=crewHireUsage
     self.playerFightUsage=playerFightUsage
+    self.chestUsage = chestUsage
     self.eventShopUsage = eventShopUsage
     self.familyContributionUsage = familyContributionUsage
     self.favorUsage = usage and { day = usage.day,
@@ -621,7 +665,7 @@ function Methods:Records(includeRecovery)
     local copy = {}
     for index, record in ipairs(self.records) do
         copy[index] = copyRecord(record, self.scope, self.familyUsageModule, self.reservationModule, self.pendingModule, self.eventUsageModule,
-            includeRecovery ~= true, self.rentUsageModule,self.hireUsageModule,self.fightUsageModule)
+            includeRecovery ~= true, self.rentUsageModule,self.hireUsageModule,self.fightUsageModule,self.chestUsageModule)
     end
     return copy
 end
@@ -645,7 +689,7 @@ end
 
 function Methods:Commit(records, favorUsage, bossUsage,
     sabotageUsage, globalClaimUsage, globalAttackUsage,
-    familyClaimUsage, familyAttackUsage, bossShopUsage, familyContributionUsage, eventShopUsage, requestHighwater, marketRentUsage, crewHireUsage, stationAttempts, residencyAttempts, playerFightUsage, prestigeAttempts)
+    familyClaimUsage, familyAttackUsage, bossShopUsage, familyContributionUsage, eventShopUsage, requestHighwater, marketRentUsage, crewHireUsage, stationAttempts, residencyAttempts, playerFightUsage, prestigeAttempts, chestUsage)
     if self.fault then return false, self.fault end
     if not self.key then return false, "Checkpoint not loaded" end
     if writers[self.key] then return false, "Checkpoint write already in flight" end
@@ -656,9 +700,10 @@ function Methods:Commit(records, favorUsage, bossUsage,
     local nextStationAttempts = stationAttempts or self.stationAttempts
     local nextHireUsage=crewHireUsage or self.crewHireUsage
     local nextFightUsage=playerFightUsage or self.playerFightUsage
+    local nextChestUsage = chestUsage or self.chestUsage
     local nextRentUsage = marketRentUsage or self.marketRentUsage
     writers[writeKey], self.writing = self, writeKey
-    local nextEnvelope = { prestigeAttempts = nextPrestigeAttempts, playerFightUsage = nextFightUsage, residencyAttempts = nextResidencyAttempts, stationAttempts = nextStationAttempts, crewHireUsage=nextHireUsage,version = 1, records = records, requestHighwater = nextHighwater, marketRentUsage = nextRentUsage,
+    local nextEnvelope = { chestUsageInitialized = nextChestUsage ~= nil and true or nil, chestUsage = nextChestUsage, prestigeAttempts = nextPrestigeAttempts, playerFightUsage = nextFightUsage, residencyAttempts = nextResidencyAttempts, stationAttempts = nextStationAttempts, crewHireUsage=nextHireUsage,version = 1, records = records, requestHighwater = nextHighwater, marketRentUsage = nextRentUsage,
             favorUsage = favorUsage, bossUsage = bossUsage,
             sabotageUsage = sabotageUsage,
             globalClaimUsage = globalClaimUsage,
@@ -688,6 +733,7 @@ function Methods:Commit(records, favorUsage, bossUsage,
     self.prestigeAttempts = nextPrestigeAttempts
     self.stationAttempts = nextStationAttempts
     self.requestHighwater = nextHighwater
+    self.chestUsage = nextChestUsage
     self.marketRentUsage = nextRentUsage
     self.crewHireUsage=nextHireUsage
     self.playerFightUsage=nextFightUsage
@@ -736,7 +782,7 @@ function Methods:RecordUnsent(proposal, before, baseline)
     for name, value in pairs(proposal) do request[name] = value end
     request.requestId = id
     local envelope, reason = self.pendingModule.Capture(request, before, baseline)
-    local record = copyRecord(request, self.scope, self.familyUsageModule, self.reservationModule, nil, self.eventUsageModule, true, self.rentUsageModule,self.hireUsageModule,self.fightUsageModule)
+    local record = copyRecord(request, self.scope, self.familyUsageModule, self.reservationModule, nil, self.eventUsageModule, true, self.rentUsageModule,self.hireUsageModule,self.fightUsageModule,self.chestUsageModule)
     if not envelope or not record then return false, reason or "Unsent evidence scope changed" end
     local fact = {version = 1, account = self.scope.account, place = self.scope.place,
         release = self.scope.release, requestId = id, recovery = envelope}
@@ -811,6 +857,7 @@ function Methods:Save(raw, before, baseline)
     local numbered = {}
     for key, value in pairs(raw) do numbered[key] = value end
     numbered.requestId = requestId -- Trusted local ID, never a caller-chosen native sequence.
+    numbered.chestCharge = nil -- Only this checkpoint charges crate exposure.
     numbered.prestigeOrdinal = nil -- Only this checkpoint may assign a reset attempt.
     raw = numbered
     if self.pendingModule then
@@ -821,7 +868,7 @@ function Methods:Save(raw, before, baseline)
         request.recovery = recovery -- Never promote caller-provided recovery data.
         raw = request
     end
-    local record = copyRecord(raw, self.scope, self.familyUsageModule, self.reservationModule, self.pendingModule, self.eventUsageModule, nil, self.rentUsageModule,self.hireUsageModule,self.fightUsageModule)
+    local record = copyRecord(raw, self.scope, self.familyUsageModule, self.reservationModule, self.pendingModule, self.eventUsageModule, nil, self.rentUsageModule,self.hireUsageModule,self.fightUsageModule,self.chestUsageModule)
     if not record then return false, "Invalid checkpoint record" end
     local records = self:Records(true)
     if #records >= 256 then return false, "Checkpoint capacity reached" end
@@ -839,6 +886,7 @@ function Methods:Save(raw, before, baseline)
     local familyAttackUsage = self.familyAttackUsage
     local bossShopUsage = self.bossShopUsage
     local familyContributionUsage = self.familyContributionUsage
+    local chestUsage = self.chestUsage
     local eventShopUsage = self.eventShopUsage
     local crewHireUsage=self.crewHireUsage
     local playerFightUsage=self.playerFightUsage
@@ -895,6 +943,12 @@ function Methods:Save(raw, before, baseline)
         local usage, charge, reason = self.rentUsageModule.charge(marketRentUsage, raw)
         if not usage then return false, reason end
         marketRentUsage, record.rentCharge = usage, charge
+    end
+    if record.feature == "chests" and (self.chestUsageModule or raw.intent and raw.intent.attemptedBefore ~= nil) then
+        if not self.chestUsageModule then return false, "Chest usage owner unavailable" end
+        local usage, charge, reason = self.chestUsageModule.charge(chestUsage, raw)
+        if not usage then return false, reason end
+        chestUsage, record.chestCharge = usage, charge
     end
     if record.feature == "eventShop" then
         if not self.eventUsageModule then return false, "Event Shop usage owner unavailable" end
@@ -1122,7 +1176,7 @@ function Methods:Save(raw, before, baseline)
     records[#records + 1] = record
     local saved, reason, attemptedId = self:Commit(records, usage, bossUsage,
         sabotageUsage, globalClaimUsage, globalAttackUsage,
-        familyClaimUsage, familyAttackUsage, bossShopUsage, familyContributionUsage, eventShopUsage, requestId, marketRentUsage,crewHireUsage,stationAttempts,residencyAttempts,playerFightUsage,prestigeAttempts)
+        familyClaimUsage, familyAttackUsage, bossShopUsage, familyContributionUsage, eventShopUsage, requestId, marketRentUsage,crewHireUsage,stationAttempts,residencyAttempts,playerFightUsage,prestigeAttempts,chestUsage)
     original.checkpointRequestId = attemptedId
     return saved, reason
 end
@@ -1136,6 +1190,7 @@ function Methods:Resolve(actionKey, outcome)
     local globalAttackUsage = self.globalAttackUsage
     local globalClaimUsage = self.globalClaimUsage
     local familyContributionUsage = self.familyContributionUsage
+    local chestUsage = self.chestUsage
     local eventShopUsage = self.eventShopUsage
     local crewHireUsage=self.crewHireUsage
     local playerFightUsage=self.playerFightUsage
@@ -1250,6 +1305,10 @@ function Methods:Resolve(actionKey, outcome)
                 familyContributionUsage = self.familyUsageModule.rollback(familyContributionUsage, record.familyCharge)
                 if not familyContributionUsage then return false, "Family unsent charge changed" end
             end
+            if outcome == "schedule_failed" and record.chestCharge then
+                chestUsage = self.chestUsageModule.rollback(chestUsage, record.chestCharge)
+                if not chestUsage then return false, "Chest unsent charge changed" end
+            end
             if outcome == "schedule_failed" and record.eventCharge then
                 eventShopUsage = self.eventUsageModule.rollback(eventShopUsage, record.eventCharge)
                 if not eventShopUsage then return false, "Event Shop unsent charge changed" end
@@ -1272,7 +1331,7 @@ function Methods:Resolve(actionKey, outcome)
                 if not marketRentUsage then return false, "Rental unsent charge changed" end
             end
         else
-            records[#records + 1] = copyRecord(record, self.scope, self.familyUsageModule, self.reservationModule, self.pendingModule, self.eventUsageModule, nil, self.rentUsageModule,self.hireUsageModule,self.fightUsageModule)
+            records[#records + 1] = copyRecord(record, self.scope, self.familyUsageModule, self.reservationModule, self.pendingModule, self.eventUsageModule, nil, self.rentUsageModule,self.hireUsageModule,self.fightUsageModule,self.chestUsageModule)
         end
     end
     if not found then return false, "Action not in checkpoint" end
@@ -1280,7 +1339,7 @@ function Methods:Resolve(actionKey, outcome)
         bossUsage, self.sabotageUsage,
         globalClaimUsage, globalAttackUsage,
         familyClaimUsage, self.familyAttackUsage,
-        bossShopUsage, familyContributionUsage, eventShopUsage, nil, marketRentUsage,crewHireUsage,stationAttempts,residencyAttempts,playerFightUsage,prestigeAttempts)
+        bossShopUsage, familyContributionUsage, eventShopUsage, nil, marketRentUsage,crewHireUsage,stationAttempts,residencyAttempts,playerFightUsage,prestigeAttempts,chestUsage)
 end
 
 function Methods:ResidencyUsage(snapshot)
@@ -1320,6 +1379,23 @@ function Methods:MarketRentUsage(snapshot)
     for _, key in ipairs({"account", "place", "release"}) do if snapshot[key] ~= self.scope[key] then return nil, "Rental usage scope changed" end end
     local usage = self.rentUsageModule.copy(self.marketRentUsage)
     if not usage then return nil, "Rental usage invalid" end
+    local proof = {attempted = usage.attempted, spent = usage.spent}
+    for _, key in ipairs({"session", "account", "place", "release", "revision", "capturedAt"}) do proof[key] = snapshot[key] end
+    return proof, nil
+end
+
+function Methods:ChestUsage(snapshot)
+    if self.fault or not self.scope or not self.chestUsageModule or type(snapshot) ~= "table"
+        or not nonempty(snapshot.session) or not integer(snapshot.revision, 0)
+        or type(snapshot.capturedAt) ~= "number" or snapshot.capturedAt ~= snapshot.capturedAt
+        or snapshot.capturedAt < 0 or snapshot.capturedAt == math.huge then return nil, "Chest usage unavailable" end
+    for _, key in ipairs({"account", "place", "release"}) do if snapshot[key] ~= self.scope[key] then return nil, "Chest usage scope changed" end end
+    for _, record in ipairs(self.records) do
+        if record.feature == "chests" and not record.chestCharge then return nil, "Legacy chest usage is unknown" end
+    end
+    local usage = self.chestUsageModule.copy(self.chestUsage)
+    if not usage then return nil, "Chest usage invalid" end
+    if usage.unknown == true then return nil, "Previous chest use is unknown; pause and review its allowance" end
     local proof = {attempted = usage.attempted, spent = usage.spent}
     for _, key in ipairs({"session", "account", "place", "release", "revision", "capturedAt"}) do proof[key] = snapshot[key] end
     return proof, nil
@@ -1381,6 +1457,11 @@ function Methods:Allowance(feature)
         row = self.fightUsageModule.summary(self.playerFightUsage, feature)
     elseif feature=="crewHire" and self.hireUsageModule then
         row=self.hireUsageModule.copy(self.crewHireUsage)
+    elseif feature == "chests" and self.chestUsageModule then
+        for _, record in ipairs(self.records) do
+            if record.feature == "chests" and not record.chestCharge then return nil, "Legacy chest usage is unknown" end
+        end
+        row = self.chestUsageModule.copy(self.chestUsage)
     elseif feature == "eventShop" and self.eventUsageModule then
         row = self.eventUsageModule.copy(self.eventShopUsage)
     elseif feature == "marketRent" and self.rentUsageModule then
@@ -1391,7 +1472,7 @@ function Methods:Allowance(feature)
     end
     if not row then return nil, "That allowance is unavailable in this runtime" end
     return {feature = feature, account = self.scope.account, place = self.scope.place, release = self.scope.release,
-        attempted = row.attempted, spent = row.spent, attackAttempted = row.attackAttempted, attackSpent = row.attackSpent,
+        unknown = row.unknown, attempted = row.attempted, spent = row.spent, attackAttempted = row.attackAttempted, attackSpent = row.attackSpent,
         scoutAttempted = row.scoutAttempted, scoutSpent = row.scoutSpent}, nil
 end
 
@@ -1401,10 +1482,11 @@ function Methods:ResetAllowance(expected)
     end
     local current, reason = self:Allowance(expected.feature)
     if not current then return false, reason end
-    for _, key in ipairs({"account", "place", "release", "feature", "attempted", "spent", "attackAttempted", "attackSpent", "scoutAttempted", "scoutSpent"}) do
+    for _, key in ipairs({"account", "place", "release", "feature", "unknown", "attempted", "spent", "attackAttempted", "attackSpent", "scoutAttempted", "scoutSpent"}) do
         if expected[key] ~= current[key] then return false, "Allowance changed; preview it again" end
     end
-    if current.attempted == 0 and current.spent == 0 then return true, "Allowance already clear" end
+    if current.unknown ~= true and current.attempted == 0 and current.spent == 0 then return true, "Allowance already clear" end
+    local chest = self.chestUsage
     local hire=self.crewHireUsage
     local fight=self.playerFightUsage
     local station = self.stationAttempts
@@ -1419,6 +1501,8 @@ function Methods:ResetAllowance(expected)
         station = 0
     elseif expected.feature=="crewHire" then
         hire=self.hireUsageModule.copy(nil)
+    elseif expected.feature == "chests" then
+        chest = self.chestUsageModule.copy(nil)
     elseif expected.feature == "eventShop" then
         event = self.eventUsageModule.copy(nil)
     elseif expected.feature == "marketRent" then
@@ -1430,7 +1514,7 @@ function Methods:ResetAllowance(expected)
     end
     return self:Commit({}, self.favorUsage, self.bossUsage, self.sabotageUsage,
         self.globalClaimUsage, self.globalAttackUsage, self.familyClaimUsage,
-        self.familyAttackUsage, self.bossShopUsage, family, event, nil, rent,hire,station,residency,fight)
+        self.familyAttackUsage, self.bossShopUsage, family, event, nil, rent,hire,station,residency,fight,nil,chest)
 end
 
 return Checkpoint

@@ -9,6 +9,12 @@ local function integer(v, low, high) return number(v, low, high) and v % 1 == 0 
 local function text(v, high)
     return type(v) == "string" and #v > 0 and #v <= high and not v:find("[%c]")
 end
+local ruleFields = {"highPromoteCash", "highDemoteBelow", "highDemoteHits"}
+local function validRules(raw)
+    if raw.highPromoteCash == nil and raw.highDemoteBelow == nil and raw.highDemoteHits == nil then return true end
+    return integer(raw.highPromoteCash, 1, 1000000000000000)
+        and integer(raw.highDemoteBelow, 0, 1000000000000000) and integer(raw.highDemoteHits, 1, 100)
+end
 local function equal(a, b)
     if type(a) ~= type(b) then return false end
     if type(a) ~= "table" then return a == b end
@@ -65,6 +71,9 @@ function Evidence.new(receipts)
             or not integer(i.expectedStaminaCost, 1, 5) or type(p.resources) ~= "table"
             or not integer(exposure, i.expectedStaminaCost, 5) or p.resources.stamina ~= exposure or not text(i.sourceKey, 64) or #i.sourceKey ~= 64
             or not i.sourceKey:match("^[%x]+$") then return nil, "Exact player fight baseline required" end
+        if not validRules(i) or p.feature ~= "combat" and i.highPromoteCash ~= nil then
+            return nil, "Exact ordinary high-value rules required"
+        end
         if i.highValueOnly ~= nil and type(i.highValueOnly) ~= "boolean" then return nil, "Invalid high-only option" end
         if i.highValueOnly == true then
             local ledger = before.playerFightHistoryProof
@@ -108,6 +117,7 @@ function Evidence.new(receipts)
             day = math.floor(i.serverNow / 86400), dailyBefore = count}
         for _, k in ipairs(scope) do baseline[k] = p[k] end
         if i.maxStaminaExposure ~= nil then baseline.staminaExposure = exposure end
+        for _, key in ipairs(ruleFields) do baseline[key] = i[key] end
         return baseline, nil
     end
     local function original(data, live)
@@ -126,6 +136,8 @@ function Evidence.new(receipts)
                 or i.sourceKey ~= b.sourceKey
                 or i.serverNow ~= b.serverNow or not number(b.serverNow, 0)
                 or b.day ~= math.floor(b.serverNow / 86400) or not integer(b.dailyBefore, 0) then return nil end
+            if not validRules(i) or not validRules(b) then return nil end
+            for _, key in ipairs(ruleFields) do if i[key] ~= b[key] then return nil end end
             return b
         end
         local baseline = result.capture(data.proposal, data.before)
@@ -139,11 +151,13 @@ function Evidence.new(receipts)
             or not raw.sourceKey:match("^[%x]+$") or not integer(raw.targetLevel, 1)
             or not text(raw.targetName, 64) or not integer(raw.day, 0) or raw.day ~= math.floor(raw.serverNow / 86400)
             or not integer(raw.dailyBefore, 0) then return nil end
+        if not validRules(raw) or raw.feature ~= "combat" and raw.highPromoteCash ~= nil then return nil end
         local first, last = pair(raw.initial, raw.receipt, raw)
         if not first then return nil end
         local out = {initial = first, receipt = last}
         for _, k in ipairs({"requestId", "actionKey", "feature", "target", "session", "revision", "serverNow",
             "staminaCost", "sourceKey", "targetLevel", "targetName", "day", "dailyBefore"}) do out[k] = raw[k] end
+        for _, key in ipairs(ruleFields) do out[key] = raw[key] end
         for k in pairs(raw) do if out[k] == nil then return nil end end
         return out
     end
@@ -153,6 +167,7 @@ function Evidence.new(receipts)
         for _, k in ipairs({"serverNow", "target", "staminaCost", "sourceKey", "targetLevel", "targetName", "day", "dailyBefore"}) do
             out[k] = baseline[k]
         end
+        for _, key in ipairs(ruleFields) do out[key] = baseline[key] end
         return result.copyOutcome(out)
     end
     local function matched(data, after, live, persistOwned)

@@ -79,10 +79,39 @@ local function scoringTarget(row, now)
         and allowance.attacksRemaining <= allowance.attacksCap and integer(allowance.pairRemaining, 1)
 end
 
+-- Bounded scalar profile lists; names never grant permission. A configured
+-- ally always wins conflict with enemy targeting. Reusable by future hostile lanes.
+function TargetSelection.relations(settings)
+    local function ids(value)
+        if value == nil then value = "" end
+        if type(value) ~= "string" or #value > 7743 then return nil end
+        local out, count = {}, 0
+        if value:match("^%s*$") then return out end
+        for raw in (value .. ","):gmatch("(.-),") do
+            local id = raw:match("^%s*(.-)%s*$")
+            count = count + 1
+            if count > 64 or #id > 120 or id == "0" or not id:match("^[%w_%-]+$") then return nil end
+            out[id] = true
+        end
+        return out
+    end
+    local allies, enemies = ids(settings.relationAllies), ids(settings.relationEnemies)
+    local mode = settings.enemyMode or "Off"
+    if not allies or not enemies or (mode ~= "Off" and mode ~= "Prefer enemies" and mode ~= "Enemies only") then return nil end
+    return {allies = allies, enemies = enemies, mode = mode}
+end
+function TargetSelection.familyAllowed(policy, id)
+    if not policy or not familyId(id, 0) then return false end
+    local key = tostring(id)
+    return not policy.allies[key] and (policy.mode ~= "Enemies only" or policy.enemies[key] == true)
+end
+
 function TargetSelection.choose(view, settings, held, mode)
     if type(view) ~= "table" or type(settings) ~= "table" or type(held) ~= "table"
         or (mode ~= "combat" and mode ~= "warCombat") then return nil, "Missing target selection input" end
     if settings.enabled ~= true then return nil, "Player mode disabled" end
+    local relations = TargetSelection.relations(settings)
+    if not relations then return nil, "Invalid Alliance/Enemy preferences" end
     if view.status ~= "known" or not number(view.serverNow, 0)
         or not integer(view.ownUserId, 1) or not familyId(view.ownFamilyId, 0)
         or not number(view.health, 0) or not number(view.maxHealth, 1) or view.health > view.maxHealth
@@ -93,9 +122,12 @@ function TargetSelection.choose(view, settings, held, mode)
         or view.maxNativeStaminaCost ~= nil and (not integer(view.maxNativeStaminaCost, 1) or view.maxNativeStaminaCost > 5) then
         return nil, "Current player resources, identity and native rules required"
     end
-    for _, field in ipairs({"minimumPayout", "staminaReserve", "maxScoutSpend", "maxAttackSpend", "minSamples"}) do
+    for _, field in ipairs({"minimumPayout", "maxScoutSpend", "maxAttackSpend", "minSamples"}) do
         if not integer(settings[field], 0) then return nil, "Explicit player limits required" end
     end
+    if not number(settings.staminaReserve, 0) or settings.staminaReserve > 1e12 then return nil, "Invalid player stamina reserve" end
+    if settings.preferHighValue ~= nil and type(settings.preferHighValue) ~= "boolean" then return nil, "Invalid high-value preference" end
+    local highPreferred = mode == "combat" and settings.preferHighValue == true and view.highValueKnown == true
     local targetSource = settings.targetSource
     if targetSource == "Saved only + lookup" then targetSource = "Saved only"
     elseif targetSource == "Saved and new + lookup" then targetSource = "Saved and new" end
@@ -129,7 +161,7 @@ function TargetSelection.choose(view, settings, held, mode)
         if not number(held[field], 0) then return nil, "Trusted player usage and custody required" end
     end
     local floor = math.max(view.hospitalHealth, view.maxHealth * settings.healthFloor / 100)
-    if view.health - held.health < floor then return nil, "Player Health reserve" end
+    if view.health < held.health + floor then return nil, "Player Health reserve" end
     local war = type(view.war) == "table" and view.war or {}
     if war.active == true and (not familyId(war.enemyFamilyId, 1)
         or view.ownFamilyId ~= 0 and type(war.enemyFamilyId) ~= type(view.ownFamilyId)) then
@@ -157,7 +189,7 @@ function TargetSelection.choose(view, settings, held, mode)
         if attackExposure == nil then attackExposure = row.staminaCost end
         local excludedEnemy = not warTarget and war.active == true and row.familyId == war.enemyFamilyId
         local eligible = saved and (not highOnly or row.highValue == true) and row.userId ~= view.ownUserId and row.friend == false
-            and familyId(row.familyId, 0)
+            and TargetSelection.familyAllowed(relations, row.familyId)
             and (row.familyId == 0 or view.ownFamilyId == 0 or type(row.familyId) == type(view.ownFamilyId))
             and (view.ownFamilyId == 0 or row.familyId ~= view.ownFamilyId)
             and not excludedEnemy and type(row.name) == "string" and #row.name > 0 and #row.name <= 64
@@ -168,7 +200,7 @@ function TargetSelection.choose(view, settings, held, mode)
             and integer(row.remainingDaily, 1) and number(row.shieldUntil, 0) and row.shieldUntil <= view.serverNow
             and number(row.cooldownUntil, 0) and row.cooldownUntil <= view.serverNow
             and held.attackSpent + attackExposure <= settings.maxAttackSpend
-            and view.stamina - held.stamina - attackExposure >= settings.staminaReserve
+            and view.stamina >= attackExposure + held.stamina + settings.staminaReserve
             and (targetSource ~= "Saved only" or saved.samples > 0)
             and saved.samples >= settings.minSamples
             and (saved.samples == 0 and settings.minimumPayout == 0 or saved.payout >= settings.minimumPayout)
@@ -193,7 +225,7 @@ function TargetSelection.choose(view, settings, held, mode)
                     and settings.allowScout == true and integer(scoutCost, 1) and scoutCost <= 5
                     and integer(scoutExposure, scoutCost) and scoutExposure <= 5
                     and held.scoutSpent + scoutExposure <= settings.maxScoutSpend
-                    and view.stamina - held.stamina - attackExposure - scoutExposure >= settings.staminaReserve
+                    and view.stamina >= scoutExposure + attackExposure + held.stamina + settings.staminaReserve
                 kind, cost, exposure = "scout", scoutCost, scoutExposure
             else
                 eligible = chance ~= nil and chance * 100 >= minChance
@@ -203,6 +235,7 @@ function TargetSelection.choose(view, settings, held, mode)
                 local selected = {userId = row.userId, name = row.name, level = row.level,
                     kind = kind, cost = cost, exposure = exposure, attackCost = row.staminaCost, attackExposure = attackExposure,
                     familyId = row.familyId, warFamilyId = row.warFamilyId,
+                    highValue = view.highValueKnown == true and row.highValue == true,
                     samples = saved.samples, payout = saved.payout, winRate = saved.winRate,
                     chance = chance, statsAt = fresh and stats.at or nil,
                     defense = fresh and stats.defense or nil}
@@ -211,10 +244,14 @@ function TargetSelection.choose(view, settings, held, mode)
                 elseif priority == "Recent payout" then score = saved.payout
                 elseif priority == "Safest history" then score, second = chance or 0, saved.payout
                 elseif priority == "Highest eligible level" then score, second, third = row.level, saved.winRate, saved.payout end
-                if not best or (saved.samples > 0 and best.samples == 0)
-                    or ((saved.samples > 0) == (best.samples > 0)
-                        and (score > best.score or score == best.score and (second > best.second
-                            or second == best.second and (third > best.third or third == best.third and row.userId < best.userId)))) then
+                local tier = (relations.mode == "Prefer enemies" and relations.enemies[tostring(row.familyId)] and 2 or 0)
+                    + (highPreferred and row.highValue == true and 1 or 0)
+                if not best or tier > best.highValueTier or tier == best.highValueTier
+                    and ((saved.samples > 0 and best.samples == 0)
+                        or ((saved.samples > 0) == (best.samples > 0)
+                            and (score > best.score or score == best.score and (second > best.second
+                                or second == best.second and (third > best.third or third == best.third and row.userId < best.userId))))) then
+                    selected.highValueTier = tier
                     selected.score, selected.second, selected.third = score, second, third
                     best = selected
                 end

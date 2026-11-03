@@ -1,7 +1,7 @@
 -- Fair bounded reads use the same lease as writes. No independent remote loop.
 local ReadCoordinator = {}
 local fields = {"session", "account", "place", "release", "revision", "capturedAt"}
-local arities = {HeistAction = {board = 1}, FamilyAction = {info = 1},
+local arities = {HeistAction = {board = 1}, FamilyAction = {info = 1, browse = 2},
     FamilyBossAction = {state = 2}, TerritoryView = {map = 2, district = 4},
     TerritoryAction = {fortview = 2}, ResidencyAction = {view = 3},
     MarketAction = {browse = 4, prices = 4, rap = 4}}
@@ -47,6 +47,8 @@ local function callCopy(call)
     if not expected or call.arity ~= expected then return nil end
     if call.remote == "PlayerProfile" and (not finite(call.args[1]) or call.args[1] < 1
         or call.args[1] % 1 ~= 0 or call.args[1] > 9007199254740991) then return nil end
+    if call.remote == "FamilyAction" and call.args[1] == "browse"
+        and (type(call.args[2]) ~= "string" or #call.args[2] > 64 or call.args[2]:find("[%c]")) then return nil end
     local args = {}
     for key, value in pairs(call.args) do
         if not finite(key) or key % 1 ~= 0 or key < 1 or key > expected then return nil end

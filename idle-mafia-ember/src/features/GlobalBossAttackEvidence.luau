@@ -63,9 +63,12 @@ end
 
 function GlobalBossAttackEvidence.capture(proposal, before)
     local intent = type(proposal) == "table" and proposal.intent
+    local staminaReserve = type(intent) == "table" and intent.staminaReserve
+    if staminaReserve == nil then staminaReserve = 1 end
     if type(proposal) ~= "table"
         or proposal.feature ~= "globalBossAttack"
         or type(intent) ~= "table"
+        or not finite(staminaReserve, 0) or staminaReserve > 1e12
         or intent.kind ~= "globalBossAttack"
         or not key(intent.runKey)
         or not finite(intent.serverNow, 0)
@@ -95,9 +98,9 @@ function GlobalBossAttackEvidence.capture(proposal, before)
         or not finite(native.stats.maxHealth, 1)
         or type(native.pools) ~= "table"
         or not finite(native.pools.health, 0)
-        or math.floor(native.pools.health)
+        or native.pools.health
             < native.stats.maxHealth * 0.75
-        or not finite(native.pools.stamina, 2) then
+        or not finite(native.pools.stamina, 1 + staminaReserve) then
         return nil, "Global Boss run or resources changed"
     end
     local elapsed = math.max(0, math.min(1,

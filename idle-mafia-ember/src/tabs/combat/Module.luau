@@ -1,6 +1,21 @@
 -- Separately configurable Combat controls own their sources, evidence and lifecycle.
 local CombatTab = {}
 local ownedProofs = { "playerFightProof", "playerFightHistoryProof", "hitListProof", "warRosterProof", "bossStageProof", "bossShopProof", "globalBossProof", "localUserIdProof", "familyAttackProof" }
+local lookupHeaders = {"session", "account", "place", "release", "revision", "capturedAt"}
+local lookupChoices = {"targetSource", "preferHighValue", "policy", "minimumPayout", "minSamples", "minWinRate", "dailyOnly"}
+local function lookupScope(snapshot, settings)
+    if type(snapshot) ~= "table" or type(snapshot.native) ~= "table" then return nil end
+    local result = {serverNow = snapshot.native.serverNow}
+    for _, key in ipairs(lookupHeaders) do result[key] = snapshot[key] end
+    for _, key in ipairs(lookupChoices) do result[key] = settings[key] end
+    return result
+end
+local function sameLookupScope(a, b)
+    if type(a) ~= "table" or type(b) ~= "table" then return false end
+    for key, value in pairs(a) do if b[key] ~= value then return false end end
+    for key, value in pairs(b) do if a[key] ~= value then return false end end
+    return true
+end
 local Methods = {}
 Methods.__index = Methods
 
@@ -44,7 +59,17 @@ function CombatTab.BuildUI(section, feature, bind, numeric)
             Default = reason and ("Blocked — " .. reason) or "Off — UI only" }) }
     if feature.id == "combat" then
         row.memoryStatus = group:Status({Text = "High-value history", Default = "Unknown — current owned history required"})
-        group:Description({Text = "High-only sources use confirmed Cash: promote at 1B; remove after 3 consecutive payouts below 100M. All other limits still apply."})
+        row.memoryRules = group:Group({Text = "High-value rules", Open = false})
+        row.memoryRules:Description({Text = "Rules apply to future owned fights, including a pending attack's saved rules. Changing rules does not replay old history or clear existing tags. Set the low threshold to 0 to disable demotion. All target and spending limits still apply."})
+        for _, field in ipairs(feature.memoryRules or {}) do
+            local key = "combat.memory." .. field.id
+            if field.type == "boolean" then
+                bind(row.memoryRules, "Toggle", key, {Text = field.label, Default = field.value, RevertOnClose = true, RevertTo = false})
+            else
+                numeric[key] = true
+                bind(row.memoryRules, "Input", key, {Text = field.label, Default = tostring(field.value), FireOnBlur = true})
+            end
+        end
     end
     if feature.limits then group:Description({ Text = feature.limits }) end
     if #feature.custom > 0 then
@@ -134,6 +159,7 @@ function CombatTab.new(deps)
             { id = "warCombat", reader = war,
             planner = war, evidence = war } },
         hitListQuery = hitListQuery, warRosterQuery = warRosterQuery, playerProfiles = playerProfiles, warProfiles = warProfiles,
+        familyDirectory = type(deps.FamilyDirectoryQuery) == "table" and deps.FamilyDirectoryQuery.new(deps.nativeReadSource) or nil,
         nativeReadSource = deps.nativeReadSource,
         frameReader = type(deps.nativeReadSource) == "table" and deps.nativeReadSource.CombatFrame or nil,
         targetReader = deps.PlayerTargetState, playerPlannerReady = playerPlannerReady,
@@ -224,7 +250,8 @@ function Methods:Enrich(snapshot, settings)
     if self.playerLedger and not self.closed then
         local combat = type(settings) == "table" and settings.combat
         local source = type(combat) == "table" and combat.enabled == true and combat.targetSource
-        result.playerFightHistoryProof = self.playerLedger:Proof(result, source == "High value only" or source == "High value only + lookup")
+        result.playerFightHistoryProof = self.playerLedger:Proof(result, source == "High value only" or source == "High value only + lookup"
+            or type(combat) == "table" and combat.enabled == true and combat.preferHighValue == true)
     end
     self.latestPlayerSnapshot = result
     return result, nil
@@ -267,6 +294,7 @@ function Methods:Close()
     if self.fightReceipts then self.fightReceipts:Close() end
     if self.playerLedger then self.playerLedger:Close() end
     self.hitListQuery:Close()
+    if self.familyDirectory then self.familyDirectory:Close() end
     self.warRosterQuery:Close()
     if self.playerProfiles then self.playerProfiles:Close() end
     if self.warProfiles then self.warProfiles:Close() end
@@ -288,31 +316,49 @@ function Methods:SavedSearchTarget(snapshot, settings)
         or type(settings.minimumPayout) ~= "number" or settings.minimumPayout < 0
         or type(settings.minWinRate) ~= "number" or settings.minWinRate < 0 or settings.minWinRate > 100 then return nil end
     local highOnly = settings.targetSource == "High value only + lookup"
-    local targets = highOnly and self.playerLedger:HighValueTargets(snapshot) or nil
-    if not highOnly then targets = self.playerLedger:SavedTargets(snapshot) end
-    if not targets then return nil end
-    local present, eligible = {}, {}
+    local prefer = settings.preferHighValue == true
+    local present, highIds = {}, {}
     for _, row in ipairs(list.rows) do present[row.userId] = true end
+    local highTargets = (highOnly or prefer) and self.playerLedger:HighValueTargets(snapshot) or nil
+    for _, row in ipairs(highTargets or {}) do highIds[row.userId] = true end
     local minimum = math.max(settings.minWinRate, settings.policy == "Cautious" and 90 or 0)
-    for _, target in ipairs(targets) do
-        local stats = self.historyStats(target.history, native.serverNow)
-        local count = daily.counts[tostring(target.userId)]
-        local used = count ~= nil and count ~= 0
-        if settings.dailyOnly == true then
-            for _, row in ipairs(target.history) do
-                if math.floor(row.at / 86400) == daily.day then used = true end
+    local function eligible(candidates, requireSample, excludeHigh)
+        local result = {}
+        for _, target in ipairs(candidates or {}) do
+            local stats = self.historyStats(target.history, native.serverNow)
+            local count = daily.counts[tostring(target.userId)]
+            local used = count ~= nil and count ~= 0
+            if settings.dailyOnly == true then
+                for _, row in ipairs(target.history) do if math.floor(row.at / 86400) == daily.day then used = true end end
             end
+            local enemy = list.war.active == true and type(list.war.enemyTargets) == "table" and list.war.enemyTargets[tostring(target.userId)] == true
+            if not present[target.userId] and not enemy and not (excludeHigh and highIds[target.userId])
+                and target.userId ~= native.userId and stats and stats.samples >= math.max(requireSample and 1 or 0, settings.minSamples)
+                and stats.payout >= settings.minimumPayout and (stats.samples == 0 or stats.winRate >= minimum)
+                and (settings.dailyOnly ~= true or not used) then result[#result + 1] = target end
         end
-        local enemy = list.war.active == true and type(list.war.enemyTargets) == "table" and list.war.enemyTargets[tostring(target.userId)] == true
-        if not present[target.userId] and not enemy and target.userId ~= native.userId and stats and stats.samples >= math.max(highOnly and 0 or 1, settings.minSamples)
-            and stats.payout >= settings.minimumPayout and (stats.samples == 0 or stats.winRate >= minimum)
-            and (settings.dailyOnly ~= true or not used) then eligible[#eligible + 1] = target end
+        return result
     end
-    return self.hitListQuery:PickSavedSearch(snapshot, eligible, highOnly and 128 or 32)
+    local high = highTargets and self.hitListQuery:PickSavedSearch(snapshot,
+        eligible(highTargets, settings.targetSource == "Saved only + lookup", false), 128, "high") or nil
+    if highOnly then if high then high.lookupScope = "high" end; return high end
+    local ordinary = self.hitListQuery:PickSavedSearch(snapshot, eligible(self.playerLedger:SavedTargets(snapshot), true, prefer), 32, "ordinary")
+    local selected = high and (not ordinary or self.savedSearchScope ~= "high") and high or ordinary or high
+    if selected then selected.lookupScope = selected == high and "high" or "ordinary" end
+    return selected
+
 end
 
 function Methods:ReadSources(reader)
     local sources = {}
+    if self.familyDirectory then
+        local query = self.familyDirectory
+        sources[#sources + 1] = {id = "allianceDirectory", interval = 60,
+            enabled = function(settings) return not self.closed and query:Configure(settings.alliance) end,
+            prepare = function(raw) return query:Prepare(raw) end,
+            accept = function(raw, request, reply) return query:Accept(raw, request, reply) end,
+            commit = function(staged) return query:Commit(staged) end}
+    end
     if self.hitListQuery.sourceKey then
         sources[#sources + 1] = {id = "combatHitList", interval = 1,
             enabled = function(settings, _, snapshot)
@@ -330,19 +376,45 @@ function Methods:ReadSources(reader)
             enabled = function(settings, _, snapshot)
                 self.savedSearchSettings = type(settings.combat) == "table" and settings.combat or nil
                 local configured = self.savedSearchSettings
-                if type(configured) ~= "table" or configured.enabled ~= true or self.closed or self.playerLedgerFault then return false end
-                if configured.targetSource == "High value only + lookup" then
+                local run, current = self.savedSearchRun, snapshot or self.latestBossSnapshot
+                local source = type(configured) == "table" and configured.targetSource
+                local permitted = type(configured) == "table" and configured.enabled == true and not self.closed and not self.playerLedgerFault
+                    and (source == "Saved only + lookup" or source == "Saved and new + lookup" or source == "High value only + lookup")
+                if run then
+                    if not permitted or not sameLookupScope(run.scope, lookupScope(current, configured)) then
+                        self.hitListQuery:CancelSavedSearch(run.request)
+                        self.savedSearchRun = nil
+                        if not permitted then return false end
+                        -- Revoke this tick; admission waits for the existing read cooldown.
+                        return false
+                    elseif self.hitListQuery:OwnsSavedSearch(run.request) then
+                        return true -- Authorization survives the new-admission cooldown.
+                    else self.savedSearchRun = nil end
+                end
+                if not permitted then return false end
+                if source == "High value only + lookup" or configured.preferHighValue == true then
                     local status = self.playerLedger:HighValueStatus(snapshot or self.latestBossSnapshot)
-                    return status.known and status.count > 0
+                    if source == "High value only + lookup" then return status.known and status.count > 0 end
+                    if status.known and status.count > 0 then return true end
                 end
                 return self:SavedSearchTarget(snapshot or self.latestBossSnapshot, configured) ~= nil
             end,
             prepare = function(snapshot)
                 local target = self:SavedSearchTarget(snapshot, self.savedSearchSettings)
-                return self.hitListQuery:PrepareSavedSearch(snapshot, target)
+                local request, why = self.hitListQuery:PrepareSavedSearch(snapshot, target)
+                if request then
+                    self.savedSearchScope = target.lookupScope
+                    self.savedSearchRun = {request = request, scope = lookupScope(snapshot, self.savedSearchSettings)}
+                end
+                return request, why
             end,
             accept = function(snapshot, request, reply) return self.hitListQuery:AcceptSavedSearch(snapshot, request, reply) end,
-            commit = function(staged) return self.hitListQuery:CommitSavedSearch(staged) end}
+            commit = function(staged)
+                local saved = self.hitListQuery:CommitSavedSearch(staged)
+                if self.savedSearchRun then self.hitListQuery:CancelSavedSearch(self.savedSearchRun.request) end
+                self.savedSearchRun = nil
+                return saved
+            end}
     end
     if self.warRosterQuery.sourceKey then
         sources[#sources + 1] = {id = "combatWarRoster", interval = 1,

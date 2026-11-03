@@ -84,9 +84,9 @@ function BossStageState.read(raw, context)
         release = context.release, revision = context.revision,
         capturedAt = context.capturedAt, serverNow = native.serverNow,
         dayStamp = day, best = state.best, level = native.level,
-        health = math.floor(native.pools.health),
+        health = native.pools.health,
         maxHealth = native.stats.maxHealth,
-        stamina = math.floor(native.pools.stamina),
+        stamina = native.pools.stamina,
         staminaCost = proof.staminaCost, stages = stages }, nil
 end
 

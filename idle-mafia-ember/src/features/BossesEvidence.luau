@@ -68,8 +68,15 @@ end
 
 function BossesEvidence.capture(proposal, before)
     local intent = type(proposal) == "table" and proposal.intent
+    local staminaReserve = type(intent) == "table" and intent.staminaReserve
+    if staminaReserve == nil then staminaReserve = 1 end
+    local healthFloor = type(intent) == "table" and intent.healthFloor
+    if healthFloor == nil then healthFloor = 50 end
     if type(proposal) ~= "table" or proposal.feature ~= "bosses"
-        or type(intent) ~= "table" or intent.kind ~= "bossStageAttack"
+        or type(intent) ~= "table"
+        or not finite(staminaReserve, 0) or staminaReserve > 1e12
+        or not finite(healthFloor, 1) or healthFloor > 100
+        or intent.kind ~= "bossStageAttack"
         or not integer(intent.stage, 1)
         or not integer(intent.dayStamp, 0)
         or not finite(intent.serverNow, 0)
@@ -108,10 +115,9 @@ function BossesEvidence.capture(proposal, before)
         or not integer(native.stats.maxHealth, 1)
         or type(native.pools) ~= "table"
         or not finite(native.pools.health, 0)
-        or math.floor(native.pools.health) - row.hitBackMax
-            < native.stats.maxHealth * 0.5
+        or native.pools.health < row.hitBackMax + native.stats.maxHealth * healthFloor / 100
         or not finite(native.pools.stamina,
-            intent.expectedStaminaCost + 1) then
+            intent.expectedStaminaCost + staminaReserve) then
         return nil, "Selected Boss stage or resources changed"
     end
     return { session = proposal.session, account = proposal.account,

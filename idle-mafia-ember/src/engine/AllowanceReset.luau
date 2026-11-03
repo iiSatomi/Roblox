@@ -62,7 +62,7 @@ function AllowanceReset.new(deps)
         if now == nil then return nil, "Allowance review timer unavailable" end
         local ticket = {}
         staged = {ticket = ticket, expected = expected, at = now}
-        return {feature = feature, attempted = expected.attempted, spent = expected.spent, ticket = ticket}, nil
+        return {feature = feature, unknown = expected.unknown, attempted = expected.attempted, spent = expected.spent, ticket = ticket}, nil
     end
     function result:Confirm(ticket)
         local preview = staged

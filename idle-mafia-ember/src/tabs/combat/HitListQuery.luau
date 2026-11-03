@@ -167,6 +167,7 @@ local function header(self, raw)
     return out
 end
 function Methods:Prepare(snapshot)
+    if self.searchRequest then self:CancelSavedSearch(self.searchRequest) end
     self.pending, self.staged = nil, nil
     local bound = header(self, snapshot)
     if not bound then return nil, "Current owned hit-list source unavailable" end
@@ -255,10 +256,10 @@ function Methods:SearchReady(snapshot, target)
     local previous = self.searchAttempts and self.searchAttempts[tostring(target.userId)]
     return previous == nil or elapsed(bound, previous, 1800)
 end
-function Methods:PickSavedSearch(snapshot, candidates, limit)
+function Methods:PickSavedSearch(snapshot, candidates, limit, scope)
     local bound = header(self, snapshot)
-    limit = limit or 32
-    if (limit ~= 32 and limit ~= 128) or not bound or not searchCurrent(self) or not dense(candidates) or #candidates > limit
+    limit, scope = limit or 32, scope or "ordinary"
+    if (scope ~= "ordinary" and scope ~= "high") or (limit ~= 32 and limit ~= 128) or not bound or not searchCurrent(self) or not dense(candidates) or #candidates > limit
         or self.lastSearch and not elapsed(bound, self.lastSearch, 60) then return nil end
     local nextTarget, wrapped
     for _, target in ipairs(candidates) do
@@ -267,15 +268,31 @@ function Methods:PickSavedSearch(snapshot, candidates, limit)
             local previous = self.searchAttempts and self.searchAttempts[tostring(id)]
             if not previous or elapsed(bound, previous, 1800) then
                 if not wrapped or id < wrapped.userId then wrapped = target end
-                if id > (self.searchCursor or 0) and (not nextTarget or id < nextTarget.userId) then nextTarget = target end
+                if id > (self.searchCursors and self.searchCursors[scope] or 0) and (not nextTarget or id < nextTarget.userId) then nextTarget = target end
             end
         end
     end
     local selected = nextTarget or wrapped
-    return selected and {userId = selected.userId, name = selected.name} or nil
+    return selected and {userId = selected.userId, name = selected.name, lookupScope = scope} or nil
+end
+function Methods:OwnsSavedSearch(request)
+    return request ~= nil and self.searchRequest == request and searchCurrent(self)
+        and not self.closed and not self.retired and not self.searchRetired and self.searchRequest == request
+        and (not self.nativeSource or self.nativeSource.Current == self.sourceCurrent)
+end
+function Methods:CancelSavedSearch(request)
+    if request == nil or self.searchRequest ~= request then return false end
+    self.searchRequest = nil
+    if self.pending and self.pending.expectedUserId then self.pending = nil end
+    if self.staged and self.staged.expectedUserId then self.staged = nil end
+    self.generation = (self.generation or 0) + 1
+    return true
 end
 function Methods:PrepareSavedSearch(snapshot, target)
+    if self.searchRequest then self:CancelSavedSearch(self.searchRequest) end
     self.pending, self.staged = nil, nil
+    local scope = type(target) == "table" and (target.lookupScope or "ordinary")
+    if scope ~= "ordinary" and scope ~= "high" then return nil, "Invalid saved lookup scope" end
     if not self:SearchReady(snapshot, target) or not self:Read(snapshot) then return nil, "Owned saved lookup is unavailable or cooling down" end
     local bound, request = header(self, snapshot), self:DescribeSearch(target.name)
     if not bound or not searchCurrent(self) then return nil, "Saved lookup source changed" end
@@ -285,7 +302,10 @@ function Methods:PrepareSavedSearch(snapshot, target)
     end
     if count >= 32 then return nil, "Saved lookup window is full" end
     attempts[tostring(target.userId)] = clone(bound)
-    self.searchAttempts, self.lastSearch, self.searchCursor = attempts, clone(bound), target.userId
+    self.searchAttempts, self.lastSearch = attempts, clone(bound)
+    self.searchCursors = self.searchCursors or {}
+    self.searchCursors[scope] = target.userId
+    self.searchRequest = request
     self.pending = {request = request, header = bound, generation = self:Generation(),
         expectedUserId = target.userId, term = request.args[1],
         warScope = warScope(snapshot), quoteScope = quoteScope(snapshot)}
@@ -327,6 +347,7 @@ function Methods:CommitSavedSearch(staged)
         or not equal(warScope(staged), pending.proof.warScope) or not equal(quoteScope(staged), pending.proof.quoteScope)
         or not equal(staged.hitListProof, pending.proof) then return false end
     self.searched = pending.proof.rows[1] and pending.proof or nil
+    self.searchRequest = nil
     self.generation = (self.generation or 0) + 1
     return true
 end
@@ -413,6 +434,7 @@ function Methods:NeedsRead(snapshot)
     return proof == nil or self.observed and self.observed.war ~= nil and proof.war == nil
 end
 function Methods:Close()
+    if self.searchRequest then self:CancelSavedSearch(self.searchRequest) end
     self.closed = true
     self.pending, self.staged, self.observed, self.searched = nil, nil, nil, nil
 end

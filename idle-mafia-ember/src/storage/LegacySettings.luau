@@ -260,10 +260,14 @@ local targets = {
     bossShopTokenReserve = "bossShop.custom.tokenReserve",
     bossShopMaxPerLoad = "bossShop.custom.maxSends",
     crewGearObjective = "crewGear.policy",
+    healthFloor = "combat.custom.healthFloor",
+    staminaReserve = "combat.custom.staminaReserve",
     crewHealStaminaReserve = "crewHeal.custom.staminaReserve",
     crewTrainTargetLevel = "crewTrain.custom.targetLevel",
     crewTrainMaxCost = "crewTrain.custom.maxCost",
     crewTrainConcurrent = "crewTrain.custom.maxConcurrent",
+    chestLimit = "chests.custom.totalLimit",
+    chestLimitEnabled = "chests.custom.totalLimitEnabled",
     consumableHealthBelow = "restoratives.custom.healthBelow",
     consumableEnergyBelow = "restoratives.custom.energyBelow",
     consumableStaminaBelow = "restoratives.custom.staminaBelow",
@@ -280,6 +284,9 @@ local targets = {
     marketSellMinNet = "marketSell.custom.minNet",
     marketSellMinSales = "marketSell.custom.minSales",
     marketSellLikelyOnly = "marketSell.custom.likelyOnly",
+    marketUndercutGold = "marketSell.custom.undercutGold",
+    marketPriceFloorPct = "marketSell.custom.floorPct",
+    marketRentGoldReserve = "marketRent.custom.goldReserve",
     marketCollectMinimum = "marketManage.custom.minEarnings",
     marketAgingHours = "marketWatch.custom.minAgeHours",
     familyCashAmount = "familyCash.custom.amount",
@@ -288,6 +295,7 @@ local targets = {
     familyStaminaAmount = "familyStamina.custom.amount",
     familyStaminaReserve = "familyStamina.custom.reserve",
     familyPerk = "familyStamina.custom.selectedPerk",
+    familyPerks = "familyStamina.custom.selectedPerk",
     stationMinHome = "station.custom.minHome",
     stationMaxStationed = "station.custom.maxStationed",
     favorDailyCap = "favors.custom.maxDailyAttempts",
@@ -305,7 +313,13 @@ local targets = {
     selectedProperties = "properties.custom.selectedIds",
     contractHireMaxCost = "crewHire.custom.maxCost",
     residencyKind = "residency.custom.selectedKind",
+    residencyMaxRent = "residency.custom.maxRentPct",
+    trophyGoalId = "trophyFocus.custom.goalId",
     prestigeMaxRank = "prestige.custom.targetRank",
+    combatHighEnabled = "combat.memory.preferHighValue",
+    combatHighPromoteCash = "combat.memory.promoteCash",
+    combatHighDemoteBelow = "combat.memory.demoteBelow",
+    combatHighDemoteHits = "combat.memory.demoteHits",
     combatPriority = "combat.custom.targetPriority",
     combatDailyOnly = "combat.custom.dailyOnly",
     combatMinimum = "combat.custom.minimumPayout",
@@ -314,6 +328,9 @@ local targets = {
 }
 
 local translations = {
+    -- Core.crewHire uses the same native tier ID; no hire allowance is imported.
+    contractHireTier = { target = "crewHire.policy", options = { Street = "street", Professional = "professional", Elite = "elite" } },
+    crewRollRarity = { target = "crewRoll.custom.targetRarity", options = { Common = 1, Uncommon = 2, Rare = 3, Epic = 4, Legendary = 5, Mythic = 6, Secret = 7, Forbidden = 8 } },
     combatSource = { target = "combat.custom.targetSource", options = { ["Saved history"] = "Saved only", ["History then discover"] = "Saved and new" } },
     jobMode = { target = "jobs.policy", options = { ["XP / energy"] = "XP", ["Cash / energy"] = "Cash", ["Selected job"] = "Selected job", ["Job count"] = "Job count", ["Highest tier"] = "Highest tier", Mastery = "Mastery" } },
     propertyMode = { target = "properties.policy", options = { ROI = "Best value", Income = "Most income", ["Highest tier"] = "Highest tier" } },
@@ -331,11 +348,15 @@ local saleMaps = { marketSellBlockedItems = true, marketSellBlockedKinds = true,
 -- The old shared switch gates level/cost ranges for both fight modes and samples for ordinary mugs.
 local combatRanges = { combatMinTargetLevel = "minTargetLevel", combatMaxTargetLevel = "maxTargetLevel",
     combatMinStaminaCost = "minStaminaCost", combatMaxStaminaCost = "maxStaminaCost", combatMinSamples = "minSamples" }
+local restorativeModes = { "consumableHealthMode", "consumableEnergyMode", "consumableStaminaMode" }
+local restorativeModeKeys = { consumableHealthMode = true, consumableEnergyMode = true, consumableStaminaMode = true }
+local restorativeThresholds = { consumableHealthBelow = true, consumableEnergyBelow = true, consumableStaminaBelow = true }
 local blockedReasons = {
-    combatHighEnabled = "The legacy parallel high-value lane has no direct equivalent. High-only sources require a separate explicit current choice; no lane is auto-enabled.",
-    combatHighPromoteCash = "Current owned tracking uses fixed default rules: promote at 1B confirmed Cash, demote after 3 consecutive payouts below 100M. Custom rules and historical replay require separate review.",
-    combatHighDemoteBelow = "Current owned tracking uses fixed default rules: promote at 1B confirmed Cash, demote after 3 consecutive payouts below 100M. Custom rules and historical replay require separate review.",
-    combatHighDemoteHits = "Current owned tracking uses fixed default rules: promote at 1B confirmed Cash, demote after 3 consecutive payouts below 100M. Custom rules and historical replay require separate review.",
+    heistMode = "Legacy Heist ranking includes crate rarity, expected crate count or reward rates; current similarly named policies do not preserve that ordering.",
+    favorMode = "Legacy Favor ranking and tie-breaking are not identical to the current reward policies; no approximate ranking is substituted.",
+    residencyMinImprovement = "Legacy minimum improvement compares a candidate against the existing residence; current minimum share is an absolute floor.",
+    residencyDistricts = "Legacy district allowlist cannot map to the current single selected district without losing candidate selection intent.",
+    consumableUseTradable = "Choose current item-custody permission explicitly; a legacy size preference never authorizes tradable consumption.",
     combatSource = "Only Saved history and History then discover have reviewed equivalents. Scout new hit-list targets inferred paid Scout permission; choose current source and separate Scout consent explicitly.",
     perAction = "The legacy engine replaced this global limit with feature-specific spending rules. Select current per-feature limits explicitly.",
     sessionBudget = "The legacy engine replaced this global budget with feature-specific spending rules. Select current per-feature allowances explicitly.",
@@ -355,12 +376,12 @@ local function copy(raw)
         nodes = nodes + 1
         if nodes > 8192 or depth > 8 then error("Legacy import exceeds limits") end
         local kind = type(value)
-        if kind == "number" and (value ~= value or math.abs(value) == math.huge)
-            or kind == "string" and #value > 65536
+        if type(value) == "number" and (value ~= value or math.abs(value) == math.huge)
+            or type(value) == "string" and #value > 65536
             or kind ~= "table" and kind ~= "number" and kind ~= "string" and kind ~= "boolean" then
             error("Invalid legacy value")
         end
-        if kind ~= "table" then return value end
+        if type(value) ~= "table" then return value end
         if seen[value] or getmetatable(value) ~= nil then error("Invalid legacy table") end
         seen[value] = true
         local result = {}
@@ -397,6 +418,37 @@ function LegacySettings.preview(raw, model)
         unresolved[key] = true
         report.unresolvedReasons[key] = reason or blockedReasons[key]
             or "No reviewed equivalent for this legacy choice; original intent is retained. Choose current settings explicitly."
+    end
+    -- Retain the shared choice when equal; mixed pools include omitted legacy defaults.
+    local sharedMode, modesAgree, modesValid = nil, true, true
+    for _, key in ipairs(restorativeModes) do
+        local value = settings[key]
+        if value == nil then value = defaults[key] end
+        if value ~= "Balanced" and value ~= "Small first" and value ~= "Large first" then
+            block(key, "Unknown legacy restorative size policy; no choice is substituted.")
+            modesValid = false
+        end
+        if sharedMode ~= nil and value ~= sharedMode then modesAgree = false end
+        sharedMode = value
+    end
+    if modesValid and not modesAgree then
+        for index, key in ipairs(restorativeModes) do
+            local value = settings[key]
+            if value == nil then value = defaults[key] end
+            if value == "Balanced" then value = "Balanced recovery" end
+            local pool = ({ "health", "energy", "stamina" })[index]
+            local target = "restoratives.custom." .. pool .. "Policy"
+            if model:Validate({schema = 1, values = {[target] = value}}, true) then
+                report.mapped[target] = value
+            else block(key, "Current restorative pool policy unavailable.") end
+        end
+    elseif modesValid and sharedMode ~= "Balanced" then
+        local mapped = { ["restoratives.policy"] = sharedMode }
+        if model:Validate({schema = 1, values = mapped}, true) then
+            report.mapped["restoratives.policy"] = sharedMode
+        else
+            for _, key in ipairs(restorativeModes) do block(key, "Current restorative policy unavailable.") end
+        end
     end
     if settings.combatLimits == true then
         for key, field in pairs(combatRanges) do
@@ -457,22 +509,58 @@ function LegacySettings.preview(raw, model)
             table.sort(ids)
             mappedValue = table.concat(ids, ",")
         end
+        if key == "familyPerks" and type(value) == "table" then
+            local ids = {}
+            for id, on in pairs(value) do
+                if type(id) ~= "string" or type(on) ~= "boolean"
+                    or not model:Validate({schema = 1, values = {[target] = id}}, true) then
+                    block(key, "Family perks must be a current perk-ID-to-boolean map.")
+                elseif on then ids[#ids + 1] = id end
+            end
+            table.sort(ids)
+            if #ids == 0 then block(key, "Empty Family perk selections need explicit review.") end
+            if #ids > 1 then target = "familyStamina.custom.selectedPerks" end
+            mappedValue = #ids == 1 and ids[1] or table.concat(ids, ",")
+        end
         if baseline == nil or type(value) ~= type(baseline)
             or type(value) == "number" and math.abs(value) > 9007199254740991 then block(key)
+        elseif restorativeThresholds[key] and value == 0 then
+            local policyTarget = target:gsub("Below$", "Policy")
+            local mapped = {[target] = 0, [policyTarget] = "Off"}
+            if model:Validate({schema = 1, values = mapped}, true) then
+                for destination, choice in pairs(mapped) do report.mapped[destination] = choice end
+            else block(key, "Current restorative pool disable unavailable.") end
+        elseif restorativeModeKeys[key] then
+            -- The complete pool-policy group, including omitted defaults, was checked above.
+            if same(value, baseline) then report.currentDefaults[#report.currentDefaults + 1] = key end
         elseif settings.combatLimits == true and (key == "combatLimits" or combatRanges[key]) then
             -- The complete enabled group was validated above, including omitted legacy defaults.
             if same(value, baseline) then report.currentDefaults[#report.currentDefaults + 1] = key end
-        elseif same(value, baseline) and key ~= "combatSource" then
+        elseif same(value, baseline) and key ~= "combatSource" and key ~= "familyPerks" and not restorativeThresholds[key] then
             if key ~= "version" then report.currentDefaults[#report.currentDefaults + 1] = key end
         elseif key == "familyPerk" and settings.familyPerks ~= nil then block(key)
         elseif target then
             if mappedValue == nil then block(key)
             else
-                local prepared = model:Validate({ schema = 1, values = { [target] = mappedValue } }, true)
+                local mapped = { [target] = mappedValue }
+                -- Legacy sale exclusions and gentleAsk pricing guard both trade lanes.
+                if saleMaps[key] or key == "marketUndercutGold" or key == "marketPriceFloorPct" then
+                    mapped["marketFlip.custom." .. target:match("([^%.]+)$")] = mappedValue
+                elseif key == "crewRollRarity" then
+                    -- Presets override targetRarity in CrewTab.ReplacementSettings.
+                    -- Custom preserves the requested threshold without enabling dismissal.
+                    mapped["crewRoll.policy"] = "Custom"
+                elseif key == "healthFloor" or key == "staminaReserve" then
+                    mapped["warCombat.custom." .. key] = mappedValue
+                    mapped["bosses.custom." .. key] = mappedValue
+                    if key == "staminaReserve" then mapped["globalBossAttack.custom.staminaReserve"] = mappedValue end
+                elseif key == "combatPriority" then
+                    mapped["warCombat.custom.targetPriority"] = mappedValue
+                end
+                local prepared = model:Validate({ schema = 1, values = mapped }, true)
                 if not prepared then block(key, "The legacy value is outside the current control's supported values.")
                 else
-                    report.mapped[target] = mappedValue
-                    if key == "combatPriority" then report.mapped["warCombat.custom.targetPriority"] = mappedValue end
+                    for destination, choice in pairs(mapped) do report.mapped[destination] = choice end
                 end
             end
         elseif combatRanges[key] then

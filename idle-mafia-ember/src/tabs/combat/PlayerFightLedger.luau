@@ -13,9 +13,9 @@ local function equal(a, b)
     return true
 end
 local HIGH, LOW, LOW_HITS, HIGH_LIMIT = 1000000000, 100000000, 3, 128
-local HIGH_RULES = "legacy-default-v1"
-local function emptyHigh(last)
-    return {version = 1, rules = HIGH_RULES, lastRequestId = last, count = 0, overflow = false, targets = {}}
+local HIGH_RULES, ACTION_RULES = "legacy-default-v1", "owned-action-rules-v1"
+local function emptyHigh(last, version)
+    return {version = version or 1, rules = version == 2 and ACTION_RULES or HIGH_RULES, lastRequestId = last, count = 0, overflow = false, targets = {}}
 end
 local function historyRow(row)
     return {requestId = row.requestId, at = row.initial.targetDaily.serverNow,
@@ -24,9 +24,11 @@ end
 local function updateHigh(memory, row, prior)
     memory.lastRequestId = row.requestId
     if row.feature ~= "combat" then return end
+    if row.highPromoteCash ~= nil then memory.version, memory.rules = 2, ACTION_RULES end
+    local promote, below, hits = row.highPromoteCash or HIGH, row.highDemoteBelow or LOW, row.highDemoteHits or LOW_HITS
     local key, cash = tostring(row.target), row.receipt.cashConfirmed
     local target = memory.targets[key]
-    if not target and cash >= HIGH then
+    if not target and cash >= promote then
         if memory.count >= HIGH_LIMIT then memory.overflow = true; return end
         target = {userId = row.target, history = {}, lowStreak = 0}
         for _, previous in ipairs(prior) do
@@ -36,11 +38,12 @@ local function updateHigh(memory, row, prior)
     end
     if not target then return end
     target.name, target.level, target.requestId = row.targetName, row.targetLevel, row.requestId
-    if cash >= HIGH then target.lastHighCash, target.promotedAt = cash, row.initial.targetDaily.serverNow end
-    target.lowStreak = cash < LOW and target.lowStreak + 1 or 0
+    if cash >= promote then
+        target.lastHighCash, target.promotedAt, target.lowStreak = cash, row.initial.targetDaily.serverNow, 0
+    else target.lowStreak = below > 0 and cash < below and target.lowStreak + 1 or 0 end
     if #target.history == 32 then table.remove(target.history, 1) end
     target.history[#target.history + 1] = historyRow(row)
-    if target.lowStreak >= LOW_HITS then memory.targets[key], memory.count = nil, memory.count - 1 end
+    if target.lowStreak >= hits then memory.targets[key], memory.count = nil, memory.count - 1 end
 end
 local function deriveHigh(root)
     local memory, prior = emptyHigh(0), {}
@@ -53,11 +56,12 @@ local function onlyKeys(value, allowed)
     return true
 end
 local function copyHigh(raw, root)
-    if type(raw) ~= "table" or raw.version ~= 1 or raw.rules ~= HIGH_RULES
+    if type(raw) ~= "table" or (raw.version ~= 1 and raw.version ~= 2)
+        or raw.rules ~= (raw.version == 2 and ACTION_RULES or HIGH_RULES)
         or raw.lastRequestId ~= root.lastRequestId or type(raw.overflow) ~= "boolean"
         or not integer(raw.count, 0) or raw.count > HIGH_LIMIT or type(raw.targets) ~= "table"
         or not onlyKeys(raw, {version=true,rules=true,lastRequestId=true,count=true,overflow=true,targets=true}) then return nil end
-    local result, count, cash, samples, seen = emptyHigh(raw.lastRequestId), 0, 0, 0, {}
+    local result, count, cash, samples, seen = emptyHigh(raw.lastRequestId, raw.version), 0, 0, 0, {}
     result.overflow = raw.overflow
     local recent = {}; for _, row in ipairs(root.recent) do recent[row.requestId] = row end
     for key, target in pairs(raw.targets) do
@@ -65,8 +69,8 @@ local function copyHigh(raw, root)
         if count > HIGH_LIMIT or type(target) ~= "table" or not integer(target.userId, 1)
             or type(key) ~= "string" or key ~= tostring(target.userId) or not text(target.name) or #target.name > 64
             or not integer(target.level, 1) or not integer(target.requestId, 1) or target.requestId > root.lastRequestId
-            or not integer(target.lastHighCash, HIGH) or not number(target.promotedAt, 0)
-            or not integer(target.lowStreak, 0) or target.lowStreak >= LOW_HITS
+            or not integer(target.lastHighCash, raw.version == 2 and 1 or HIGH) or not number(target.promotedAt, 0)
+            or not integer(target.lowStreak, 0) or target.lowStreak >= (raw.version == 2 and 100 or LOW_HITS)
             or type(target.history) ~= "table" or #target.history < 1 or #target.history > 32
             or not onlyKeys(target, {userId=true,name=true,level=true,requestId=true,lastHighCash=true,promotedAt=true,lowStreak=true,history=true}) then return nil end
         local copied = {userId=target.userId,name=target.name,level=target.level,requestId=target.requestId,
@@ -90,7 +94,26 @@ local function copyHigh(raw, root)
             if target.history[index].cash >= LOW then break end
             low = low + 1
         end
-        if low ~= target.lowStreak then return nil end
+        if raw.version == 1 and low ~= target.lowStreak then return nil end
+        if raw.version == 2 then
+            -- The pre-window counter is unknown, not zero. Retained action-owned
+            -- rules constrain the exact reachable range; resets/promotions make it exact.
+            local minimum, maximum, active = 0, 99, true
+            for _, owned in ipairs(root.recent) do
+                if owned.feature == "combat" and owned.target == target.userId then
+                    local promote, below, hits = owned.highPromoteCash or HIGH, owned.highDemoteBelow or LOW, owned.highDemoteHits or LOW_HITS
+                    local cash = owned.receipt.cashConfirmed
+                    if cash >= promote then minimum, maximum, active = 0, 0, true
+                    elseif active then
+                        if below > 0 and cash < below then
+                            minimum, maximum = minimum + 1, math.min(maximum + 1, hits - 1)
+                            if minimum >= hits then active = false end
+                        else minimum, maximum = 0, 0 end
+                    end
+                end
+            end
+            if not active or target.lowStreak < minimum or target.lowStreak > maximum then return nil end
+        end
         result.targets[key] = copied
     end
     if count ~= raw.count or samples > root.fights or cash > root.cash then return nil end
@@ -258,7 +281,7 @@ function Methods:HighValueStatus(snapshot)
     local memory = self.state.highValue
     if not memory then return {known=false,reason="Older fight history is truncated; high-value history is unknown"} end
     if memory.overflow then return {known=false,retained=memory.count,reason="High-value memory capacity reached; history retained"} end
-    return {known=true,count=memory.count,rules=HIGH_RULES}
+    return {known=true,count=memory.count,rules=memory.rules}
 end
 function Methods:IsHighValue(snapshot, id)
     local status = self:HighValueStatus(snapshot)

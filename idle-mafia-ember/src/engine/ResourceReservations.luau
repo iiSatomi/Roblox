@@ -326,17 +326,24 @@ function ResourceReservations.new(identity, records, providers)
                 floor = proposal.intent.tokenReserve
                 if not integer(floor) then return nil, "Boss Shop reserve unavailable" end
             elseif proposal.feature == "globalBossAttack" and key == "stamina" then
-                floor = 1
+                floor = proposal.intent.staminaReserve
+                if floor == nil then floor = 1 end -- Original saved proposals.
+                if not number(floor) or floor > 1e12 then return nil, "Boss stamina reserve unavailable" end
             elseif proposal.feature == "globalBossAttack" and key == "health" then
                 local maxHealth = type(raw.native.stats) == "table" and raw.native.stats.maxHealth
                 if not number(maxHealth) or maxHealth < 1 then return nil, "Global Boss health buffer unavailable" end
                 floor = maxHealth * 0.75
             elseif proposal.feature == "bosses" and key == "stamina" then
-                floor = 1
+                floor = proposal.intent.staminaReserve
+                if floor == nil then floor = 1 end -- Original saved proposals.
+                if not number(floor) or floor > 1e12 then return nil, "Boss stamina reserve unavailable" end
             elseif proposal.feature == "bosses" and key == "health" then
                 local maxHealth = type(raw.native.stats) == "table" and raw.native.stats.maxHealth
                 if not number(maxHealth) or maxHealth < 1 then return nil, "Boss health reserve unavailable" end
-                floor = maxHealth * 0.5
+                local healthFloor = proposal.intent.healthFloor
+                if healthFloor == nil then healthFloor = 50 end -- Original saved proposals.
+                if not number(healthFloor) or healthFloor < 1 or healthFloor > 100 then return nil, "Boss health reserve unavailable" end
+                floor = maxHealth * healthFloor / 100
             elseif proposal.feature=="crewHeal" and key=="stamina" then
                 floor=proposal.intent.staminaReserve
                 if not integer(floor) then return nil,"Crew heal reserve unavailable" end

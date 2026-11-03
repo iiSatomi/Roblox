@@ -12,6 +12,13 @@ end
 local function accepts(spec, value)
     if spec.kind == "boolean" then return type(value) == "boolean" end
     if spec.kind == "number" then
+        if spec.options then
+            local found = false
+            for _, option in ipairs(spec.options) do
+                if value == option then found = true; break end
+            end
+            if not found then return false end
+        end
         return type(value) == "number" and value == value
             and value > -math.huge and value < math.huge
             and (spec.min == nil or value >= spec.min)
@@ -23,15 +30,22 @@ local function accepts(spec, value)
             if value == option then return true end
         end
     end
+    if spec.kind == "search" then return type(value) == "string" and #value <= 64 and not value:find("[%c]") end
     if spec.kind == "text" then
         if type(value) ~= "string" or #value > (spec.maxLength or 120) then return false end
         if spec.csv == true then
             if value:match("^%s*$") then return true end
-            local count = 0
+            local count, seen = 0, {}
             for rawToken in (value .. ","):gmatch("(.-),") do
                 count = count + 1
                 local token = rawToken:match("^%s*(.-)%s*$")
-                if count > 64 or #token > 120
+                if spec.options then
+                    local found = false
+                    for _, option in ipairs(spec.options) do if token == option then found = true; break end end
+                    if not found or seen[token] then return false end
+                    seen[token] = true
+                end
+                if count > 64 or #token > 120 or spec.familyIds and token == "0"
                     or not token:match("^[%w_%-]+$") then return false end
             end
             return count > 0
@@ -70,12 +84,22 @@ function Settings.new(catalog, runByDefault)
                 csv = field.csv, allowEmpty = field.allowEmpty,
             })
         end
+        for _, field in ipairs(feature.memoryRules or {}) do
+            assert(feature.id == "combat" and (field.type == "number" or field.type == "boolean"), "Unsupported Combat memory rule")
+            add("combat.memory." .. field.id, field.value, {kind = field.type, min = field.min, max = field.max, integer = true})
+        end
     end
     for _, field in ipairs(catalog.shared or {}) do
         assert(field.type == "number" and type(field.id) == "string", "Unsupported shared preference")
         add("shared." .. field.id, field.value, { kind = "number", min = field.min,
             max = field.max, integer = field.integer })
     end
+    for _, key in ipairs({"allies", "enemies"}) do
+        add("alliance." .. key, "", {kind = "text", csv = true, familyIds = true, maxLength = 7743})
+    end
+    add("alliance.mode", "Off", {kind = "enum", options = {"Off", "Prefer enemies", "Enemies only"}})
+    add("alliance.query", "", {kind = "search"})
+    add("alliance.browse", false, {kind = "boolean"})
     self.defaults = copy(self.values)
     return self
 end

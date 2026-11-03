@@ -10,6 +10,15 @@ local function child(parent, name, class)
 end
 
 local function resolve(game, requireModule, readUpvalues)
+    -- Reviewed Combat/Prestige/Player-info contracts: 648 and matching 653 captures.
+    -- Capture before State or any other require can yield; never adopt a later build.
+    local placeVersion = game.PlaceVersion
+    local verifiedControllerBuild = placeVersion == 648 or placeVersion == 653
+    local controllerVersionRetired = false
+    local function controllerVersionCurrent()
+        if game.PlaceVersion ~= placeVersion then controllerVersionRetired = true end
+        return verifiedControllerBuild and not controllerVersionRetired
+    end
     local players = game:GetService("Players")
     local player = players and players.LocalPlayer
     local scripts = player and child(player, "PlayerScripts", "PlayerScripts")
@@ -196,7 +205,7 @@ local function resolve(game, requireModule, readUpvalues)
     -- Use the game's own wrapper; never read, store or reconstruct its validation value.
     local nativeRemoteLink
     local remoteLinkModule = child(client, "RemoteLink", "ModuleScript")
-    if game.PlaceVersion == 648 and not remoteLinkModule then return nil end
+    if verifiedControllerBuild and not remoteLinkModule then return nil end
     if remoteLinkModule then
         local remoteLink = requireModule(remoteLinkModule)
         if type(remoteLink) ~= "table" or type(remoteLink.wrap) ~= "function" then return nil end
@@ -241,12 +250,13 @@ local function resolve(game, requireModule, readUpvalues)
         end
         local fightModule, fight, attackFunction, remainingFunction, cooldownFunction
         local function nativeFunctions()
-            if not current() or game.PlaceVersion ~= 648 or type(readUpvalues) ~= "function"
+            if not current() or not controllerVersionCurrent() or type(readUpvalues) ~= "function"
                 or child(mw, "Config", "ModuleScript") ~= configModule then error("Native fight guard unavailable") end
             local module = child(client, "FightTab", "ModuleScript")
             if not module or fightModule and fightModule ~= module then error("Native FightTab changed") end
             if not fight then fightModule, fight = module, requireModule(module) end
-            if type(fight) ~= "table" or type(fight.attack) ~= "function"
+            if not current() or not controllerVersionCurrent()
+                or type(fight) ~= "table" or type(fight.attack) ~= "function"
                 or type(fight.attacksRemaining) ~= "function" or type(fight.cooldownLeft) ~= "function"
                 or attackFunction and attackFunction ~= fight.attack
                 or remainingFunction and remainingFunction ~= fight.attacksRemaining
@@ -266,6 +276,7 @@ local function resolve(game, requireModule, readUpvalues)
             if not attack or linked == nil or up[2].Remotes.Attack ~= linked then error("Native Attack instance changed") end
             if linked ~= attack and (type(linked) ~= "table" or linked.Instance ~= attack
                 or linked.Name ~= "Attack" or type(linked.InvokeServer) ~= "function") then error("Native Attack wrapper changed") end
+            if not controllerVersionCurrent() then error("Native fight build changed") end
             return up, busy
         end
         local function finite(value)
@@ -293,7 +304,7 @@ local function resolve(game, requireModule, readUpvalues)
                 or proposal.resources.stamina ~= proposal.intent.maxStaminaExposure
                 or not finite(proposal.intent.expectedStaminaCost) or proposal.intent.expectedStaminaCost % 1 ~= 0
                 or proposal.intent.expectedStaminaCost < rules.staminaCost or proposal.intent.expectedStaminaCost > rules.bullyMaxStamina
-                or not finite(proposal.intent.staminaReserve) or proposal.intent.staminaReserve % 1 ~= 0
+                or not finite(proposal.intent.staminaReserve) or proposal.intent.staminaReserve > 1e12
                 or not finite(proposal.intent.uncertainStamina) or not finite(proposal.intent.healthFloor)
                 or proposal.intent.healthFloor < 1 or proposal.intent.healthFloor > 100
                 or type(data.stats) ~= "table" or not finite(data.stats.maxHealth) or data.stats.maxHealth < 1
@@ -441,10 +452,12 @@ local function resolve(game, requireModule, readUpvalues)
             return notify.OnClientEvent:Connect(callback)
         end, CanAttack = function(_, proposal, target)
             local ok, accepted, why = pcall(canAttack, proposal, target)
-            return ok and accepted == true, ok and why or "Current native fight preflight unavailable"
+            if not ok or not controllerVersionCurrent() then return false, "Current native fight preflight unavailable" end
+            return accepted == true, why
         end, CanScout = function(_, proposal, target)
             local ok, accepted, why = pcall(canScout, proposal, target)
-            return ok and accepted == true, ok and why or "Current native Scout preflight unavailable"
+            if not ok or not controllerVersionCurrent() then return false, "Current native Scout preflight unavailable" end
+            return accepted == true, why
         end, HandleReply = function(_, reply)
             if type(reply) ~= "table" or not current() then return false end
             if reply.ok ~= false then return true end
@@ -464,7 +477,7 @@ local function resolve(game, requireModule, readUpvalues)
     local incomeFunction = config.fightIncomeMult
     local propertyRows = gameData.PROPERTIES
     local function playerInfoCurrent()
-        return game.PlaceVersion == 648 and players.LocalPlayer == player
+        return controllerVersionCurrent() and players.LocalPlayer == player
             and child(scripts, "MWClient", "LocalScript") == client
             and child(client, "State", "ModuleScript") == stateModule
             and child(replicated, "MW", "Folder") == mw
@@ -508,8 +521,7 @@ local function resolve(game, requireModule, readUpvalues)
     local currentPrestigeController
     if type(readUpvalues) == "function" and nativeRemoteLink then
         local ok, source = pcall(function()
-            local placeVersion = 648 -- Verified source contract; never recapture after a yielding require.
-            if game.PlaceId ~= 73897506680154 or game.PlaceVersion ~= placeVersion then return nil end
+            if game.PlaceId ~= 73897506680154 or not controllerVersionCurrent() then return nil end
             local modalModule = child(client, "PrestigeModal", "ModuleScript")
             local fightModule = child(client, "FightTab", "ModuleScript")
             local rulesModule = child(mw, "Prestige", "ModuleScript")
@@ -519,7 +531,7 @@ local function resolve(game, requireModule, readUpvalues)
             if type(modalApi) ~= "table" or type(modalApi.open) ~= "function" or type(modalApi.init) ~= "function"
                 or type(fightApi) ~= "table" or type(fightApi.confirm) ~= "function" or type(rules) ~= "table"
                 or type(rules.canPrestige) ~= "function" or type(rules.rankOf) ~= "function" then return nil end
-            if game.PlaceId ~= 73897506680154 or game.PlaceVersion ~= placeVersion then return nil end
+            if game.PlaceId ~= 73897506680154 or not controllerVersionCurrent() then return nil end
             local init, open, confirm = modalApi.init, modalApi.open, fightApi.confirm
             local first, shown, confirmation = readUpvalues(init), readUpvalues(open), readUpvalues(confirm)
             if type(first) ~= "table" or type(shown) ~= "table" or type(confirmation) ~= "table" then return nil end
@@ -535,7 +547,7 @@ local function resolve(game, requireModule, readUpvalues)
             local invoke, close, any, paint = linked.InvokeServer, first[4], first[7], first[8]
             local retired, closed = false, false
             local function observe()
-                if closed or retired or game.PlaceId ~= 73897506680154 or game.PlaceVersion ~= placeVersion
+                if closed or retired or game.PlaceId ~= 73897506680154 or not controllerVersionCurrent()
                     or players.LocalPlayer ~= player or child(scripts, "MWClient", "LocalScript") ~= client
                     or child(client, "State", "ModuleScript") ~= stateModule or state.latest ~= latest
                     or child(client, "PrestigeModal", "ModuleScript") ~= modalModule

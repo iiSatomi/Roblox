@@ -3,7 +3,7 @@ local Adapter = {}
 Adapter.__index = Adapter
 
 local ICONS = {
-    overview = "home", player = "user-round", heists = "lock", jobs = "briefcase", operations = "clock",
+    overview = "home", player = "user-round", alliance = "flag", heists = "lock", jobs = "briefcase", operations = "clock",
     favors = "handshake", combat = "swords", crew = "users", inventory = "backpack",
     collection = "library", money = "wallet", property = "building", safehouse = "shield",
     prestige = "trending-up", shop = "shopping-cart", blackMarket = "store",
@@ -90,6 +90,13 @@ function Adapter.new(ember, catalog, callbacks)
         if sections.player then
             if callbacks.playerModule then self.playerTab = callbacks.playerModule.new(sections.player)
             else sections.player:Status({Text = "Player information", Default = "Unavailable — player module not attached"}) end
+        end
+        if sections.alliance then
+            if callbacks.allianceModule then
+                self.allianceTab = callbacks.allianceModule.new(sections.alliance, bind,
+                    function(key, value) callbacks.change(key, value, self.handles[key]) end,
+                    function() return self.alive and not self.degraded end, userOrigin)
+            else sections.alliance:Status({Text = "Alliance/Enemy", Default = "Unavailable — relations module not attached"}) end
         end
         for _, feature in ipairs(catalog.features) do
             local row
@@ -383,6 +390,7 @@ function Adapter:Render(model)
         end
     end
     if self.playerTab then self.playerTab:Render(model) end
+    if self.allianceTab then self.allianceTab:Render(model) end
     if self.activityTab then self.activityTab:Render(model, self.lastError)
     else self.errorStatus:Set(self.lastError or "No errors", true) end
     return true, nil

@@ -41,6 +41,7 @@ local function withUsageProofs(raw, checkpoint, reservations, controller, readCo
     observed.familyClaimUsageProofs = nil
     observed.familyAttackUsageProof = nil
     observed.familyUsageProof = nil
+    observed.chestUsageProof = nil
     observed.eventShopUsageProof = nil
     observed.marketRentUsageProof = nil
     observed.crewHireUsageProof=nil
@@ -114,6 +115,7 @@ local function withUsageProofs(raw, checkpoint, reservations, controller, readCo
     if type(checkpoint.FamilyContributionUsage) == "function" then
         observed.familyUsageProof = checkpoint:FamilyContributionUsage(raw)
     end
+    if type(checkpoint.ChestUsage) == "function" then observed.chestUsageProof = checkpoint:ChestUsage(raw) end
     if type(checkpoint.EventShopUsage) == "function" then observed.eventShopUsageProof = checkpoint:EventShopUsage(raw) end
     if type(checkpoint.CrewHireUsage)=="function" then observed.crewHireUsageProof=checkpoint:CrewHireUsage(raw) end
     if type(checkpoint.PlayerFightUsage) == "function" then observed.playerFightUsageProof = checkpoint:PlayerFightUsage(raw) end
@@ -265,7 +267,7 @@ function AutomationRuntime.new(deps)
         return copied
     end
     local journal = m.Journal.new(100)
-    local checkpoint = m.Checkpoint.new(deps.storage, m.FamilyContributionUsage, m.ResourceReservations, m.PendingAction, m.EventShopUsage, m.MarketRentUsage,m.CrewHireUsage,m.PlayerFightUsage)
+    local checkpoint = m.Checkpoint.new(deps.storage, m.FamilyContributionUsage, m.ResourceReservations, m.PendingAction, m.EventShopUsage, m.MarketRentUsage,m.CrewHireUsage,m.PlayerFightUsage,m.Chests)
     local reservationOwner
     if m.ResourceReservations ~= nil then
         reservationOwner = m.ResourceReservations.new(deps.identity,
@@ -280,16 +282,20 @@ function AutomationRuntime.new(deps)
         maxSnapshotAge = 2, minInterval = 1, cooldownSeconds = 45,
         dispatchToken = function(proposal) return readSelection(proposal.feature) end,
         canDispatch = function(proposal, expected)
-            local current = readSelection(proposal.feature)
-            if current == false then
-                if expected ~= false then return false end
-            else
+            local function stillSelected()
+                local current = readSelection(proposal.feature)
+                if current == false then return expected == false end
                 if type(current) ~= "table" or type(expected) ~= "table" then return false end
                 for key, value in pairs(current) do if expected[key] ~= value then return false end end
                 for key, value in pairs(expected) do if current[key] ~= value then return false end end
+                return true
             end
+            if not stillSelected() then return false end
             local guard = features[proposal.feature].canDispatch
-            return guard == nil or (type(guard) == "function" and guard(proposal) == true)
+            if guard ~= nil and (type(guard) ~= "function" or guard(proposal) ~= true) then return false end
+            -- Native preflight can yield. Re-read current choices before the
+            -- broker treats this authorization as ready to send.
+            return stillSelected()
         end,
         captureBefore = function(proposal, raw)
             local spec = features[proposal.feature]
@@ -538,6 +544,7 @@ end
 function Methods:Status()
     local status = self.session:Status()
     status.recentActions = self.journal:PublicEvents(10)
+    status.reads = self.readCoordinator and self.readCoordinator:Status() or nil
     status.goals = {}
     for id, state in pairs(self.goalStates) do status.goals[id] = copy(state) end
     status.outcomes = copy(self.outcomes)
@@ -574,6 +581,9 @@ function Methods:Status()
     end
     if not self.closed then
         for _, tab in ipairs(self.tabInstances) do
+            if tab.id == "combat" and tab.familyDirectory then
+                status.familyDirectory = tab.familyDirectory:Read()
+            end
             if tab.id == "combat" and tab.playerLedger and type(tab.playerLedger.HighValueStatus) == "function" then
                 local ok, value = pcall(tab.playerLedger.HighValueStatus, tab.playerLedger, self.allowanceSnapshot)
                 if ok then status.combatMemory = value end

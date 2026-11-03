@@ -22,6 +22,12 @@ function Sabotage.propose(view, settings, reservations)
         return nil, "Missing sabotage planning input"
     end
     if settings.enabled ~= true then return nil, "Sabotage disabled" end
+    -- The native board does not yet provide trusted owner Family membership.
+    -- Hold this lane rather than silently bypass a configured relation policy.
+    if settings.relationAllies ~= nil and settings.relationAllies ~= ""
+        or settings.enemyMode ~= nil and settings.enemyMode ~= "Off" then
+        return nil, "Verified sabotage owner Family membership required by Alliance/Enemy policy"
+    end
     local floor = settings.energyReserve or 0
     if not integer(floor, 0) or floor > 1000000000000 then return nil, "Invalid shared energy reserve" end
     if not timestamp(view.serverNow)

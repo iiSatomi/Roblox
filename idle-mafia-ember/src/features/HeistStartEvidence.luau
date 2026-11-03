@@ -83,7 +83,10 @@ function HeistStartEvidence.capture(proposal, before)
         place = proposal.place, release = proposal.release,
         revision = proposal.revision, heistId = intent.heistId,
         startsBefore = intent.startsBefore,
-        serverDay = intent.serverDay }, nil
+        serverDay = intent.serverDay, catalogKey = before.catalogKey,
+        cash = native.cash, energy = native.pools.energy, level = native.level,
+        capturedAt = before.capturedAt, serverNow = current.serverNow,
+        nativeServerNow = native.serverNow }, nil
 end
 
 function HeistStartEvidence.evaluate(proposal, beforeHeader, after,
@@ -95,7 +98,10 @@ function HeistStartEvidence.evaluate(proposal, beforeHeader, after,
         or not matching(proposal, after)
         or not matching(proposal, baseline)
         or proposal.revision ~= baseline.revision
-        or beforeHeader.revision ~= baseline.revision then
+        or beforeHeader.revision ~= baseline.revision
+        or reply.pending == true or reply.code == "pending"
+        or reply.code == "no_pending" or reply.code == "rate_limited"
+        or reply.code == "presence" then
         return "pending"
     end
     local current = board(after)
@@ -107,7 +113,29 @@ function HeistStartEvidence.evaluate(proposal, beforeHeader, after,
         and type(mine) == "table" and key(mine.id)
         and mine.heistId == baseline.heistId
         and key(reply.runId) and reply.runId == mine.id
-    if reply.ok == false then return advanced and "pending" or "rejected" end
+    if reply.ok == false then
+        local native = after.native
+        -- An unmatched run is not proof of failure: partial state, a different
+        -- run, or any resource change leaves the sent action unresolved.
+        local unchanged = integer(baseline.revision, 0)
+            and integer(after.revision, 0) and after.revision > baseline.revision
+            and balance(baseline.capturedAt, 0) and balance(after.capturedAt, 0)
+            and after.capturedAt >= baseline.capturedAt
+            and balance(baseline.serverNow, 0) and balance(current.serverNow, 0)
+            and current.serverNow >= baseline.serverNow
+            and math.floor(current.serverNow / 86400) == baseline.serverDay
+            and balance(baseline.nativeServerNow, 0) and balance(native.serverNow, 0)
+            and native.serverNow >= baseline.nativeServerNow
+            and math.abs(current.serverNow - native.serverNow) <= 2
+            and key(baseline.catalogKey) and after.catalogKey == baseline.catalogKey
+            and current.mine == nil and current.result == nil
+            and current.startsLeft == baseline.startsBefore and current.bustWait == 0
+            and balance(baseline.cash, 0) and native.cash == baseline.cash
+            and integer(baseline.energy, 0) and type(native.pools) == "table"
+            and native.pools.energy == baseline.energy
+            and integer(baseline.level, 1) and native.level == baseline.level
+        return unchanged and "rejected" or "pending"
+    end
     if reply.ok == true and advanced then return "confirmed" end
     return "pending"
 end

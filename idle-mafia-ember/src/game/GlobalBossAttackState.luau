@@ -41,9 +41,9 @@ function GlobalBossAttackState.read(raw, context)
     end
     local view = {}
     for key, value in pairs(boss) do view[key] = value end
-    view.health = math.floor(native.pools.health)
+    view.health = native.pools.health
     view.maxHealth = native.stats.maxHealth
-    view.stamina = math.floor(native.pools.stamina)
+    view.stamina = native.pools.stamina
     view.staminaCost = 1 -- Saved GlobalBossRules.STAMINA_COST.
     view.usageHits = usage.hits
     view.lastServerNow = usage.lastServerNow

@@ -79,7 +79,7 @@ function FamilyContributionState.new(config, fingerprint, release)
         and type(fingerprint) == "string" and #fingerprint == 64
         and fingerprint:match("^[%x]+$") and type(release) == "string" and #release > 0,
         "Missing reviewed Family contribution terms")
-    local costs, tracks, rows = {}, {}, 0
+    local costs, tracks, orders, rows = {}, {}, {}, 0
     for index, cost in pairs(source.staminaPerkCosts) do
         assert(integer(index, 1, #source.staminaPerkCosts) and integer(cost, 1, 1000000000),
             "Invalid Family Stamina cost")
@@ -92,11 +92,14 @@ function FamilyContributionState.new(config, fingerprint, release)
         rows = rows + 1
         assert(rows <= 64 and type(key) == "string" and #key > 0 and #key <= 80
             and type(track) == "table", "Invalid Family perk track")
-        if track.kind == "stamina" then tracks[key] = true end
+        if track.kind == "stamina" then
+            tracks[key] = true
+            orders[key] = finite(track.order, -1000000000, 1000000000) and track.order or 1000
+        end
     end
     return setmetatable({ release = release, key = fingerprint:lower(),
         donateMin = source.donateMin, contributeMax = source.contributeMax,
-        costs = costs, tracks = tracks }, Methods)
+        costs = costs, tracks = tracks, orders = orders }, Methods)
 end
 
 function Methods:Enrich(snapshot)
@@ -107,7 +110,8 @@ function Methods:Enrich(snapshot)
     local result = copied(snapshot)
     result.familyContributionCatalog = { key = self.key, release = self.release,
         donateMin = self.donateMin, contributeMax = self.contributeMax,
-        staminaCosts = copied(self.costs), staminaTracks = copied(self.tracks) }
+        staminaCosts = copied(self.costs), staminaTracks = copied(self.tracks),
+        staminaTrackOrder = copied(self.orders) }
     return result, nil
 end
 
@@ -160,11 +164,16 @@ function FamilyContributionState.read(raw, context)
     end
     local perks, progress = map(family.perks, 25), map(family.progress, 1000000000)
     if not perks or not progress then return nil, "Invalid Family perk state" end
-    local trackCount = 0
+    local trackCount, orders = 0, {}
     for track, enabled in pairs(catalog.staminaTracks) do
         trackCount = trackCount + 1
         if trackCount > 64 or type(track) ~= "string" or #track == 0 or #track > 80
             or enabled ~= true then return nil, "Invalid Family Stamina catalog" end
+        local order = type(catalog.staminaTrackOrder) == "table" and catalog.staminaTrackOrder[track]
+        if order ~= nil and not finite(order, -1000000000, 1000000000) then
+            return nil, "Invalid Family Stamina track order"
+        end
+        orders[track] = order or 1000
         if perks[track] == nil then perks[track] = 0 end
         if progress[track] == nil then progress[track] = 0 end
     end
@@ -179,7 +188,8 @@ function FamilyContributionState.read(raw, context)
         ledger = ledger, perks = perks, progress = progress, cash = native.cash,
         stamina = native.pools.stamina, gold = gold, boundGold = bound,
         donateMin = catalog.donateMin, contributeMax = catalog.contributeMax,
-        staminaCosts = copied(catalog.staminaCosts), staminaTracks = copied(catalog.staminaTracks) }
+        staminaCosts = copied(catalog.staminaCosts), staminaTracks = copied(catalog.staminaTracks),
+        staminaTrackOrder = orders }
     for _, field in ipairs(headers) do view[field] = raw[field] end
     if same(raw.familyUsageProof, context) and type(raw.familyUsageProof.usage) == "table" then
         local usage = {}

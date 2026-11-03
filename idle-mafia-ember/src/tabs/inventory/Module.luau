@@ -44,6 +44,8 @@ function InventoryTab.BuildUI(section, feature, bind, numeric)
                     Text = field.label, Default = tostring(field.value),
                     FireOnBlur = true,
                 })
+            elseif field.type == "boolean" then
+                bind(row.custom, "Toggle", key, {Text = field.label, Default = field.value})
             else
                 assert(field.type == "select" and type(field.options) == "table",
                     "Invalid Inventory custom field")
@@ -104,7 +106,7 @@ function Methods:Descriptors()
     return { { id = "restoratives", reader = self.restoratives,
         planner = self.restoratives, evidence = self.restoratives },
         { id = "chests", reader = self.chests,
-            planner = self.chests, evidence = self.chests },
+            planner = self.chests, evidence = self.chests, recoverSaved = self.chests.recoverSaved },
         { id = "cosmetics", reader = self.cosmetics,
             planner = self.cosmetics, evidence = self.cosmetics } }
 end

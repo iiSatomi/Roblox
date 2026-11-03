@@ -11,16 +11,20 @@ local function timestamp(value)
         and value >= 0 and value < math.huge
 end
 
-local function safe(row, view, reservations)
+local function finite(value, minimum)
+    return type(value) == "number" and value == value
+        and value >= minimum and value < math.huge
+end
+
+local function safe(row, view, reservations, healthFloor, staminaReserve)
     return row.unlocked == true and row.doneToday == false
         and integer(row.stage, 1) and integer(row.level, 1)
         and integer(row.remainingHp, 1)
         and integer(row.hitBackMax, 0)
-        and view.health - row.hitBackMax
-            >= view.maxHealth * 0.5
-        and view.stamina - view.staminaCost
-            - (reservations.stamina or 0)
-            - (reservations.uncertainStamina or 0) >= 1
+        and view.health >= row.hitBackMax + view.maxHealth * healthFloor / 100
+        and view.stamina >= view.staminaCost
+            + (reservations.stamina or 0)
+            + (reservations.uncertainStamina or 0) + staminaReserve
 end
 
 function Bosses.propose(view, settings, reservations)
@@ -29,18 +33,25 @@ function Bosses.propose(view, settings, reservations)
         return nil, "Missing Boss planning input"
     end
     if settings.enabled ~= true then return nil, "City Bosses disabled" end
+    local healthFloor, staminaReserve = settings.healthFloor, settings.staminaReserve
+    if healthFloor == nil then healthFloor = 50 end
+    if staminaReserve == nil then staminaReserve = 1 end
+    if not finite(healthFloor, 1) or healthFloor > 100
+        or not finite(staminaReserve, 0) or staminaReserve > 1e12 then
+        return nil, "Invalid Boss resource floors"
+    end
     if view.status ~= "known" or not integer(view.dayStamp, 0)
         or not timestamp(view.serverNow)
         or not integer(view.best, 0)
-        or not integer(view.health, 0)
+        or not finite(view.health, 0)
         or not integer(view.maxHealth, 1)
-        or not integer(view.stamina, 0)
+        or not finite(view.stamina, 0)
         or not integer(view.staminaCost, 1)
         or not integer(view.usageHits, 0)
         or not integer(view.usageStamina, 0)
         or not timestamp(view.lastServerNow)
-        or not integer(reservations.stamina or 0, 0)
-        or not integer(reservations.uncertainStamina or 0, 0)
+        or not finite(reservations.stamina or 0, 0)
+        or not finite(reservations.uncertainStamina or 0, 0)
         or type(view.stages) ~= "table" then
         return nil, "Current Boss resources and attempt proof required"
     end
@@ -58,7 +69,7 @@ function Bosses.propose(view, settings, reservations)
             nextStage = row
         elseif type(row) == "table" and integer(row.stage, 1)
             and row.stage <= view.best
-            and safe(row, view, reservations)
+            and safe(row, view, reservations, healthFloor, staminaReserve)
             and (not repeatStage or row.stage < repeatStage.stage) then
             repeatStage = row
         end
@@ -67,7 +78,7 @@ function Bosses.propose(view, settings, reservations)
         return nil, "Next Boss stage catalog unknown"
     end
     local chosen = nextStage
-        and safe(nextStage, view, reservations) and nextStage
+        and safe(nextStage, view, reservations, healthFloor, staminaReserve) and nextStage
         or repeatStage
     if not chosen then return nil, "No safe available Boss stage" end
     return { session = view.session, account = view.account,
@@ -77,6 +88,7 @@ function Bosses.propose(view, settings, reservations)
             .. chosen.stage .. ":" .. view.usageHits,
         resources = { stamina = view.staminaCost },
         intent = { kind = "bossStageAttack", stage = chosen.stage,
+            healthFloor = healthFloor, staminaReserve = staminaReserve,
             dayStamp = view.dayStamp, serverNow = view.serverNow,
             bestBefore = view.best,
             remainingHpBefore = chosen.remainingHp,

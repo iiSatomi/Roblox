@@ -1,6 +1,6 @@
 -- Current-client runtime: all switches start off; explicit profile autoload may enable them.
-local sourceCommit = "256d4cd5eaf5ecf4a12536972a1e73b66fab0ef9"
-local manifestCommit = "77753a1e45db5036ab510ce05b1655602cf71129"
+local sourceCommit = "4d28061cb81512aefb5204ae494a0e4b7f394c4d"
+local manifestCommit = "4edd8675885b86107b60dd22f8cd4e265bfe8a08"
 local root = "https://raw.githubusercontent.com/iiSatomi/Roblox/"
 local project = "/idle-mafia-ember/"
 local hashApi = crypt or (syn and syn.crypt)
@@ -32,19 +32,19 @@ local function pinnedModule(path, digest)
 end
 
 local manifestBytes = fetch(root .. manifestCommit .. project .. "manifest.json",
-    "c74c0e37a90feac79ef8db9a5b2edce6c92f8544a4dd38c5debd935a04431df3", "manifest")
+    "18e9fef31f864381d2f0b0c8f7c6165ba718f3dfd1f9b1eb09126912e2650ab8", "manifest")
 local manifest = game:GetService("HttpService"):JSONDecode(manifestBytes)
 assert(manifest.releaseCommit == sourceCommit, "Manifest pin mismatch")
 
 local Loader = pinnedModule("Loader.luau", "2bd90f28042eccb649fb02d2617ff2d5770f2c74cba97b4968bbac629340fbb4")
-local Manifest = pinnedModule("src/loader/Manifest.luau", "cbbe6d580c1fab36bf8c9cd4d9e93830dee7c091a32a6fd9bf2a30868712822b")
-local Bootstrap = pinnedModule("Bootstrap.luau", "ec3b0c85929458f6e38977847bb40876417f8dc51036c5d254c0a215920c4e7d")
+local Manifest = pinnedModule("src/loader/Manifest.luau", "4f6209df6e75fba086626d7ad466222b292b39e84be170d20d67fa12ca447cf4")
+local Bootstrap = pinnedModule("Bootstrap.luau", "a3ca0501951516a162dc58853e389d372afb412dffb9f5b9cf2a0ae6b967cb18")
 local ReleaseAdapters = pinnedModule("ReleaseAdapters.luau", "83e94688a7b2262e43e764ea36ef1271afda91d8f9f7808fd1aa347622eb4b3c")
-local ExecutorEntry = pinnedModule("ExecutorEntry.luau", "6defd52943d4db8168be6f882abef9a12616b53c2bd0cc187ed21234b9cfc0e5")
+local ExecutorEntry = pinnedModule("ExecutorEntry.luau", "ce746884d2cd0994e96e8da8690ffdb5086f7794b6f3957611a84828197bd090")
 
 -- Official Ember URL is mutable. Reject an update until its bytes are reviewed.
 local emberBytes = fetch("https://rbx.lol/ember.lua",
-    "c6ec2ad2ad732a2ed704d044fd068b685d7e6c2613f60a07c39316666576390a", "Ember 3.0.0")
+    "0aebb331911619d0c791de1d0d3e9b2e51ead3fb4472cd038807155ad8bcf412", "Ember 3.0.0")
 local emberChunk, emberReason = loadstring(emberBytes, "@Ember.lua")
 assert(type(emberChunk) == "function", emberReason or "Ember compile failed")
 local Ember = emberChunk()
@@ -58,8 +58,8 @@ local env = {
 }
 local app, reason = ExecutorEntry.start({
     commit = sourceCommit, manifest = manifest,
-    place = "73897506680154", gameVersion = "0.26.555.1",
-    fingerprint = "36f6d88997e5315663632826ab69e562ca9eea3672aef2c07b14aed6a050d5d0",
+    place = "73897506680154", gameVersion = "0.26.644",
+    fingerprint = "e763ddd36b6ee5dfc754512b3106d207f13d01d1ce23d8a2a2ae42cf7eed8edb",
     directory = "IdleMafiaEmber",
     allowedFeatures = { jobs = true, bosses = true },
 }, {

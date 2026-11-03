@@ -63,7 +63,8 @@ function App.start(dependencies)
     end
     local self = { alive = true,
         model = dependencies.Settings.new(dependencies.Catalog, runtime ~= nil),
-        ui = nil, staged = nil, profileSync = false, jobsRuntime = jobs,
+        ui = nil, staged = nil, profileSync = false, profileModified = false,
+        profileSaving = false, jobsRuntime = jobs,
         automationRuntime = automation }
     if runtime and type(runtime.SetSelectionGuard) == "function" then
         runtime:SetSelectionGuard(function(feature)
@@ -76,6 +77,11 @@ function App.start(dependencies)
             end
             if energyActivities[feature] and self.model.specs["shared.energyReserve"] then
                 choices["shared.energyReserve"] = self.model.values["shared.energyReserve"]
+            end
+            if feature == "combat" or feature == "warCombat" or feature == "sabotage" then
+                for _, name in ipairs({"allies", "enemies", "mode"}) do
+                    choices["alliance." .. name] = self.model.values["alliance." .. name]
+                end
             end
             return choices
         end)
@@ -100,8 +106,8 @@ function App.start(dependencies)
             startupNote = autoloadReason .. "; all features off"
         elseif name then
             local profile, loadReason = self.profileStore:Load(name)
-            local prepared, validationReason = profile
-                and self.model:Validate(profile, true)
+            local prepared, validationReason = nil, nil
+            if profile then prepared, validationReason = self.model:Validate(profile, true) end
             if prepared and allowed(prepared) then
                 self.model:Commit(prepared, false)
                 self.currentProfile = name
@@ -380,10 +386,10 @@ function App.start(dependencies)
         local accepted, failure = applyPrepared(prepared, false, "Changed " .. key)
         if not accepted then self.profileModified = previousModified
         elseif syncing then
-            local saved, reason = self.profileStore:Save(self.currentProfile, self.model:Snapshot())
+            local saved, saveReason = self.profileStore:Save(self.currentProfile, self.model:Snapshot())
             if saved then self.profileModified, self.profileSyncError = false, nil
             else
-                self.profileModified, self.profileSyncError = true, reason
+                self.profileModified, self.profileSyncError = true, saveReason
                 self.model:Pause()
                 failure = "Choice is unsaved; profile save failed; session paused"
                 accepted = false
@@ -562,6 +568,21 @@ function App.start(dependencies)
                     settings[id] = feature
                 end
             end
+            for _, id in ipairs({"combat", "warCombat", "sabotage"}) do
+                if settings[id] then
+                    settings[id].relationAllies = self.model.values["alliance.allies"]
+                    settings[id].relationEnemies = self.model.values["alliance.enemies"]
+                    settings[id].enemyMode = self.model.values["alliance.mode"]
+                end
+            end
+            settings.alliance = {browse = enabled and self.model.values["alliance.browse"] == true,
+                query = self.model.values["alliance.query"]}
+            if settings.combat then
+                settings.combat.preferHighValue = self.model.values["combat.memory.preferHighValue"]
+                settings.combat.highPromoteCash = self.model.values["combat.memory.promoteCash"]
+                settings.combat.highDemoteBelow = self.model.values["combat.memory.demoteBelow"]
+                settings.combat.highDemoteHits = self.model.values["combat.memory.demoteHits"]
+            end
             for id in pairs(energyActivities) do
                 if settings[id] then settings[id].energyReserve = self.model.values["shared.energyReserve"] or 0 end
             end
@@ -715,6 +736,7 @@ function App.start(dependencies)
         allowedFeatures = allowedFeatures,
         overviewModule = dependencies.OverviewTab,
         playerModule = dependencies.PlayerTab,
+        allianceModule = dependencies.AllianceTab,
         heistsModule = dependencies.HeistsTab,
         jobsModule = dependencies.JobsTab,
         operationsModule = dependencies.OperationsTab,

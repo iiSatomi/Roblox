@@ -109,10 +109,13 @@ function Restoratives.propose(view, settings)
     local custom = type(settings.custom) == "table"
         and settings.custom or settings
     for _, key in ipairs({ "healthBelow", "energyBelow",
-        "staminaBelow", "minUsefulPercent" }) do
-        if not integer(custom[key], 0) or custom[key] > 100 then
+        "staminaBelow" }) do
+        if not finite(custom[key]) or custom[key] < 0 or custom[key] > 100 then
             return nil, "Restorative thresholds required"
         end
+    end
+    if not integer(custom.minUsefulPercent, 0) or custom.minUsefulPercent > 100 then
+        return nil, "Restorative useful recovery threshold required"
     end
     if custom.custody ~= "Bound only"
         and custom.custody ~= "Bound or tradable" then
@@ -123,15 +126,26 @@ function Restoratives.propose(view, settings)
         or view.readyAt > view.serverNow then
         return nil, "Player consumables cooling down"
     end
+    local policies = {}
+    for _, pool in ipairs({ "health", "energy", "stamina" }) do
+        local selected = custom[pool .. "Policy"]
+        if selected == nil or selected == "Shared policy" then selected = policy end
+        if selected ~= "Off" and selected ~= "Balanced recovery"
+            and selected ~= "Small first" and selected ~= "Large first" then
+            return nil, "Select a supported restorative pool strategy"
+        end
+        policies[pool] = selected
+    end
     local rank = { health = 1, energy = 2, stamina = 3 }
     local best, bestRank, bestSource, bestScore
     for _, row in ipairs(view.items or {}) do
         local pool = view.pools[row.pool]
         local threshold = custom[row.pool .. "Below"]
+        local poolPolicy = policies[row.pool]
         local fromBound = (view.bound[row.id] or 0) > 0
         local owned = fromBound or (custom.custody
             == "Bound or tradable" and (view.ordinary[row.id] or 0) > 0)
-        if pool and owned and pool.current < pool.maximum
+        if poolPolicy ~= "Off" and pool and owned and pool.current < pool.maximum
             and pool.current / pool.maximum * 100 <= threshold then
             local gain = math.max(1,
                 math.ceil(pool.maximum * row.percent / 100))
@@ -141,14 +155,16 @@ function Restoratives.propose(view, settings)
                 * custom.minUsefulPercent then
                 local waste = gain - useful
                 local source = fromBound and 1 or 2
-                local score = policy == "Small first" and -row.percent
-                    or policy == "Large first" and row.percent
-                    or -waste * 1000 + row.percent
+                local score = poolPolicy == "Small first" and -row.percent
+                    or poolPolicy == "Large first" and row.percent
+                    or -waste
                 if not best or rank[row.pool] < bestRank
                     or (rank[row.pool] == bestRank
                         and (source < bestSource
                             or (source == bestSource
-                                and score > bestScore))) then
+                                and (score > bestScore
+                                    or (score == bestScore
+                                        and row.percent > best.percent))))) then
                     best, bestRank, bestSource, bestScore = row,
                         rank[row.pool], source, score
                     best.fromBound = fromBound
