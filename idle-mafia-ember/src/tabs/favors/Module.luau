@@ -10,7 +10,7 @@ function FavorsTab.BuildUI(section, feature, bind, numeric)
         and feature.id == "favors" and feature.page == "favors"
         and type(bind) == "function"
         and type(numeric) == "table"
-        and type(feature.custom) == "table" and #feature.custom == 4,
+        and type(feature.custom) == "table" and #feature.custom == 6,
         "Invalid Favors UI feature")
     local group = section:Group({ Text = feature.label,
         Description = feature.description, Open = true })

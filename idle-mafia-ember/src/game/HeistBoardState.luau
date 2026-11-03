@@ -59,7 +59,9 @@ function HeistBoardState.read(raw, context)
         known[row.id] = true
         options[#options + 1] = { id = row.id, level = row.level,
             stake = row.stake, energy = row.energy,
-            crateCount = row.crateCount }
+            crateCount = row.crateCount, duration = row.duration,
+            cash = row.cash, xp = row.xp, helpGoal = row.helpGoal,
+            crateChance = row.crateChance, crateRarity = row.crateRarity }
     end
     local mine, result = board.mine, board.result
     if mine ~= nil and result ~= nil then

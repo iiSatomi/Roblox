@@ -307,6 +307,16 @@ local targets = {
     familyPerks = "familyStamina.custom.selectedPerk",
     stationMinHome = "station.custom.minHome",
     stationMaxStationed = "station.custom.maxStationed",
+    heistMode = "heists.policy",
+    heistSelection = "heists.custom.selection",
+    selectedHeists = "heists.custom.selectedIds",
+    heistLimits = "heists.custom.limitsEnabled",
+    heistMinLevel = "heists.custom.minLevel", heistMaxLevel = "heists.custom.maxLevel",
+    heistMinEnergy = "heists.custom.minEnergy", heistMaxEnergy = "heists.custom.maxEnergy",
+    heistMinCrateRarity = "heists.custom.minCrateRarity",
+    heistMaxHours = "heists.custom.maxHours", heistMaxHelps = "heists.custom.maxHelps",
+    favorMode = "favors.policy",
+    favorMinCash = "favors.custom.minRewardCash", favorMinXp = "favors.custom.minRewardXp",
     favorDailyCap = "favors.custom.maxDailyAttempts",
     favorReserve = "favors.custom.minFavorReserve",
     favorEnergyReserve = "favors.custom.minEnergyReserve",
@@ -361,8 +371,6 @@ local restorativeModes = { "consumableHealthMode", "consumableEnergyMode", "cons
 local restorativeModeKeys = { consumableHealthMode = true, consumableEnergyMode = true, consumableStaminaMode = true }
 local restorativeThresholds = { consumableHealthBelow = true, consumableEnergyBelow = true, consumableStaminaBelow = true }
 local blockedReasons = {
-    heistMode = "Legacy Heist ranking includes crate rarity, expected crate count or reward rates; current similarly named policies do not preserve that ordering.",
-    favorMode = "Legacy Favor ranking and tie-breaking are not identical to the current reward policies; no approximate ranking is substituted.",
     residencyMinImprovement = "Legacy minimum improvement compares a candidate against the existing residence; current minimum share is an absolute floor.",
     residencyDistricts = "Legacy district allowlist cannot map to the current single selected district without losing candidate selection intent.",
     consumableUseTradable = "Choose current item-custody permission explicitly; a legacy size preference never authorizes tradable consumption.",
@@ -427,6 +435,48 @@ function LegacySettings.preview(raw, model)
         unresolved[key] = true
         report.unresolvedReasons[key] = reason or blockedReasons[key]
             or "No reviewed equivalent for this legacy choice; original intent is retained. Choose current settings explicitly."
+    end
+    local heistModes = {["Best chest"]=true,Balanced=true,["Highest tier"]=true,["Lowest stake"]=true,["XP / hour"]=true,["Profit / hour"]=true,["Selected heist"]=true}
+    local favorModes = {Balanced=true,["Cash reward"]=true,["XP reward"]=true,["Ending soon"]=true,["Highest tier"]=true}
+    if settings.heistMode ~= nil and not heistModes[settings.heistMode] then block("heistMode", "Unknown legacy Heist policy; no current-only policy is substituted.") end
+    if settings.favorMode ~= nil and not favorModes[settings.favorMode] then block("favorMode", "Unknown legacy Favor policy; no current-only policy is substituted.") end
+    local singleHeist = settings.heistMode == "Selected heist"
+    if singleHeist then
+        local id = settings.heistId
+        local valid = type(id) == "string" and #id > 0 and #id <= 120 and id:match("^[%w_%-]+$")
+        if settings.heistSelection ~= nil and settings.heistSelection ~= "Only selected" then valid = false end
+        if settings.selectedHeists ~= nil then
+            if type(settings.selectedHeists) ~= "table" then valid = false
+            else
+                for selected, on in pairs(settings.selectedHeists) do
+                    if type(on) ~= "boolean" or type(selected) ~= "string" or on and selected ~= id then valid = false end
+                end
+            end
+        end
+        if valid then
+            report.mapped["heists.policy"], report.mapped["heists.custom.selection"] = "Best chest", "Only selected"
+            report.mapped["heists.custom.selectedIds"] = id
+        else
+            block("heistMode", "Selected heist needs one explicit unambiguous ID; conflicting selections require review.")
+            block("heistId", "Selected heist needs one explicit unambiguous ID; conflicting selections require review.")
+        end
+    end
+    if settings.heistLimits == true then
+        for _, group in ipairs({{"heistMinLevel", "heistMaxLevel"}, {"heistMinEnergy", "heistMaxEnergy"}}) do
+            local low, high = settings[group[1]], settings[group[2]]
+            if low == nil then low = defaults[group[1]] end
+            if high == nil then high = defaults[group[2]] end
+            if type(low) ~= "number" or low ~= low or type(high) ~= "number" or high ~= high or low > high then
+                block(group[1], "Legacy Heist bounds must be an inclusive non-inverted range.")
+                block(group[2], "Legacy Heist bounds must be an inclusive non-inverted range.")
+            end
+        end
+    end
+    if type(settings.heistMinCrateRarity) == "number" and settings.heistMinCrateRarity > 8 then
+        block("heistMinCrateRarity", "Legacy chest rarity must be within its original 1 to 8 range.")
+    end
+    if type(settings.favorMinXp) == "number" and settings.favorMinXp > 1e12 then
+        block("favorMinXp", "Legacy XP threshold exceeds its original supported range.")
     end
     -- Legacy Boss bounds were always active. An explicitly present bound,
     -- including a default-valued one, imports the complete original range.
@@ -539,7 +589,7 @@ function LegacySettings.preview(raw, model)
         local baseline, target = defaults[key], targets[key]
         local translation, mappedValue = translations[key], value
         if translation then target, mappedValue = translation.target, translation.options[value] end
-        if (key == "selectedOperations" or key == "selectedProperties" or saleMaps[key]) and type(value) == "table" then
+        if (key == "selectedOperations" or key == "selectedProperties" or key == "selectedHeists" or saleMaps[key]) and type(value) == "table" then
             local ids = {}
             for id, on in pairs(value) do
                 if type(id) ~= "string" or #id > 120 or not id:match("^[%w_%-]+$") or type(on) ~= "boolean" then
@@ -567,6 +617,8 @@ function LegacySettings.preview(raw, model)
         end
         if baseline == nil or type(value) ~= type(baseline)
             or type(value) == "number" and math.abs(value) > 9007199254740991 then block(key)
+        elseif singleHeist and (key == "heistMode" or key == "heistId" or key == "heistSelection" or key == "selectedHeists") then
+            -- This original single-ID group was validated and mapped above.
         elseif key == "bossMinLevel" or key == "bossMaxLevel" or key == "bossMaxHits" or key == "bossMaxStamina" then
             -- The complete explicitly bounded legacy group was validated above.
             if same(value, baseline) then report.currentDefaults[#report.currentDefaults + 1] = key end
@@ -582,7 +634,7 @@ function LegacySettings.preview(raw, model)
         elseif settings.combatLimits == true and (key == "combatLimits" or combatRanges[key]) then
             -- The complete enabled group was validated above, including omitted legacy defaults.
             if same(value, baseline) then report.currentDefaults[#report.currentDefaults + 1] = key end
-        elseif same(value, baseline) and key ~= "combatSource" and key ~= "familyPerks" and key ~= "bossMode" and key ~= "bossHitDelay" and key ~= "globalBossAttackMaxPerLoad" and key ~= "globalBossClaimMaxPerLoad" and not restorativeThresholds[key] then
+        elseif same(value, baseline) and key ~= "combatSource" and key ~= "familyPerks" and key ~= "bossMode" and key ~= "favorMode" and key ~= "bossHitDelay" and key ~= "globalBossAttackMaxPerLoad" and key ~= "globalBossClaimMaxPerLoad" and not restorativeThresholds[key] then
             if key ~= "version" then report.currentDefaults[#report.currentDefaults + 1] = key end
         elseif key == "familyPerk" and settings.familyPerks ~= nil then block(key)
         elseif target then

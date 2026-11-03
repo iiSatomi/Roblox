@@ -16,19 +16,21 @@ local function rowId(value)
         or integer(value, 1)
 end
 
-local function better(row, best, policy)
+local function better(row, best, policy, score, bestScore)
     if not best then return true end
-    if policy == "Highest tier" then
-        if row.level ~= best.level then return row.level > best.level end
-    else
+    if policy == "Best reward" then
         if row.rewardCash ~= best.rewardCash then
             return row.rewardCash > best.rewardCash end
         if row.rewardXp ~= best.rewardXp then
             return row.rewardXp > best.rewardXp end
-    end
+    elseif score ~= bestScore then return score > bestScore end
     if row.endsAt ~= best.endsAt then return row.endsAt < best.endsAt end
-    return (type(row.id) .. tostring(row.id))
-        < (type(best.id) .. tostring(best.id))
+    if policy == "Best reward" then
+        return (type(row.id) .. tostring(row.id))
+            < (type(best.id) .. tostring(best.id))
+    end
+    -- Equal textual IDs keep the first row without changing native identity.
+    return tostring(row.id) < tostring(best.id)
 end
 
 function FavorHelp.propose(view, settings, reservations)
@@ -38,14 +40,21 @@ function FavorHelp.propose(view, settings, reservations)
     end
     if settings.enabled ~= true then return nil, "Favor help disabled" end
     local policy = settings.policy
-    if policy ~= "Best reward" and policy ~= "Highest tier" then
+    if policy ~= "Best reward" and policy ~= "Highest tier"
+        and policy ~= "Balanced" and policy ~= "Cash reward"
+        and policy ~= "XP reward" and policy ~= "Ending soon" then
         return nil, "Invalid Favor policy"
     end
     local floor = settings.energyReserve or 0
     if not integer(floor, 0) or floor > 1000000000000 then return nil, "Invalid shared energy reserve" end
     local custom = type(settings.custom) == "table"
         and settings.custom or settings
-    if not integer(custom.maxDailyAttempts, 1)
+    local minRewardCash, minRewardXp = custom.minRewardCash, custom.minRewardXp
+    if minRewardCash == nil then minRewardCash = 0 end
+    if minRewardXp == nil then minRewardXp = 0 end
+    if not timestamp(minRewardCash) or minRewardCash > 1000000000000000
+        or not timestamp(minRewardXp) or minRewardXp > 1000000000000000
+        or not integer(custom.maxDailyAttempts, 1)
         or custom.maxDailyAttempts > 100
         or not integer(custom.minFavorReserve, 0)
         or custom.minFavorReserve > 1000000
@@ -85,7 +94,7 @@ function FavorHelp.propose(view, settings, reservations)
             < math.max(custom.minEnergyReserve, floor) then
         return nil, "Favor or energy reserve blocks help"
     end
-    local best
+    local candidates, maxCash, maxXp, maxLevel = {}, 0, 0, 0
     for _, row in ipairs(view.rows) do
         if type(row) == "table" and rowId(row.id)
             and integer(row.ownerId, 1)
@@ -95,6 +104,8 @@ function FavorHelp.propose(view, settings, reservations)
             and integer(row.sabosUsed, 0)
             and integer(row.rewardCash, 0)
             and integer(row.rewardXp, 0)
+            and row.rewardCash >= minRewardCash
+            and row.rewardXp >= minRewardXp
             and ((custom.relations == "Friends or Family"
                     and (row.friend == true or row.family == true))
                 or (custom.relations == "Friends only"
@@ -104,8 +115,28 @@ function FavorHelp.propose(view, settings, reservations)
             and row.level <= view.level
             and row.endsAt > view.serverNow
             and row.sabosUsed == 0
-            and row.helpsUsed < view.maxHelps
-            and better(row, best, policy) then best = row end
+            and row.helpsUsed < view.maxHelps then
+            candidates[#candidates + 1] = row
+            maxCash = math.max(maxCash, row.rewardCash)
+            maxXp = math.max(maxXp, row.rewardXp)
+            maxLevel = math.max(maxLevel, row.level)
+        end
+    end
+    local best, bestScore
+    for _, row in ipairs(candidates) do
+        local score = 0
+        if policy == "Cash reward" then score = row.rewardCash
+        elseif policy == "XP reward" then score = row.rewardXp
+        elseif policy == "Ending soon" then score = -row.endsAt
+        elseif policy == "Highest tier" then score = row.level
+        elseif policy == "Balanced" then
+            score = (maxCash > 0 and row.rewardCash / maxCash or 0)
+                + (maxXp > 0 and row.rewardXp / maxXp or 0)
+                + (maxLevel > 0 and row.level / maxLevel or 0)
+        end
+        if better(row, best, policy, score, bestScore) then
+            best, bestScore = row, score
+        end
     end
     if not best then return nil, "No eligible Favor help" end
     return { session = view.session, account = view.account,

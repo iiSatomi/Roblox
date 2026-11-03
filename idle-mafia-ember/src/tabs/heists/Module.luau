@@ -9,11 +9,11 @@ local blocked = {
     sabotage = "Mutation sequence ownership unverified",
 }
 
-function HeistsTab.BuildUI(section, feature, bind)
+function HeistsTab.BuildUI(section, feature, bind, numeric)
     assert(type(section) == "table" and type(feature) == "table"
         and feature.page == "heists" and blocked[feature.id]
         and type(bind) == "function"
-        and type(feature.custom) == "table" and #feature.custom == 0,
+        and type(feature.custom) == "table" and type(numeric) == "table",
         "Invalid Heists UI feature")
     local group = section:Group({ Text = feature.label,
         Description = feature.description, Open = true })
@@ -28,7 +28,25 @@ function HeistsTab.BuildUI(section, feature, bind)
             Default = feature.policies[1],
         })
     end
-    local row = { feature = feature, tabOwned = true,
+    local custom
+    if #feature.custom > 0 then
+        custom = group:Group({Text = "Start limits", Open = false})
+        for _, field in ipairs(feature.custom) do
+            local key = feature.id .. ".custom." .. field.id
+            if field.type == "number" then
+                numeric[key] = true
+                bind(custom, "Input", key, {Text = field.label, Default = tostring(field.value), FireOnBlur = true})
+            elseif field.type == "boolean" then
+                bind(custom, "Toggle", key, {Text = field.label, Default = field.value})
+            elseif field.type == "select" then
+                bind(custom, "Dropdown", key, {Text = field.label, Default = field.value, Options = field.options})
+            else
+                assert(field.type == "text", "Invalid Heist custom control")
+                bind(custom, "Input", key, {Text = field.label, Default = field.value, FireOnBlur = true})
+            end
+        end
+    end
+    local row = { feature = feature, tabOwned = true, custom = custom,
         blockedReason = blocked[feature.id],
         status = group:Status({ Text = "Activity",
             Default = "Blocked — " .. blocked[feature.id] }) }
@@ -76,6 +94,7 @@ function HeistsTab.new(deps)
 end
 
 function Methods:Enrich(snapshot)
+    if self.closed then return nil, "Heists tab closed" end
     return self.catalog:Enrich(snapshot)
 end
 

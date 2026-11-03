@@ -102,7 +102,7 @@ function Adapter.new(ember, catalog, callbacks)
             local row
             if feature.page == "heists" and callbacks.heistsModule then
                 row = callbacks.heistsModule.BuildUI(
-                    sections.heists, feature, bind)
+                    sections.heists, feature, bind, self.numeric)
             elseif feature.page == "jobs" and callbacks.jobsModule then
                 row = callbacks.jobsModule.BuildUI(
                     sections.jobs, feature, bind, function()

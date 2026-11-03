@@ -24,7 +24,10 @@ local function copy(rows)
     for index, row in ipairs(rows) do
         result[index] = { id = row.id, level = row.level,
             stake = row.stake, energy = row.energy,
-            crateCount = row.crateCount }
+            crateCount = row.crateCount,
+            helpCash = row.helpCash, helpXp = row.helpXp,
+            duration = row.duration, cash = row.cash, xp = row.xp, helpGoal = row.helpGoal,
+            crateChance = row.crateChance, crateRarity = row.crateRarity }
     end
     return result
 end
@@ -46,6 +49,22 @@ function NativeHeistCatalog.new(gameData, fingerprint, release)
         rows[index] = { id = row.id, level = row.level,
             stake = row.stake, energy = row.energy,
             crateCount = row.crateCount }
+        -- Help rewards are separate native quotes, never a guessed fraction of
+        -- the owner's payout. Missing/invalid pairs leave Favors unavailable.
+        if integer(row.helpCash, 0) and integer(row.helpXp, 0) then
+            rows[index].helpCash, rows[index].helpXp = row.helpCash, row.helpXp
+        end
+        local item = type(gameData.ITEMS_BY_ID) == "table" and gameData.ITEMS_BY_ID[row.crate]
+        local rarity = row.crateCount == 0 and row.crate == nil and 0
+            or type(item) == "table" and item.rarity
+        if integer(row.duration, 1) and integer(row.cash, 0) and integer(row.xp, 0)
+            and integer(row.helpGoal, 0) and type(row.crateChance) == "number"
+            and row.crateChance == row.crateChance and row.crateChance >= 0 and row.crateChance <= 1
+            and integer(rarity, 0) and rarity <= 9 then
+            local out = rows[index]
+            out.duration, out.cash, out.xp, out.helpGoal = row.duration, row.cash, row.xp, row.helpGoal
+            out.crateChance, out.crateRarity = row.crateChance, rarity
+        end
     end
     return setmetatable({ rows = rows,
         catalogKey = string.lower(fingerprint), release = release }, Methods)
