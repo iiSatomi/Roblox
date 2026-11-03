@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "6093cbe046076100f91169714b1e5b8dc0ad63ec",
+  "releaseCommit": "3ffd3e504aa536a76a437ccf7b89e87eb80463ee",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -1499,7 +1499,7 @@
     {
       "id": "SettingsTab",
       "path": "src/tabs/settings/Module.luau",
-      "sha256": "82ab0cc7c99b566142404fdc226e37072f5de9a2bea039f985dfa174897bfcb7",
+      "sha256": "fb8a920438cfb509bb3429e8f6006132720d0977c90bfb83ae1ab1a60bf8dbbb",
       "deps": []
     },
     {
