@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "3ffd3e504aa536a76a437ccf7b89e87eb80463ee",
+  "releaseCommit": "6d506b085a68ae07b1071ab30d409d5c993b11c2",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -11,7 +11,7 @@
     {
       "id": "AutomationRuntime",
       "path": "src/engine/AutomationRuntime.luau",
-      "sha256": "8d69e7697ea88edf0812b1ac78d19309376744f08937df6b99704ade85d919a2",
+      "sha256": "2b50964d0bddd4c253b046d9286057c8296e89c793b354824cfce5b066f719ab",
       "deps": []
     },
     {
@@ -77,7 +77,7 @@
     {
       "id": "ResourceReservations",
       "path": "src/engine/ResourceReservations.luau",
-      "sha256": "d521ca4021e77a875da77a458faac869e417e4709d5252dce143f70dd50b5208",
+      "sha256": "a766136f7d5e606dc5a1087767b0957dcfae1b0d59f1a2cf3f4d0e64a3d13380",
       "deps": []
     },
     {
@@ -137,13 +137,13 @@
     {
       "id": "Bosses",
       "path": "src/features/Bosses.luau",
-      "sha256": "6921c82cf72b9b226fabaf175e5b86dde5fa307edf6d68169fcc7c8f14af4cee",
+      "sha256": "d70002e27a89670dc660ec65a0061e124da63f3da7054369b99dd41a4992765e",
       "deps": []
     },
     {
       "id": "BossesEvidence",
       "path": "src/features/BossesEvidence.luau",
-      "sha256": "706b574131be5d6138b87205f79995dc83719b2e655a6f8426ea40638790f3e2",
+      "sha256": "6cea58f50d5c78467a2079f786977fc635b6be668df6baabd17d82d9c52d9f05",
       "deps": []
     },
     {
@@ -239,19 +239,19 @@
     {
       "id": "GlobalBossAttack",
       "path": "src/features/GlobalBossAttack.luau",
-      "sha256": "d814c9e2a7b0d183f8517ac0a72fafdc078e418b2bdfeca18a6f9ad107a032b7",
+      "sha256": "179da9c32dbe2265b1f3fffd4052b61e6e44a07659a1cf17733f0f24d23089e0",
       "deps": []
     },
     {
       "id": "GlobalBossAttackEvidence",
       "path": "src/features/GlobalBossAttackEvidence.luau",
-      "sha256": "0e4d55a4b5656209f4b41a6213e8c4456cbffbef18781d3b492090da1bfacd73",
+      "sha256": "9cc359c92a452171f189148c61fb79f23fb99d7060bb43760b9f07fb84dd4184",
       "deps": []
     },
     {
       "id": "GlobalBossClaim",
       "path": "src/features/GlobalBossClaim.luau",
-      "sha256": "176e7f8005f2a843c1c764b84955ad4289738520b919f4783dbc0acb035a74e3",
+      "sha256": "20d4ca44ff101bbbcc849070587271c9795d06e2b553f3d93555d6e9261a593c",
       "deps": []
     },
     {
@@ -497,13 +497,13 @@
     {
       "id": "BossStageState",
       "path": "src/game/BossStageState.luau",
-      "sha256": "4b2a3d552f4d9775327c0677de63c16f705c7bf096a725856a21cb307ace9064",
+      "sha256": "8fa68ab81addd6e4a98efaebaa2cd96637bc6d5fe3bb08075401405ba0baa249",
       "deps": []
     },
     {
       "id": "BossesState",
       "path": "src/game/BossesState.luau",
-      "sha256": "a15c1b894af5a9bb92c50ca976faad4c8ddecbd371e4b253c71dbeaaa844e42a",
+      "sha256": "78fce50c8acc49b933105090675541318e8a6b760e0991f5c92e3b17caaee768",
       "deps": []
     },
     {
@@ -581,13 +581,13 @@
     {
       "id": "GlobalBossAttackState",
       "path": "src/game/GlobalBossAttackState.luau",
-      "sha256": "66175b72585ad05ad88c8d8bb0aea5d65c9e1458ffb03d7d9edff7a4ced15d8d",
+      "sha256": "18d0f087ac0e785a5bd15ac1b1f1dc3351920a4db23049cc5274e072bf72bc8c",
       "deps": []
     },
     {
       "id": "GlobalBossClaimState",
       "path": "src/game/GlobalBossClaimState.luau",
-      "sha256": "b8d9efec4a94e50af7425694f312bdaac6f5c6303a377af01f871294fb41e1c9",
+      "sha256": "609154033c5e841910758b44173e0a2407674b8a4d82530cadc51483b28c2de6",
       "deps": []
     },
     {
@@ -695,7 +695,7 @@
     {
       "id": "Checkpoint",
       "path": "src/storage/Checkpoint.luau",
-      "sha256": "3bcd18e7cda01821094d1cd13796aa356a7f2efc749b8cdd9d78581237a89d72",
+      "sha256": "4ea3a36e1bb48637719e9f3fc976a68017879bfc0789b2919d5899692885a105",
       "deps": []
     },
     {
@@ -707,7 +707,7 @@
     {
       "id": "LegacySettings",
       "path": "src/storage/LegacySettings.luau",
-      "sha256": "457b05827c9f918e89663b4aa7ccb63099bd765ad10d93370578998eeef3d16b",
+      "sha256": "da007c4f9393328c7248a95b2f8d2a80ee3e8ad2a56c8456e3b7f2d705170efb",
       "deps": []
     },
     {
@@ -729,6 +729,12 @@
       "deps": []
     },
     {
+      "id": "SavedStateReview",
+      "path": "src/storage/SavedStateReview.luau",
+      "sha256": "61e081bcfe00933822f8c2d9980ce7cbde14a67b3241dcef8f43daede6b4d8d5",
+      "deps": []
+    },
+    {
       "id": "Settings",
       "path": "src/storage/Settings.luau",
       "sha256": "35e7ecffdcfa64cc0d77e481839ca02566bafbcb60e3ac9ad7cc820a6e370379",
@@ -737,7 +743,7 @@
     {
       "id": "StorageAssembly",
       "path": "src/storage/StorageAssembly.luau",
-      "sha256": "dd33f2a810d5fe5cb00780ab1776ea79498ec2facbe31023de70396c74c83398",
+      "sha256": "553b7da2323ca46fa862b915fbfb173a0bf62691e820d64b9a916bf0d6a4b504",
       "deps": []
     },
     {
@@ -755,7 +761,7 @@
     {
       "id": "TabSnapshotAssembler",
       "path": "src/tabs/TabSnapshotAssembler.luau",
-      "sha256": "5ca129a9bd70e4929df5df13d3faf4999f3d7579be478ce45ef9d2936b806235",
+      "sha256": "e89c1b73213458df4f49e75fbaf8dd56d220cc1759a5e92315308cbda4f01f34",
       "deps": []
     },
     {
@@ -999,6 +1005,12 @@
       "deps": []
     },
     {
+      "id": "GlobalBossLoadUsage",
+      "path": "src/tabs/combat/GlobalBossLoadUsage.luau",
+      "sha256": "df12be23de9895df5e96c8c61a37c03c1b459a15f95dd240a8e4d2d363de4245",
+      "deps": []
+    },
+    {
       "id": "HitListQuery",
       "path": "src/tabs/combat/HitListQuery.luau",
       "sha256": "9cb3bde6f3dde969357925b49a89a6fe92526f159da61f98fc17008a275bcf87",
@@ -1007,19 +1019,19 @@
     {
       "id": "CombatTab",
       "path": "src/tabs/combat/Module.luau",
-      "sha256": "0f53b3400957d487208396cb20056c4d1c29f838b6df682ab2f7bdd514bde067",
+      "sha256": "516025cf33946e440ec4f92c40f98e018b2f65009441518972a8ca32c2ce84d3",
       "deps": []
     },
     {
       "id": "NativeBossCatalog",
       "path": "src/tabs/combat/NativeBossCatalog.luau",
-      "sha256": "db3aad60b91885ca3a6a95c67880f85deea21916599463608456cc443e3d5de3",
+      "sha256": "78499e781b72a41a921481103788acb3b6f8f6e09e5630c5254ad603c4c50a70",
       "deps": []
     },
     {
       "id": "NativeGlobalBossSource",
       "path": "src/tabs/combat/NativeGlobalBossSource.luau",
-      "sha256": "7794e719fd042937582243f54dc810d3a3bad55b37d2e2065c4d4de0b38b8a0d",
+      "sha256": "5c2e03ed248a9e810a7a53021c74a381b89e46d6990f736c78e0b5ab344f7d45",
       "deps": []
     },
     {
@@ -1445,7 +1457,7 @@
     {
       "id": "ProfilesTab",
       "path": "src/tabs/profiles/Module.luau",
-      "sha256": "ff430ed679ffb86fc69ca67554cb7a259ed49b832a7166e3031a1ee5cc53be23",
+      "sha256": "045ad335edcde25c924d55b6e0d722705fbdc72931e5099f6b7e0054dd41361d",
       "deps": []
     },
     {
@@ -1745,7 +1757,7 @@
     {
       "id": "Catalog",
       "path": "src/ui/Catalog.luau",
-      "sha256": "5e10646002e31c6a6fe7530ccb22d9cf8c05cb4e52bb9fe239ffcca57c2a6a21",
+      "sha256": "fa8a2891560e13acdeddac53413e23d4bb3b0ce0f45d3a63b0c2be5c56713fd7",
       "deps": []
     },
     {
@@ -1757,7 +1769,7 @@
     {
       "id": "App",
       "path": "src/App.luau",
-      "sha256": "465b545c83cad344754d6ef6729c064075986983fcda4965480a19ca478aedb3",
+      "sha256": "0c90b4311e5068b22473bf88d999560155d19018d9e57117d5076df4e2c3fba3",
       "deps": []
     }
   ]
