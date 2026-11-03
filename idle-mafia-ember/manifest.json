@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "bd823c98f290766cdc1bba64411734088bb4ab4d",
+  "releaseCommit": "aaa323e120b273b2af8291fdece224d7dbac9a4d",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -215,7 +215,7 @@
     {
       "id": "FavorHelp",
       "path": "src/features/FavorHelp.luau",
-      "sha256": "08217edfefea3fce16dd5898261f15718dde1b816a08e90c3e55ed51be0f7419",
+      "sha256": "ad7ad4b4bd3633c2a55aad7438592861c6bd1a3e20d26e19f9fc33631f377e24",
       "deps": []
     },
     {
@@ -287,7 +287,7 @@
     {
       "id": "HeistStart",
       "path": "src/features/HeistStart.luau",
-      "sha256": "326bce5311c7197ccfe4943c2513f53d5d12206b51509d6308ae7c7c86f507cf",
+      "sha256": "5746cd8b2d1cf6f6138851dcaffc7c1435d79e14e7c7edf6baa43ad23f0443a9",
       "deps": []
     },
     {
@@ -605,7 +605,7 @@
     {
       "id": "HeistBoardState",
       "path": "src/game/HeistBoardState.luau",
-      "sha256": "c46147600d720b6677f6e3f7e3f983d59988f592645336065e1be1aadc3dd6c1",
+      "sha256": "39dc6f0fc51766fd15c75ec4216365ce585a6cb63c3390516a78d6eea01d9b61",
       "deps": []
     },
     {
@@ -707,7 +707,7 @@
     {
       "id": "LegacySettings",
       "path": "src/storage/LegacySettings.luau",
-      "sha256": "da007c4f9393328c7248a95b2f8d2a80ee3e8ad2a56c8456e3b7f2d705170efb",
+      "sha256": "825cfd4be1ba10a1352e08de0b9261af5734a273f2b06b821c4c479b3c82d51a",
       "deps": []
     },
     {
@@ -1307,7 +1307,7 @@
     {
       "id": "FavorsTab",
       "path": "src/tabs/favors/Module.luau",
-      "sha256": "7d3f25896a38644be0c7778db0aec42b5bb0d991077f1021aeb1d268c07a01ae",
+      "sha256": "7a86e6fd85c256f639cfec41c0907970255b6647833b88a1ede7bc449eb8c709",
       "deps": []
     },
     {
@@ -1325,13 +1325,13 @@
     {
       "id": "HeistsTab",
       "path": "src/tabs/heists/Module.luau",
-      "sha256": "af92203d6335de77b101aceecc57070aa8489052264ae083c85082d3fdfb4c2e",
+      "sha256": "eb46f2a629bc100e108e147e9e1592ea3b097f16c8225cae7e1d816ba833ca6a",
       "deps": []
     },
     {
       "id": "NativeHeistCatalog",
       "path": "src/tabs/heists/NativeHeistCatalog.luau",
-      "sha256": "ec7a734282c9adca4c7251db0e61b30a7424cced416889e109a02e166d98e27c",
+      "sha256": "7f35e9e206850aa361bc69fb3930c8552bea62affa671e3d8d8a8f6c6431b3ef",
       "deps": []
     },
     {
@@ -1757,13 +1757,13 @@
     {
       "id": "Catalog",
       "path": "src/ui/Catalog.luau",
-      "sha256": "fa8a2891560e13acdeddac53413e23d4bb3b0ce0f45d3a63b0c2be5c56713fd7",
+      "sha256": "78690d7476298985fa43e833e66ffaa0a918c990ccb51963b0cd8e027f87a4db",
       "deps": []
     },
     {
       "id": "EmberAdapter",
       "path": "src/ui/EmberAdapter.luau",
-      "sha256": "b7553af7413737130a93a6af063455a20282adbf2c19602699d83698d92e4127",
+      "sha256": "6635fbe5c62e6e9ebf151d43a9af870f198082c800db14a8307c4f61fbecfbdc",
       "deps": []
     },
     {
