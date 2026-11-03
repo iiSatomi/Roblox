@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "6d506b085a68ae07b1071ab30d409d5c993b11c2",
+  "releaseCommit": "bd823c98f290766cdc1bba64411734088bb4ab4d",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -11,7 +11,7 @@
     {
       "id": "AutomationRuntime",
       "path": "src/engine/AutomationRuntime.luau",
-      "sha256": "2b50964d0bddd4c253b046d9286057c8296e89c793b354824cfce5b066f719ab",
+      "sha256": "3e06e835fced614848c84ffc65ac7288e6d28ad211cc52d8446e794204b2cf19",
       "deps": []
     },
     {
@@ -1001,7 +1001,7 @@
     {
       "id": "FightReceipts",
       "path": "src/tabs/combat/FightReceipts.luau",
-      "sha256": "f545a64f0f7040d5e6b0e13ec1544949b4194166761e694d2af5cb1a99f1ebde",
+      "sha256": "0bd495e063f61732bcbe11c0ca9d5a9555d78be71a77ffb93fc86a6d0e844f42",
       "deps": []
     },
     {
@@ -1019,7 +1019,7 @@
     {
       "id": "CombatTab",
       "path": "src/tabs/combat/Module.luau",
-      "sha256": "516025cf33946e440ec4f92c40f98e018b2f65009441518972a8ca32c2ce84d3",
+      "sha256": "4469052a18412cf02bf1b9628f4a77c1e7240d7c52e8b0097b2fbe61fcc3c79f",
       "deps": []
     },
     {
@@ -1703,7 +1703,7 @@
     {
       "id": "NativeDispatchAdapter",
       "path": "src/transport/NativeDispatchAdapter.luau",
-      "sha256": "625c3e4e674fc1dfc3977ded05aa8e4e5b89262cc5003e64934537a03041a341",
+      "sha256": "2f1419ddbe4bbd1372ec9bfb4d173af85176c1dbc81af5bab86d3674c4784dac",
       "deps": []
     },
     {
