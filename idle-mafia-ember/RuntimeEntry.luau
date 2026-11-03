@@ -1,6 +1,6 @@
 -- Current-client runtime: all switches start off; explicit profile autoload may enable them.
-local sourceCommit = "bd823c98f290766cdc1bba64411734088bb4ab4d"
-local manifestCommit = "db9421ae8d9341f3e0c39777017d50ae496cac68"
+local sourceCommit = "aaa323e120b273b2af8291fdece224d7dbac9a4d"
+local manifestCommit = "870d7d89b9aa4d15069f8c0ecd3bf20c23b0244c"
 local root = "https://raw.githubusercontent.com/iiSatomi/Roblox/"
 local project = "/idle-mafia-ember/"
 local hashApi = crypt or (syn and syn.crypt)
@@ -32,7 +32,7 @@ local function pinnedModule(path, digest)
 end
 
 local manifestBytes = fetch(root .. manifestCommit .. project .. "manifest.json",
-    "89336fbd264b3df8597286f369b9ba5938b9b2892898d964b7ba4dd4dd211da9", "manifest")
+    "ee55e0bba0bdcff18a7c5377d15d6f67928f840444ac37ac001633ea2f7ee763", "manifest")
 local manifest = game:GetService("HttpService"):JSONDecode(manifestBytes)
 assert(manifest.releaseCommit == sourceCommit, "Manifest pin mismatch")
 
