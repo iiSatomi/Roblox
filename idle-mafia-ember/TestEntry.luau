@@ -1,6 +1,6 @@
 -- Pinned UI smoke test. Runtime/gameplay activation is always false.
-local sourceCommit = "3ffd3e504aa536a76a437ccf7b89e87eb80463ee"
-local manifestCommit = "b0c5b9130c19db9ad580945c2bb2c1f1594f64c9"
+local sourceCommit = "6d506b085a68ae07b1071ab30d409d5c993b11c2"
+local manifestCommit = "09fee95a761ea7f3c65c12ef3b390c05ae577c4b"
 local root = "https://raw.githubusercontent.com/iiSatomi/Roblox/"
 local project = "/idle-mafia-ember/"
 local hashApi = crypt or (syn and syn.crypt)
@@ -26,7 +26,7 @@ local function pinnedModule(path, digest)
 end
 
 local manifestBytes = fetch(root .. manifestCommit .. project .. "manifest.json",
-    "25528540f4ebcfe91dd0f26bc72a910d793863a7170b2e06db9ff32c44aa762b", "manifest")
+    "3cf99f0722377c239b016db9ad4d5e42517a16067f8d8644510ddc24ea30c181", "manifest")
 local manifest = game:GetService("HttpService"):JSONDecode(manifestBytes)
 assert(manifest.releaseCommit == sourceCommit, "Manifest pin mismatch")
 
@@ -51,6 +51,8 @@ local disk = type(isfolder) == "function" and type(makefolder) == "function"
     and type(writefile) == "function"
 local env = {
     crypt = hashApi,
+    -- Genuine read capabilities only; memory cache fallback is not account storage.
+    savedStateReadApi = { isfile=isfile, readfile=readfile, listfiles=listfiles },
     isfolder = disk and isfolder or function(path) return folders[path] == true end,
     makefolder = disk and makefolder or function(path) folders[path] = true end,
     isfile = disk and isfile or function(path) return files[path] ~= nil end,
