@@ -66,8 +66,72 @@ local function current(raw, stage)
     return native, state, proof, usage, selected, hp, done
 end
 
+local rewardFields = {"cash", "xp", "crate", "firstClearCrate", "crateRarity", "firstClearRarity", "mostWanted"}
+local function selectionOf(intent)
+    if type(intent) ~= "table" then return nil end
+    local result = {contract = intent.selectionContract, mode = intent.selectionMode,
+        cash = intent.selectedCash, xp = intent.selectedXp, crate = intent.selectedCrate,
+        firstClearCrate = intent.selectedFirstClearCrate, crateRarity = intent.selectedCrateRarity,
+        firstClearRarity = intent.selectedFirstClearRarity, mostWanted = intent.selectedMostWanted}
+    return next(result) ~= nil and result or nil
+end
+local function sameReward(selection, row, proof)
+    if type(selection) ~= "table" or selection.contract ~= "boss-get-653-v1"
+        or proof.selectionContract ~= selection.contract then return false end
+    local modes = {["Current progression"] = true, Smart = true, ["First undefeated"] = true,
+        ["Highest level"] = true, ["Best chest"] = true, ["Cash reward"] = true, ["XP reward"] = true}
+    if not modes[selection.mode] then return false end
+    for _, field in ipairs(rewardFields) do if selection[field] ~= row[field] then return false end end
+    return integer(selection.cash, 0) and integer(selection.xp, 0)
+        and integer(selection.crateRarity, 0) and integer(selection.firstClearRarity, 0)
+        and type(selection.mostWanted) == "boolean"
+end
+
+local encounterFields = {"confirmedLimitsEnabled", "maxConfirmedHits", "maxConfirmedStamina",
+    "confirmationDelayEnabled", "confirmationDelay", "confirmedHitsBefore", "confirmedStaminaBefore", "confirmationReadyAt"}
+local function validEncounter(intent, before)
+    local has = false
+    for _, field in ipairs(encounterFields) do if intent[field] ~= nil then has = true end end
+    if not has then return true end
+    if type(intent.confirmedLimitsEnabled) ~= "boolean" or type(intent.confirmationDelayEnabled) ~= "boolean"
+        or not finite(intent.maxConfirmedHits, 1) or intent.maxConfirmedHits > 100000
+        or not finite(intent.maxConfirmedStamina, 1) or intent.maxConfirmedStamina > 100000
+        or not finite(intent.confirmationDelay, 5) or intent.confirmationDelay > 120
+        or not integer(intent.confirmedHitsBefore, 0) or not integer(intent.confirmedStaminaBefore, 0)
+        or not finite(intent.confirmationReadyAt, 0) then return false end
+    local proof = before.bossEncounterProof
+    if type(proof) ~= "table" or proof.account ~= before.account or proof.session ~= before.session
+        or proof.capturedAt ~= before.capturedAt or proof.day ~= intent.dayStamp or proof.best ~= intent.bestBefore
+        or proof.readyAt ~= intent.confirmationReadyAt or type(proof.counts) ~= "table" then return false end
+    local row = proof.counts[tostring(intent.stage)]
+    local hits, stamina = 0, 0
+    if row ~= nil then
+        if type(row) ~= "table" or not integer(row.hits, 0) or not integer(row.stamina, 0) then return false end
+        hits, stamina = row.hits, row.stamina
+    end
+    return hits == intent.confirmedHitsBefore and stamina == intent.confirmedStaminaBefore
+        and (not intent.confirmedLimitsEnabled or hits < intent.maxConfirmedHits
+            and stamina + intent.expectedStaminaCost <= intent.maxConfirmedStamina)
+        and (not intent.confirmationDelayEnabled or finite(proof.now, 0) and proof.now >= proof.readyAt)
+end
+
 function BossesEvidence.capture(proposal, before)
     local intent = type(proposal) == "table" and proposal.intent
+    local selection = selectionOf(intent)
+    -- Older saved attacks predate level preferences. Preserve their original
+    -- baseline shape; new bounded intents must carry the entire quoted range.
+    local hasLevels = type(intent) == "table" and (intent.minLevel ~= nil
+        or intent.maxLevel ~= nil or intent.selectedLevel ~= nil
+        or intent.limitsEnabled ~= nil)
+    if hasLevels and (type(intent.limitsEnabled) ~= "boolean"
+        or not integer(intent.minLevel, 1) or intent.minLevel > 1000000
+        or not integer(intent.maxLevel, 1) or intent.maxLevel > 1000000
+        or not integer(intent.selectedLevel, 1) or intent.selectedLevel > 1000000
+        or (intent.limitsEnabled and (intent.minLevel > intent.maxLevel
+            or intent.selectedLevel < intent.minLevel
+            or intent.selectedLevel > intent.maxLevel))) then
+        return nil, "Invalid Boss level range"
+    end
     local staminaReserve = type(intent) == "table" and intent.staminaReserve
     if staminaReserve == nil then staminaReserve = 1 end
     local healthFloor = type(intent) == "table" and intent.healthFloor
@@ -94,6 +158,7 @@ function BossesEvidence.capture(proposal, before)
     end
     local native, state, proof, usage, row, hp, done =
         current(before, intent.stage)
+    if not validEncounter(intent, before) then return nil, "Boss encounter counters or delay changed" end
     if not native or native.serverNow ~= intent.serverNow
         or usage.day ~= intent.dayStamp
         or usage.hits ~= intent.hitsBefore
@@ -108,6 +173,8 @@ function BossesEvidence.capture(proposal, before)
         or row.hp ~= intent.maxHp
         or row.hitBackMax ~= intent.hitBackMax
         or row.level > native.level
+        or (hasLevels and row.level ~= intent.selectedLevel)
+        or (selection ~= nil and not sameReward(selection, row, proof))
         or hp ~= intent.remainingHpBefore
         or proof.staminaCost ~= intent.expectedStaminaCost
         or (state.auto ~= nil and state.auto ~= false)
@@ -123,6 +190,8 @@ function BossesEvidence.capture(proposal, before)
     return { session = proposal.session, account = proposal.account,
         place = proposal.place, release = proposal.release,
         revision = proposal.revision, stage = intent.stage,
+        selectedLevel = hasLevels and intent.selectedLevel or nil,
+        selection = selection,
         dayStamp = intent.dayStamp, bestBefore = intent.bestBefore,
         hpBefore = hp, maxHp = row.hp, hitBackMax = row.hitBackMax, catalogKey = proof.catalogKey,
         hitsBefore = usage.hits, staminaBefore = usage.stamina,
@@ -152,6 +221,8 @@ local function reconcile(proposal, beforeHeader, after,
     local native, state, proof, usage, row, hp, done =
         current(after, baseline.stage)
     if not native or not finite(baseline.serverNow, 0) or native.serverNow < baseline.serverNow
+        or (baseline.selectedLevel ~= nil and row.level ~= baseline.selectedLevel)
+        or (baseline.selection ~= nil and not sameReward(baseline.selection, row, proof))
         or row.hitBackMax ~= baseline.hitBackMax or proof.staminaCost ~= baseline.staminaCost
         or proof.catalogKey ~= baseline.catalogKey then return "pending" end
     local advanced = usage.day == baseline.dayStamp

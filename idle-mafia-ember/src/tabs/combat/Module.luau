@@ -1,6 +1,6 @@
 -- Separately configurable Combat controls own their sources, evidence and lifecycle.
 local CombatTab = {}
-local ownedProofs = { "playerFightProof", "playerFightHistoryProof", "hitListProof", "warRosterProof", "bossStageProof", "bossShopProof", "globalBossProof", "localUserIdProof", "familyAttackProof" }
+local ownedProofs = { "bossEncounterProof", "playerFightProof", "playerFightHistoryProof", "hitListProof", "warRosterProof", "bossStageProof", "bossShopProof", "globalBossProof", "localUserIdProof", "familyAttackProof" }
 local lookupHeaders = {"session", "account", "place", "release", "revision", "capturedAt"}
 local lookupChoices = {"targetSource", "preferHighValue", "policy", "minimumPayout", "minSamples", "minWinRate", "dailyOnly"}
 local function lookupScope(snapshot, settings)
@@ -151,7 +151,7 @@ function CombatTab.new(deps)
         and type(deps.NativeBossCatalog.new) == "function"
         and type(deps.bossStages) == "table" then
         bossCatalog = deps.NativeBossCatalog.new(deps.bossStages,
-            deps.config, deps.fingerprint, deps.release)
+            deps.config, deps.fingerprint, deps.release, deps.gameData, deps.clientGame)
     end
     return setmetatable({ id = "combat", ownedProofs = ownedProofs, descriptors = descriptors,
         blocked = { { id = "combat", reader = player,
@@ -173,7 +173,8 @@ function CombatTab.new(deps)
             and type(deps.FamilyTakedownState) == "table"
             and type(deps.fingerprint) == "string" and type(deps.release) == "string"
             and deps.FamilyBossQuery.new(deps.FamilyTakedownState, deps.fingerprint, deps.release) or nil,
-        bossCatalog = bossCatalog }, Methods)
+        bossCatalog = bossCatalog, bossEncounters = {}, bossConfirmSeen = {}, bossReadyAt = 0, bossClock = deps.clock,
+        bossNow = type(deps.clock) == "table" and deps.clock.Now }, Methods)
 end
 
 -- Independent current war observations can only remove ordinary permission.
@@ -201,14 +202,108 @@ function Methods:CurrentHitList(snapshot, roster)
     return proof
 end
 
+local function bossNumber(value, minimum, maximum)
+    return type(value) == "number" and value == value and value >= minimum and value <= maximum
+end
+local function bossInteger(value, minimum, maximum)
+    return bossNumber(value, minimum, maximum) and value % 1 == 0
+end
+function Methods:BossLocalNow()
+    if self.closed or type(self.bossClock) ~= "table" or type(self.bossNow) ~= "function"
+        or self.bossClock.Now ~= self.bossNow then return nil end
+    local ok, value = pcall(self.bossNow, self.bossClock)
+    return ok and bossNumber(value, 0, 9007199254740991) and value or nil
+end
+function Methods:BossEncounterProof(raw)
+    local native = type(raw) == "table" and raw.native
+    local state = type(native) == "table" and native.bossStage
+    if self.closed or type(state) ~= "table" or not bossInteger(state.best, 0, 100000)
+        or not bossNumber(native.serverNow, 0, 9007199254740991) then return nil end
+    local day = tonumber(os.date("!%Y%j", math.floor(native.serverNow)))
+    if not day then return nil end
+    local counts = {}
+    for stage, record in pairs(self.bossEncounters) do
+        if record.day == day and record.best == state.best then
+            counts[stage] = {hits = record.hits, stamina = record.stamina}
+        end
+    end
+    return {account = raw.account, session = raw.session, capturedAt = raw.capturedAt,
+        day = day, best = state.best, counts = counts, readyAt = self.bossReadyAt, now = self:BossLocalNow()}
+end
+function Methods:BossExcluded(proof, settings)
+    local result = {}
+    if type(settings) ~= "table" or settings.confirmedLimitsEnabled ~= true then return result end
+    local hits, stamina = settings.maxConfirmedHits or 100, settings.maxConfirmedStamina or 100
+    if not proof or not bossNumber(hits, 1, 100000) or not bossNumber(stamina, 1, 100000) then return nil end
+    local cost = self.bossCatalog and self.bossCatalog.staminaCost
+    if not bossInteger(cost, 1, 10000) then return nil end
+    for stage, record in pairs(proof.counts) do
+        if record.hits >= hits or record.stamina + cost > stamina then result[stage] = true end
+    end
+    return result
+end
+function Methods:RecordBossOutcome(data, after, evidence)
+    if self.closed or type(data) ~= "table" or type(data.proposal) ~= "table"
+        or type(data.proposal.intent) ~= "table" then return false, "Boss encounter owner unavailable" end
+    local p, intent = data.proposal, data.proposal.intent
+    if (p.requestId ~= nil and not bossInteger(p.requestId, 1, 9007199254740991)) or type(p.session) ~= "string"
+        or type(p.actionKey) ~= "string" then return false, "Boss confirmation identity unavailable" end
+    local enriched = self.bossCatalog and self.bossCatalog:Enrich(after, intent, intent.stage)
+    if self.closed or not enriched or evidence.recoverSaved(data, enriched) ~= "confirmed" then
+        return false, "Exact Boss confirmation required for encounter accounting"
+    end
+    local function part(value)
+        local kind = type(value)
+        local text = kind == "number" and string.format("%.17g", value) or tostring(value)
+        return kind .. tostring(#text) .. ":" .. text
+    end
+    local parts = {}
+    for _, field in ipairs({"session", "account", "place", "release", "actionKey"}) do
+        parts[#parts + 1] = part(p[field])
+    end
+    if p.requestId ~= nil then
+        parts[#parts + 1] = "numbered" .. part(p.requestId)
+    else
+        -- Checkpoint supports historical unnumbered custody. Bind its original
+        -- logical request, never invent a new request ID for reconciliation.
+        parts[#parts + 1] = "legacy" .. part(p.revision) .. part(data.before.capturedAt)
+        local keys = {}
+        for key in pairs(intent) do keys[#keys + 1] = key end
+        table.sort(keys)
+        for _, key in ipairs(keys) do parts[#parts + 1] = part(key) .. part(intent[key]) end
+    end
+    local identity = table.concat(parts)
+    if self.bossConfirmSeen[identity] then return true end
+    local key = tostring(intent.stage)
+    local record = self.bossEncounters[key]
+    if not record or record.day ~= intent.dayStamp or record.best ~= intent.bestBefore then
+        record = {day = intent.dayStamp, best = intent.bestBefore, hits = 0, stamina = 0}
+        self.bossEncounters[key] = record
+    end
+    record.hits = record.hits + 1
+    record.stamina = record.stamina + intent.expectedStaminaCost
+    self.bossConfirmSeen[identity] = true
+    -- Count before checkpoint cleanup. A failed cleanup may call this again;
+    -- the owned request identity prevents duplicate accounting in this load.
+    local settings = self.latestBossSettings or {}
+    local delay = settings.confirmationDelay or 5
+    local localNow = self:BossLocalNow()
+    self.bossReadyAt = settings.confirmationDelayEnabled == true
+        and bossNumber(delay, 5, 120) and localNow ~= nil and localNow + delay or 0
+    return true
+end
+
 function Methods:Enrich(snapshot, settings)
     local result = {}
     for key, value in pairs(snapshot) do result[key] = value end
     for _, field in ipairs(ownedProofs) do result[field] = nil end
     self.latestBossSnapshot = result
+    self.latestBossSettings = type(settings) == "table" and settings.bosses or nil
+    result.bossEncounterProof = self:BossEncounterProof(result)
     if self.bossCatalog then
         -- Missing city state must not suppress independent Global/Family rows.
-        result = self.bossCatalog:Enrich(result) or result
+        result = self.bossCatalog:Enrich(result, self.latestBossSettings, nil,
+            self:BossExcluded(result.bossEncounterProof, self.latestBossSettings)) or result
     end
     if self.globalBossSource then
         local enriched = self.globalBossSource:Enrich(result)
@@ -585,9 +680,30 @@ function Methods:Descriptors()
             end or nil }
     end
     for index, descriptor in ipairs(self.descriptors) do
+        local evidence = descriptor.evidence
+        local function exact(proposal, snapshot)
+            if self.closed or not self.bossCatalog or type(proposal) ~= "table"
+                or type(proposal.intent) ~= "table" then return nil end
+            local enriched = self.bossCatalog:Enrich(snapshot, proposal.intent, proposal.intent.stage)
+            if enriched then enriched.bossEncounterProof = self:BossEncounterProof(snapshot) end
+            return not self.closed and enriched or nil
+        end
+        local wrapped = descriptor.id == "bosses" and {
+            capture = evidence.capture,
+            evaluate = function(p, before, after, reply, baseline)
+                local enriched = exact(p, after)
+                return enriched and evidence.evaluate(p, before, enriched, reply, baseline) or "pending"
+            end,
+        } or evidence
         result[index + #self.blocked] = { id = descriptor.id, reader = descriptor.reader,
-            planner = descriptor.planner, evidence = descriptor.evidence,
-            recoverSaved = descriptor.evidence.recoverSaved,
+            planner = descriptor.planner, evidence = wrapped,
+            recordOutcome = descriptor.id == "bosses" and function(data, after)
+                return self:RecordBossOutcome(data, after, evidence)
+            end or nil,
+            recoverSaved = descriptor.id == "bosses" and function(data, after)
+                local enriched = type(data) == "table" and exact(data.proposal, after)
+                return enriched and evidence.recoverSaved(data, enriched) or nil
+            end or evidence.recoverSaved,
             canDispatch = (descriptor.id == "globalBossAttack" or descriptor.id == "globalBossClaim") and function(proposal)
                 if self.closed or not self.globalBossSource or not self.latestBossSnapshot then return false end
                 local latest = self.globalBossSource:Enrich(self.latestBossSnapshot)
@@ -597,7 +713,9 @@ function Methods:Descriptors()
                     and descriptor.evidence.canDispatch(proposal, self.latestBossSnapshot)
             end or (descriptor.id == "bosses" or descriptor.id == "bossShop") and function(proposal)
                 if self.closed or not self.bossCatalog or not self.latestBossSnapshot then return false end
-                local latest = self.bossCatalog:Enrich(self.latestBossSnapshot)
+                local latest
+                if descriptor.id == "bosses" then latest = exact(proposal, self.latestBossSnapshot)
+                else latest = self.bossCatalog:Enrich(self.latestBossSnapshot) end
                 return latest ~= nil and descriptor.evidence.canDispatch(proposal, latest)
             end or nil }
     end

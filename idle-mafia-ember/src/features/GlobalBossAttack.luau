@@ -29,6 +29,29 @@ function GlobalBossAttack.propose(view, settings, reservations)
     if not finite(staminaReserve, 0) or staminaReserve > 1e12 then
         return nil, "Invalid Global Boss stamina reserve"
     end
+    local healthFloor = settings.healthFloor == nil and 50 or settings.healthFloor
+    local hitBuffer = settings.hitBufferPct == nil and 25 or settings.hitBufferPct
+    local delay = settings.minimumDelay == nil and 5 or settings.minimumDelay
+    local cap = settings.maxPerLoad == nil and 25 or settings.maxPerLoad
+    local limited = settings.useLoadCap == true
+    if not finite(healthFloor,1) or healthFloor>100 or not finite(hitBuffer,0) or hitBuffer>75
+        or not finite(delay,2) or delay>120 or not finite(cap,0) or cap>10000
+        or settings.useLoadCap ~= nil and type(settings.useLoadCap) ~= "boolean" then
+        return nil,"Invalid Global Boss preferences"
+    end
+    if view.attackCooldownUnavailable == true then return nil,"Current native cooldown unavailable; Global attacks paused" end
+    local cooldown = view.attackCooldown
+    if cooldown ~= nil and (not finite(cooldown,0) or cooldown<=0 or cooldown>120) then return nil,"Invalid native cooldown proof" end
+    if delay<5 and cooldown==nil then return nil,"Current native cooldown required for faster Global hits" end
+    local effectiveDelay = math.max(delay,cooldown or 5)
+    local load = view.loadUsage
+    if (limited or delay~=5) and type(load)~="table" then return nil,"Current Global load usage required" end
+    if type(load)=="table" then
+        if not integer(load.attackAttempts,0) or not timestamp(load.now)
+            or load.lastAttackAt~=nil and not timestamp(load.lastAttackAt) then return nil,"Invalid Global load usage" end
+        if limited and load.attackAttempts>=cap then return nil,"Global Boss per-load send cap reached" end
+        if load.lastAttackAt and load.now<load.lastAttackAt+effectiveDelay then return nil,"Global Boss per-load hit spacing" end
+    end
     if view.status ~= "known" or view.canAttack ~= true
         or view.phase ~= "live"
         or type(view.runKey) ~= "string" or #view.runKey == 0
@@ -48,10 +71,10 @@ function GlobalBossAttack.propose(view, settings, reservations)
         return nil, "Global Boss run hit cap reached"
     end
     if view.usageHits > 0
-        and view.serverNow < view.lastServerNow + 5 then
+        and view.serverNow < view.lastServerNow + effectiveDelay then
         return nil, "Global Boss hit spacing"
     end
-    if view.health < view.maxHealth * 0.75
+    if view.health < view.maxHealth * (healthFloor + hitBuffer) / 100
         or view.stamina < view.staminaCost
             + (reservations.stamina or 0)
             + (reservations.uncertainStamina or 0) + staminaReserve then
@@ -64,7 +87,11 @@ function GlobalBossAttack.propose(view, settings, reservations)
             .. ":" .. view.usageHits,
         resources = { stamina = view.staminaCost },
         intent = { kind = "globalBossAttack",
-            staminaReserve = staminaReserve,
+            staminaReserve = staminaReserve, healthFloor = healthFloor, hitBufferPct = hitBuffer,
+            minimumDelay = delay, nativeAttackCooldown = cooldown, effectiveDelay = effectiveDelay,
+            useLoadCap = limited, maxPerLoad = cap,
+            loadCountBefore = type(load)=="table" and load.attackAttempts or nil,
+            loadLastAttackAt = type(load)=="table" and load.lastAttackAt or nil,
             runKey = view.runKey, serverNow = view.serverNow,
             hitsBefore = view.usageHits,
             lastServerNowBefore = view.lastServerNow,

@@ -4,6 +4,16 @@ local Methods = {}
 Methods.__index = Methods
 
 function Methods:Render(model)
+    if self.savedStateStatus and model.savedStateReview then
+        local report, page = model.savedStateReview, model.savedStatePage or 1
+        self.savedStateStatus:Set(report.status, true)
+        self.savedStatePage:Set("Page " .. page .. " / " .. math.max(1, math.ceil(#report.rows / 6)), true)
+        for index, handle in ipairs(self.savedStateRows) do
+            local row = report.rows[(page - 1) * 6 + index]
+            handle:Set(row and (row.label .. ": " .. row.summary
+                .. (row.digest and ("; file SHA256=" .. row.digest) or "")) or "-", true)
+        end
+    end
     if self.importReviewText then self.importReviewText:Set(model.importReviewText or "", true) end
     if self.syncToggle then
         self.syncToggle:Set(model.profileSync == true, true)
@@ -101,6 +111,24 @@ function ProfilesTab.new(section, callbacks, userOrigin)
                 if userOrigin(origin) then callbacks.command(command) end
             end })
     end
+    local reviewGroup = section:Group({Text="Saved-state review before activation", Open=true})
+    reviewGroup:Description({Text="Review only; does not authorize activation or clear unknown history. Shows current-account metadata without importing choices, changing files or starting activities. Journal retention is limited to 100 rows. Saved counts are unverified historical records."})
+    result.savedStateStatus = reviewGroup:Status({Text="Read-only review", Save=false,
+        Default=callbacks.savedStateReviewAvailable and "Not read; press Review saved state"
+            or (callbacks.savedStateReviewUnavailable or "Read-only capabilities unavailable; history unknown")})
+    result.savedStatePage = reviewGroup:Status({Text="Review page", Default="Not read", Save=false})
+    result.savedStateRows = {}
+    for index=1,6 do
+        result.savedStateRows[index] = reviewGroup:Status({Text="Record " .. index, Default="-", Save=false})
+    end
+    reviewGroup:Button({Text="Review saved state", ButtonText="Review", FireOnStart=false,
+        Disabled=not callbacks.savedStateReviewAvailable,
+        DisabledReason="Read-only file/listing capabilities unavailable",
+        Callback=function(_, _, origin)
+            if callbacks.savedStateReviewAvailable and userOrigin(origin) then callbacks.command("reviewSavedState") end
+        end})
+    button(reviewGroup, "Previous review page", "savedStatePrevious")
+    button(reviewGroup, "Next review page", "savedStateNext")
     if callbacks.profileStorage then
         savedGroup:Description({ Text = "Names use letters, numbers, _ or - (up to 32 characters). Save up to 16 profiles." })
         result.autoloadStatus = savedGroup:Status({ Text = "Autoload on each launch",

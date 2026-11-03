@@ -27,6 +27,15 @@ function GlobalBossClaimState.read(raw, context)
     local view = {}
     for key, value in pairs(boss) do view[key] = value end
     view.attempts = usage.attempts
+    local load = raw.globalBossLoadProof
+    if type(load) == "table" then
+        local matched = true
+        for _, field in ipairs({"session", "account", "place", "release", "revision", "capturedAt"}) do
+            if load[field] ~= raw[field] then matched = false end
+        end
+        if matched then view.loadUsage = load end
+    end
+    view.attackCooldown = type(raw.globalBossProof) == "table" and raw.globalBossProof.attackCooldown or nil
     return view, nil
 end
 

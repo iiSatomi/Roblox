@@ -255,6 +255,15 @@ local targets = {
     depositThreshold = "bank.custom.depositThreshold",
     bankCashToKeep = "bank.custom.cashToKeep",
     withdrawalLimit = "withdraw.custom.maxWithdrawal",
+    bossHitDelay = "bosses.custom.confirmationDelay",
+    bossMode = "bosses.custom.selection",
+    globalBossHealthFloor = "globalBossAttack.custom.healthFloor",
+    globalBossHitBufferPct = "globalBossAttack.custom.hitBufferPct",
+    globalBossAttackDelay = "globalBossAttack.custom.minimumDelay",
+    globalBossAttackMaxPerLoad = "globalBossAttack.custom.maxPerLoad",
+    globalBossClaimMaxPerLoad = "globalBossClaim.custom.maxPerLoad",
+    bossMinLevel = "bosses.custom.minLevel",
+    bossMaxLevel = "bosses.custom.maxLevel",
     bossShopItem = "bossShop.custom.itemId",
     bossShopQuantity = "bossShop.custom.crateQuantity",
     bossShopTokenReserve = "bossShop.custom.tokenReserve",
@@ -419,6 +428,40 @@ function LegacySettings.preview(raw, model)
         report.unresolvedReasons[key] = reason or blockedReasons[key]
             or "No reviewed equivalent for this legacy choice; original intent is retained. Choose current settings explicitly."
     end
+    -- Legacy Boss bounds were always active. An explicitly present bound,
+    -- including a default-valued one, imports the complete original range.
+    local bossBounds = settings.bossMinLevel ~= nil or settings.bossMaxLevel ~= nil
+    if bossBounds then
+        local low, high = settings.bossMinLevel, settings.bossMaxLevel
+        if low == nil then low = defaults.bossMinLevel end
+        if high == nil then high = defaults.bossMaxLevel end
+        local valid = type(low) == "number" and low == low and low % 1 == 0
+            and low >= 1 and low <= 10000
+            and type(high) == "number" and high == high and high % 1 == 0
+            and high >= 1 and high <= 10000 and low <= high
+        if not valid then
+            block("bossMinLevel", "Legacy Boss bounds must form an inclusive integer range within 1 to 10000.")
+            block("bossMaxLevel", "Legacy Boss bounds must form an inclusive integer range within 1 to 10000.")
+        else
+            report.mapped["bosses.custom.limitsEnabled"] = true
+            report.mapped["bosses.custom.minLevel"] = low
+            report.mapped["bosses.custom.maxLevel"] = high
+        end
+    end
+    if settings.bossMaxHits ~= nil or settings.bossMaxStamina ~= nil then
+        local hits, stamina = settings.bossMaxHits, settings.bossMaxStamina
+        if hits == nil then hits = defaults.bossMaxHits end
+        if stamina == nil then stamina = defaults.bossMaxStamina end
+        if type(hits) ~= "number" or hits ~= hits or hits < 1 or hits > 100000
+            or type(stamina) ~= "number" or stamina ~= stamina or stamina < 1 or stamina > 100000 then
+            block("bossMaxHits", "Confirmed encounter limits must be within 1 to 100000.")
+            block("bossMaxStamina", "Confirmed encounter limits must be within 1 to 100000.")
+        else
+            report.mapped["bosses.custom.confirmedLimitsEnabled"] = true
+            report.mapped["bosses.custom.maxConfirmedHits"] = hits
+            report.mapped["bosses.custom.maxConfirmedStamina"] = stamina
+        end
+    end
     -- Retain the shared choice when equal; mixed pools include omitted legacy defaults.
     local sharedMode, modesAgree, modesValid = nil, true, true
     for _, key in ipairs(restorativeModes) do
@@ -524,6 +567,9 @@ function LegacySettings.preview(raw, model)
         end
         if baseline == nil or type(value) ~= type(baseline)
             or type(value) == "number" and math.abs(value) > 9007199254740991 then block(key)
+        elseif key == "bossMinLevel" or key == "bossMaxLevel" or key == "bossMaxHits" or key == "bossMaxStamina" then
+            -- The complete explicitly bounded legacy group was validated above.
+            if same(value, baseline) then report.currentDefaults[#report.currentDefaults + 1] = key end
         elseif restorativeThresholds[key] and value == 0 then
             local policyTarget = target:gsub("Below$", "Policy")
             local mapped = {[target] = 0, [policyTarget] = "Off"}
@@ -536,13 +582,16 @@ function LegacySettings.preview(raw, model)
         elseif settings.combatLimits == true and (key == "combatLimits" or combatRanges[key]) then
             -- The complete enabled group was validated above, including omitted legacy defaults.
             if same(value, baseline) then report.currentDefaults[#report.currentDefaults + 1] = key end
-        elseif same(value, baseline) and key ~= "combatSource" and key ~= "familyPerks" and not restorativeThresholds[key] then
+        elseif same(value, baseline) and key ~= "combatSource" and key ~= "familyPerks" and key ~= "bossMode" and key ~= "bossHitDelay" and key ~= "globalBossAttackMaxPerLoad" and key ~= "globalBossClaimMaxPerLoad" and not restorativeThresholds[key] then
             if key ~= "version" then report.currentDefaults[#report.currentDefaults + 1] = key end
         elseif key == "familyPerk" and settings.familyPerks ~= nil then block(key)
         elseif target then
             if mappedValue == nil then block(key)
             else
                 local mapped = { [target] = mappedValue }
+                if key == "bossHitDelay" then mapped["bosses.custom.confirmationDelayEnabled"] = true end
+                if key == "globalBossAttackMaxPerLoad" then mapped["globalBossAttack.custom.useLoadCap"]=true end
+                if key == "globalBossClaimMaxPerLoad" then mapped["globalBossClaim.custom.useLoadCap"]=true end
                 -- Legacy sale exclusions and gentleAsk pricing guard both trade lanes.
                 if saleMaps[key] or key == "marketUndercutGold" or key == "marketPriceFloorPct" then
                     mapped["marketFlip.custom." .. target:match("([^%.]+)$")] = mappedValue

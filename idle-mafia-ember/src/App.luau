@@ -1,4 +1,4 @@
--- Inert composition. No game services, remote calls, timers or account files.
+-- Inert composition. Account metadata reads require an explicit review command.
 local App = {}
 local energyActivities = { jobs = true, heists = true, favors = true, sabotage = true }
 
@@ -64,8 +64,28 @@ function App.start(dependencies)
     local self = { alive = true,
         model = dependencies.Settings.new(dependencies.Catalog, runtime ~= nil),
         ui = nil, staged = nil, profileSync = false, profileModified = false,
-        profileSaving = false, jobsRuntime = jobs,
+        profileSaving = false, savedStateReview = nil, savedStatePage = 1, reviewBusy = false,
+        jobsRuntime = jobs,
         automationRuntime = automation }
+    local savedStateReader, savedStateUnavailable
+    if type(dependencies.SavedStateReview) == "table" and type(dependencies.SavedStateReview.new) == "function" then
+        local ok, reader, reason = pcall(dependencies.SavedStateReview.new, dependencies)
+        if ok then savedStateReader, savedStateUnavailable = reader, reason
+        else savedStateUnavailable = "Read-only review unavailable; history unknown" end
+    else savedStateUnavailable = "Read-only review unavailable; history unknown" end
+    function self:ReviewSavedState()
+        if not self.alive or self.reviewBusy then return false end
+        if not savedStateReader then return false, savedStateUnavailable end
+        self.reviewBusy = true
+        local ok, report = pcall(savedStateReader.Read, savedStateReader, function() return self.alive end)
+        self.reviewBusy = false
+        if not self.alive then return false end
+        self.savedStateReview = ok and report or {notice="Review only; does not authorize activation or clear unknown history.",
+            status="Unknown: read-only review failed", rows={}, completeHistory=false, authorizesActivation=false}
+        self.savedStatePage = 1
+        self:Refresh("Reviewed saved-state metadata only")
+        return ok
+    end
     if runtime and type(runtime.SetSelectionGuard) == "function" then
         runtime:SetSelectionGuard(function(feature)
             if not self.alive or self.model.paused or self.model.stopped
@@ -137,6 +157,7 @@ function App.start(dependencies)
                 currentProfile = self.currentProfile, profileModified = self.profileModified,
                 profileSync = self.profileSync, profileSyncError = self.profileSyncError,
                 profileSaving = self.profileSaving, importReviewText = self.importReviewText,
+                savedStateReview = self.savedStateReview, savedStatePage = self.savedStatePage or 1,
                 jobsRuntime = self.jobsRuntime and self.jobsRuntime:Status() or nil,
                 automationRuntime = self.automationRuntime
                     and self.automationRuntime:Status() or nil }
@@ -659,6 +680,14 @@ function App.start(dependencies)
             local ok, reason = self:SetAutoload(nil)
             if not ok then self.ui.lastError = reason
                 self:Refresh("Autoload setting rejected") end
+        elseif name == "reviewSavedState" then self:ReviewSavedState()
+        elseif name == "savedStateNext" or name == "savedStatePrevious" then
+            if self.savedStateReview then
+                local pages = math.max(1, math.ceil(#self.savedStateReview.rows / 6))
+                self.savedStatePage = math.max(1, math.min(pages, (self.savedStatePage or 1)
+                    + (name == "savedStateNext" and 1 or -1)))
+                self:Refresh()
+            end
         elseif name == "refreshProfiles" then
             self.ui.profiles:RefreshStorage()
         elseif name == "exportProfile" or name == "importProfile" then
@@ -711,6 +740,8 @@ function App.start(dependencies)
         dependencies.Ember, dependencies.Catalog, {
         change = change, command = command, destroy = closed,
         profileStorage = self.profileStore ~= nil,
+        savedStateReviewAvailable = savedStateReader ~= nil,
+        savedStateReviewUnavailable = savedStateUnavailable,
         profileTransfer = transferAvailable,
         profileOverview = self.profileStore and function() return self.profileStore:AccountOverview() end or nil,
         profileSummary = self.profileStore and function()

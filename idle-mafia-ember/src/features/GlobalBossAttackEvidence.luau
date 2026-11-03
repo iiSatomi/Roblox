@@ -65,6 +65,21 @@ function GlobalBossAttackEvidence.capture(proposal, before)
     local intent = type(proposal) == "table" and proposal.intent
     local staminaReserve = type(intent) == "table" and intent.staminaReserve
     if staminaReserve == nil then staminaReserve = 1 end
+    if type(before)=="table" and type(before.globalBossProof)=="table"
+        and before.globalBossProof.attackCooldownUnavailable==true then return nil,"Current native cooldown unavailable" end
+    local floor = type(intent)=="table" and intent.healthFloor
+    local buffer = type(intent)=="table" and intent.hitBufferPct
+    if floor == nil and buffer == nil then floor,buffer=50,25 end
+    local delay = type(intent)=="table" and intent.minimumDelay
+    local cooldown = type(intent)=="table" and intent.nativeAttackCooldown
+    local effective = type(intent)=="table" and intent.effectiveDelay
+    if delay == nil and cooldown == nil and effective == nil then delay,effective=5,5
+    elseif not finite(delay,2) or delay>120 or not finite(effective,2) or effective>120
+        or cooldown~=nil and (not finite(cooldown,0) or cooldown<=0 or cooldown>120)
+        or delay<5 and cooldown==nil or effective~=math.max(delay,cooldown or 5)
+        or type(before)~="table" or type(before.globalBossProof)~="table"
+        or before.globalBossProof.attackCooldown~=cooldown then return nil,"Global Boss cooldown proof changed" end
+    if not finite(floor,1) or floor>100 or not finite(buffer,0) or buffer>75 then return nil,"Invalid Global health preferences" end
     if type(proposal) ~= "table"
         or proposal.feature ~= "globalBossAttack"
         or type(intent) ~= "table"
@@ -91,7 +106,7 @@ function GlobalBossAttackEvidence.capture(proposal, before)
         or usage.lastServerNow ~= intent.lastServerNowBefore
         or usage.hits >= 25
         or (usage.hits > 0
-            and native.serverNow < usage.lastServerNow + 5)
+            and native.serverNow < usage.lastServerNow + effective)
         or hits ~= intent.mineHitsBefore
         or damage ~= intent.mineDamageBefore
         or type(native.stats) ~= "table"
@@ -99,7 +114,7 @@ function GlobalBossAttackEvidence.capture(proposal, before)
         or type(native.pools) ~= "table"
         or not finite(native.pools.health, 0)
         or native.pools.health
-            < native.stats.maxHealth * 0.75
+            < native.stats.maxHealth * (floor + buffer) / 100
         or not finite(native.pools.stamina, 1 + staminaReserve) then
         return nil, "Global Boss run or resources changed"
     end

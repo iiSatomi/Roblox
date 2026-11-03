@@ -332,7 +332,11 @@ function ResourceReservations.new(identity, records, providers)
             elseif proposal.feature == "globalBossAttack" and key == "health" then
                 local maxHealth = type(raw.native.stats) == "table" and raw.native.stats.maxHealth
                 if not number(maxHealth) or maxHealth < 1 then return nil, "Global Boss health buffer unavailable" end
-                floor = maxHealth * 0.75
+                local healthFloor, buffer = proposal.intent.healthFloor, proposal.intent.hitBufferPct
+                if healthFloor == nil and buffer == nil then healthFloor,buffer=50,25 end
+                if not number(healthFloor) or healthFloor<1 or healthFloor>100
+                    or not number(buffer) or buffer>75 then return nil,"Global health preferences unavailable" end
+                floor = maxHealth * (healthFloor + buffer) / 100
             elseif proposal.feature == "bosses" and key == "stamina" then
                 floor = proposal.intent.staminaReserve
                 if floor == nil then floor = 1 end -- Original saved proposals.

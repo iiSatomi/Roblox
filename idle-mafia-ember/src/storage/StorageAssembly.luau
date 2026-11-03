@@ -12,6 +12,60 @@ local function safeRoot(value)
     return true
 end
 
+-- Crew predates length-prefixed keys and keeps identity inside its envelope.
+-- Validate that scope against the exact producer key; never split on colons.
+local crewPrefix = "idle-mafia-ember:crew-replacement:"
+local function crewDiscoveryReason(key, data, identity)
+    local scope = type(data) == "table" and data.scope
+    if type(scope) ~= "table" or data.schema ~= 1
+        or type(data.generation) ~= "number" or data.generation < 1
+        or data.generation > 9007199254740991 or data.generation % 1 ~= 0 then
+        return "Invalid Crew checkpoint requires migration review"
+    end
+    for _, field in ipairs({"account", "place", "release", "ownerId"}) do
+        local value = scope[field]
+        if type(value) ~= "string" or #value == 0
+            or #value > (field == "ownerId" and 120 or 200) then
+            return "Invalid Crew checkpoint scope requires migration review"
+        end
+    end
+    for field in pairs(scope) do
+        if field ~= "account" and field ~= "place" and field ~= "release" and field ~= "ownerId" then
+            return "Unknown Crew checkpoint scope requires migration review"
+        end
+    end
+    local expected = crewPrefix .. "v1:" .. scope.account .. ":" .. scope.place .. ":" .. scope.release
+    local sideKey = expected .. ":adapter-unsent:" .. string.format("%.0f", data.generation)
+    if key ~= expected and key ~= sideKey then
+        return "Crew checkpoint key/scope mismatch requires migration review"
+    end
+    -- Check the known envelope shape here; the Crew owner validates its contents.
+    if key == expected then
+        if type(data.usage) ~= "table"
+            or data.active ~= nil and type(data.active) ~= "table"
+            or data.resolution ~= nil and type(data.resolution) ~= "table" then
+            return "Invalid Crew checkpoint schema requires migration review"
+        end
+    elseif type(data.proposal) ~= "table" or type(data.baseline) ~= "table" then
+        return "Invalid Crew receipt schema requires migration review"
+    end
+    local allowed = key == expected
+        and {schema=true, scope=true, generation=true, active=true, usage=true, resolution=true}
+        or {schema=true, scope=true, generation=true, proposal=true, baseline=true}
+    for field in pairs(data) do
+        if not allowed[field] then return "Unknown Crew checkpoint schema requires migration review" end
+    end
+    local currentPrefix = crewPrefix .. "v1:" .. identity.account .. ":" .. identity.place .. ":"
+    local sameAccount = scope.account == identity.account and scope.place == identity.place
+    if not sameAccount and key:sub(1, #currentPrefix) == currentPrefix then
+        return "Ambiguous Crew checkpoint scope requires migration review"
+    end
+    if sameAccount and scope.release ~= identity.release then
+        return "Crew checkpoint release requires explicit migration"
+    end
+    return nil
+end
+
 function StorageAssembly.new(deps)
     if type(deps) ~= "table" or type(deps.RedundantStore) ~= "table"
         or type(deps.RedundantStore.new) ~= "function"
@@ -90,7 +144,14 @@ function StorageAssembly.new(deps)
         if not discovered or not keys then return nil, discoveryReason or "Checkpoint discovery unavailable" end
         local tag = #identity.account .. ":" .. identity.account .. #identity.place .. ":" .. identity.place
         for _, savedKey in ipairs(keys) do
-            local body = savedKey:match("^idle%-mafia%-ember:[%w%-]+:v%d+:(.*)$")
+            local read, data = pcall(checkpoints.Read, checkpoints, savedKey)
+            if not read then return nil, "Discovered checkpoint is unreadable" end
+            local isCrew = savedKey:sub(1, #crewPrefix) == crewPrefix
+            if isCrew then
+                local reason = crewDiscoveryReason(savedKey, data, identity)
+                if reason then return nil, reason end
+            end
+            local body = not isCrew and savedKey:match("^idle%-mafia%-ember:[%w%-]+:v%d+:(.*)$")
             if body and body:sub(1, #tag) == tag and savedKey ~= key then
                 local length, rest = body:sub(#tag + 1):match("^(%d+):(.*)$")
                 length = tonumber(length)
@@ -100,8 +161,6 @@ function StorageAssembly.new(deps)
                 end
                 if rest:sub(1, length) ~= identity.release then return nil, "Unindexed checkpoint release requires explicit migration" end
             end
-            local read, data = pcall(checkpoints.Read, checkpoints, savedKey)
-            if not read then return nil, "Discovered checkpoint is unreadable" end
             if type(data) == "table" and data.account == identity.account and data.place == identity.place
                 and data.release ~= identity.release then return nil, "Saved receipt scope requires explicit migration" end
         end

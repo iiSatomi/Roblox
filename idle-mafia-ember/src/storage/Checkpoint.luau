@@ -1071,11 +1071,22 @@ function Methods:Save(raw, before, baseline)
             or not timestamp(now) then
             return false, "Invalid Global Boss attack attempt"
         end
+        local delay, cooldown, effective = intent.minimumDelay, intent.nativeAttackCooldown, intent.effectiveDelay
+        if delay==nil and cooldown==nil and effective==nil then effective=5
+        else
+            local proof=type(before)=="table" and before.globalBossProof
+            if not timestamp(delay) or delay<2 or delay>120 or not timestamp(effective) or effective<2 or effective>120
+                or cooldown~=nil and (not timestamp(cooldown) or cooldown<=0 or cooldown>120)
+                or delay<5 and cooldown==nil or effective~=math.max(delay,cooldown or 5)
+                or type(proof)~="table" or proof.attackCooldown~=cooldown then
+                return false,"Global Boss captured cooldown changed"
+            end
+        end
         local current = globalUsageFor(globalAttackUsage, runKey) or { hits = 0, lastServerNow = 0 }
         if hits ~= current.hits or last ~= current.lastServerNow
             or current.hits >= 25
             or (current.hits > 0
-                and now < current.lastServerNow + 5) then
+                and now < current.lastServerNow + effective) then
             return false, "Global Boss attack cap or proof changed"
         end
         globalAttackUsage = replaceGlobalUsage(globalAttackUsage, {runKey = runKey,

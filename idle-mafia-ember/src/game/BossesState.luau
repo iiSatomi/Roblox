@@ -37,6 +37,21 @@ function BossesState.read(raw, context)
     view.usageHits = usage.hits
     view.usageStamina = usage.stamina
     view.lastServerNow = usage.lastServerNow
+    local encounters = raw.bossEncounterProof
+    if type(encounters) == "table" and encounters.account == raw.account
+        and encounters.session == raw.session and encounters.capturedAt == raw.capturedAt
+        and encounters.day == stages.dayStamp and encounters.best == stages.best
+        and timestamp(encounters.readyAt) and type(encounters.counts) == "table" then
+        view.encounterKnown, view.confirmationReadyAt = true, encounters.readyAt
+        view.encounterNow = encounters.now
+        for _, row in ipairs(view.stages) do
+            local record = encounters.counts[tostring(row.stage)]
+            if record == nil then row.confirmedHits, row.confirmedStamina = 0, 0
+            elseif type(record) == "table" and integer(record.hits, 0) and integer(record.stamina, 0) then
+                row.confirmedHits, row.confirmedStamina = record.hits, record.stamina
+            else return nil, "Invalid Boss encounter counters" end
+        end
+    end
     return view, nil
 end
 

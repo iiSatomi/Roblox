@@ -37,6 +37,7 @@ local function withUsageProofs(raw, checkpoint, reservations, controller, readCo
     observed.bossUsageProof = nil
     observed.globalClaimUsageProof = nil
     observed.globalAttackUsageProof = nil
+    observed.globalBossLoadProof = nil
     observed.familyClaimUsageProof = nil
     observed.familyClaimUsageProofs = nil
     observed.familyAttackUsageProof = nil
@@ -257,6 +258,7 @@ function AutomationRuntime.new(deps)
         end
     end
     local m = deps.modules
+    local globalLoad = type(m.GlobalBossLoadUsage)=="table" and m.GlobalBossLoadUsage.new(deps.identity) or nil
     local selection = {}
     local function readSelection(feature)
         if selection.read == nil then return false end
@@ -291,6 +293,7 @@ function AutomationRuntime.new(deps)
                 return true
             end
             if not stillSelected() then return false end
+            if globalLoad and globalLoad:Check(proposal, deps.clock:Now())~=true then return false end
             local guard = features[proposal.feature].canDispatch
             if guard ~= nil and (type(guard) ~= "function" or guard(proposal) ~= true) then return false end
             -- Native preflight can yield. Re-read current choices before the
@@ -317,6 +320,10 @@ function AutomationRuntime.new(deps)
         return false, session.storageFault
     end
     broker.policy.beforeSend = function(proposal, raw, baseline)
+        if globalLoad then
+            local ok, why=globalLoad:Check(proposal,deps.clock:Now())
+            if not ok then return false,why end
+        end
         local owner = lifecycle(proposal)
         if owner then
             local ok, prepared, why = pcall(owner.prepare, proposal, raw, baseline, deps.clock:Now())
@@ -325,6 +332,10 @@ function AutomationRuntime.new(deps)
         end
         local saved, why = saveBefore(proposal, raw, baseline)
         if not saved and owner then pcall(owner.unsent, proposal) end
+        if saved and globalLoad then
+            local charged, reason=globalLoad:Charge(proposal,deps.clock:Now())
+            if not charged then return failed(reason) end
+        end
         return saved, why
     end
     broker.policy.requiresAuthorization = function(proposal) return lifecycle(proposal) ~= nil end
@@ -362,11 +373,15 @@ function AutomationRuntime.new(deps)
             if not ok or saved ~= true then return failed(ok and why or "Confirmed outcome persistence raised") end
         end
         if session.state == "stopped" or session.state == "closed" then return false end
-        return resolveAfter(proposal, outcome)
+        local resolved, why=resolveAfter(proposal, outcome)
+        if resolved and globalLoad then
+            globalLoad:Finish(proposal,outcome=="schedule_failed",checkpoint:Recovery(proposal.actionKey)==nil)
+        end
+        return resolved, why
     end
     session:Pause()
     local self = setmetatable({
-        clock = deps.clock, identity = deps.identity, features = features,
+        clock = deps.clock, identity = deps.identity, features = features, globalBossLoad=globalLoad,
         selection = selection,
         snapshotAssembler = deps.snapshotAssembler,
         tabInstances = deps.tabInstances or {}, readCoordinator = deps.readCoordinator,
@@ -533,6 +548,7 @@ function Methods:Close()
     self.allowanceSnapshot = nil
     self.goalStates, self.goalObserved = {}, {}
     self.requested = false
+    if self.globalBossLoad then self.globalBossLoad:Close() end
     self.session:Close()
     if self.readCoordinator then self.readCoordinator:Close() end
     for _, tab in ipairs(self.tabInstances) do
@@ -543,6 +559,7 @@ end
 
 function Methods:Status()
     local status = self.session:Status()
+    status.globalBossLoad = self.globalBossLoad and self.globalBossLoad:Status() or nil
     status.recentActions = self.journal:PublicEvents(10)
     status.reads = self.readCoordinator and self.readCoordinator:Status() or nil
     status.goals = {}
@@ -640,6 +657,10 @@ function Methods:RecoverSaved(raw)
                     end
                     local saved, why = self.checkpoint:Resolve(record.actionKey, observed == "known_unsent" and "schedule_failed" or observed)
                     if not saved then self.session.storageFault = why or "Saved outcome cleanup failed"; return end
+                    if self.globalBossLoad then
+                        self.globalBossLoad:Finish(data.proposal,observed=="known_unsent",
+                            self.checkpoint:Recovery(record.actionKey)==nil)
+                    end
                     if self.closed or self.session:Status().state == "stopped" then return end
                     self.recoveries[record.feature] = observed
                     self.journal:Record({kind = observed == "known_unsent" and "recovered_unsent" or "reconciled_saved", at = self.clock:Now(), feature = record.feature,
@@ -789,6 +810,7 @@ function Methods:Step(raw, settings)
         and settings.prestige.enabled == true
     raw = withUsageProofs(raw, self.checkpoint, self.reservationOwner, self.nativePrestigeController,
         self.nativePrestigeRead, self.nativePrestigeCurrent, readPrestige)
+    if type(raw)=="table" and self.globalBossLoad then raw.globalBossLoadProof=self.globalBossLoad:Proof(raw,self.clock:Now()) end
     if self.closed or self.closing then return self:Status() end
     self.latestOutcomeSnapshot = raw
     self.playerInfoSnapshot = raw

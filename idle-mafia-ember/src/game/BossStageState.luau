@@ -51,6 +51,15 @@ function BossStageState.read(raw, context)
         or type(proof.stages) ~= "table" then
         return nil, "Current staged Boss proof required"
     end
+    local selection = proof.selectionSettings
+    if proof.selectionComplete == true and (proof.selectionContract ~= "boss-get-653-v1"
+        or type(selection) ~= "table" or not finite(selection.healthFloor, 1)
+        or selection.healthFloor > 100 or type(selection.limitsEnabled) ~= "boolean"
+        or not integer(selection.minLevel, 1) or selection.minLevel > 1000000
+        or not integer(selection.maxLevel, 1) or selection.maxLevel > 1000000
+        or (selection.limitsEnabled and selection.minLevel > selection.maxLevel)) then
+        return nil, "Invalid complete Boss selection proof"
+    end
     local stages, seen = {}, {}
     for _, row in ipairs(proof.stages) do
         if type(row) ~= "table"
@@ -60,6 +69,11 @@ function BossStageState.read(raw, context)
             or not integer(row.hp, 1)
             or not integer(row.hitBackMax, 0) then
             return nil, "Invalid Boss stage catalog"
+        end
+        if proof.selectionContract ~= nil and (not integer(row.cash, 0)
+            or not integer(row.xp, 0) or not integer(row.crateRarity, 0)
+            or not integer(row.firstClearRarity, 0) or type(row.mostWanted) ~= "boolean") then
+            return nil, "Invalid Boss selection reward quote"
         end
         seen[row.stage] = true
         local key = tostring(row.stage)
@@ -73,12 +87,14 @@ function BossStageState.read(raw, context)
         stages[#stages + 1] = {
             stage = row.stage, level = row.level, maxHp = row.hp,
             hitBackMax = row.hitBackMax, remainingHp = remaining,
+            cash = row.cash, xp = row.xp, crate = row.crate, firstClearCrate = row.firstClearCrate,
+            crateRarity = row.crateRarity, firstClearRarity = row.firstClearRarity, mostWanted = row.mostWanted,
             doneToday = doneToday,
             unlocked = row.stage <= state.best + 1
                 and row.level <= native.level and not doneToday,
         }
     end
-    if #stages == 0 then return nil, "Empty Boss stage catalog" end
+    if #stages == 0 and proof.selectionComplete ~= true then return nil, "Empty Boss stage catalog" end
     return { status = "known", session = context.session,
         account = context.account, place = context.place,
         release = context.release, revision = context.revision,
@@ -87,7 +103,9 @@ function BossStageState.read(raw, context)
         health = native.pools.health,
         maxHealth = native.stats.maxHealth,
         stamina = native.pools.stamina,
-        staminaCost = proof.staminaCost, stages = stages }, nil
+        staminaCost = proof.staminaCost, stages = stages,
+        selectionContract = proof.selectionContract, selectionComplete = proof.selectionComplete,
+        selectionReason = proof.selectionReason, selectionSettings = selection }, nil
 end
 
 return BossStageState

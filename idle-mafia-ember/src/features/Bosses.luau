@@ -16,9 +16,14 @@ local function finite(value, minimum)
         and value >= minimum and value < math.huge
 end
 
-local function safe(row, view, reservations, healthFloor, staminaReserve)
+local function safe(row, view, reservations, healthFloor, staminaReserve, minLevel, maxLevel, limitsEnabled, confirmedLimitsEnabled, maxConfirmedHits, maxConfirmedStamina)
     return row.unlocked == true and row.doneToday == false
         and integer(row.stage, 1) and integer(row.level, 1)
+        and row.level <= 1000000
+        and (not limitsEnabled or row.level >= minLevel and row.level <= maxLevel)
+        and (not confirmedLimitsEnabled or integer(row.confirmedHits, 0)
+            and integer(row.confirmedStamina, 0) and row.confirmedHits < maxConfirmedHits
+            and row.confirmedStamina + view.staminaCost <= maxConfirmedStamina)
         and integer(row.remainingHp, 1)
         and integer(row.hitBackMax, 0)
         and view.health >= row.hitBackMax + view.maxHealth * healthFloor / 100
@@ -33,6 +38,35 @@ function Bosses.propose(view, settings, reservations)
         return nil, "Missing Boss planning input"
     end
     if settings.enabled ~= true then return nil, "City Bosses disabled" end
+    local limitsEnabled = settings.limitsEnabled
+    if limitsEnabled == nil then limitsEnabled = false end
+    local minLevel, maxLevel = settings.minLevel, settings.maxLevel
+    if minLevel == nil then minLevel = 1 end
+    if maxLevel == nil then maxLevel = 10000 end
+    if type(limitsEnabled) ~= "boolean"
+        or not integer(minLevel, 1) or minLevel > 1000000
+        or not integer(maxLevel, 1) or maxLevel > 1000000
+        or (limitsEnabled and minLevel > maxLevel) then
+        return nil, "Invalid Boss level range"
+    end
+    local confirmedLimitsEnabled = settings.confirmedLimitsEnabled
+    local confirmationDelayEnabled = settings.confirmationDelayEnabled
+    if confirmedLimitsEnabled == nil then confirmedLimitsEnabled = false end
+    if confirmationDelayEnabled == nil then confirmationDelayEnabled = false end
+    local maxConfirmedHits = settings.maxConfirmedHits or 100
+    local maxConfirmedStamina = settings.maxConfirmedStamina or 100
+    local confirmationDelay = settings.confirmationDelay or 5
+    if type(confirmedLimitsEnabled) ~= "boolean" or type(confirmationDelayEnabled) ~= "boolean"
+        or not finite(maxConfirmedHits, 1) or maxConfirmedHits > 100000
+        or not finite(maxConfirmedStamina, 1) or maxConfirmedStamina > 100000
+        or not finite(confirmationDelay, 5) or confirmationDelay > 120 then
+        return nil, "Invalid confirmed Boss encounter preferences"
+    end
+    if (confirmedLimitsEnabled or confirmationDelayEnabled) and view.encounterKnown ~= true then
+        return nil, "Owned confirmed Boss encounter proof required"
+    end
+    if confirmationDelayEnabled and (not timestamp(view.confirmationReadyAt)
+        or not timestamp(view.encounterNow) or view.encounterNow < view.confirmationReadyAt) then return nil, "Boss confirmation delay" end
     local healthFloor, staminaReserve = settings.healthFloor, settings.staminaReserve
     if healthFloor == nil then healthFloor = 50 end
     if staminaReserve == nil then staminaReserve = 1 end
@@ -63,24 +97,68 @@ function Bosses.propose(view, settings, reservations)
         and view.serverNow < view.lastServerNow + 5 then
         return nil, "Boss hit spacing"
     end
-    local nextStage, repeatStage
+    local mode = settings.selection or "Current progression"
+    local modes = { ["Current progression"] = true, Smart = true, ["First undefeated"] = true,
+        ["Highest level"] = true, ["Best chest"] = true, ["Cash reward"] = true, ["XP reward"] = true }
+    if not modes[mode] then return nil, "Invalid Boss selection" end
+    local complete = view.selectionContract == "boss-get-653-v1" and view.selectionComplete == true
+    if mode ~= "Current progression" and not complete then
+        return nil, "Reviewed build 653 complete Boss selection source required"
+    end
+    if complete then
+        local captured = view.selectionSettings
+        if type(captured) ~= "table" or captured.healthFloor ~= healthFloor
+            or captured.minLevel ~= minLevel or captured.maxLevel ~= maxLevel
+            or captured.limitsEnabled ~= limitsEnabled or captured.selection ~= mode
+            or captured.confirmedLimitsEnabled ~= confirmedLimitsEnabled
+            or captured.maxConfirmedHits ~= maxConfirmedHits
+            or captured.maxConfirmedStamina ~= maxConfirmedStamina then return nil, "Boss selection preferences changed" end
+    end
+    local nextStage, repeatStage, top
     for _, row in ipairs(view.stages) do
+        if type(row) == "table" and row.stage == math.min(view.best + 1, 100000) then top = row end
         if type(row) == "table" and row.stage == view.best + 1 then
             nextStage = row
         elseif type(row) == "table" and integer(row.stage, 1)
             and row.stage <= view.best
-            and safe(row, view, reservations, healthFloor, staminaReserve)
+            and safe(row, view, reservations, healthFloor, staminaReserve, minLevel, maxLevel, limitsEnabled, confirmedLimitsEnabled, maxConfirmedHits, maxConfirmedStamina)
             and (not repeatStage or row.stage < repeatStage.stage) then
             repeatStage = row
         end
     end
-    if view.best < 100000 and not nextStage then
-        return nil, "Next Boss stage catalog unknown"
-    end
-    local chosen = nextStage
-        and safe(nextStage, view, reservations, healthFloor, staminaReserve) and nextStage
+    if not complete and view.best < 100000 and not nextStage then return nil, "Next Boss stage catalog unknown" end
+    local preferred = complete and top or nextStage
+    local chosen = preferred
+        and safe(preferred, view, reservations, healthFloor, staminaReserve, minLevel, maxLevel, limitsEnabled, confirmedLimitsEnabled, maxConfirmedHits, maxConfirmedStamina) and preferred
         or repeatStage
-    if not chosen then return nil, "No safe available Boss stage" end
+    if complete and mode ~= "Current progression" and mode ~= "Smart" and mode ~= "First undefeated" then
+        chosen = top and safe(top, view, reservations, healthFloor, staminaReserve, minLevel, maxLevel, limitsEnabled, confirmedLimitsEnabled, maxConfirmedHits, maxConfirmedStamina) and top or nil
+        local function rank(row)
+            if mode == "Highest level" then return row.level end
+            if mode == "XP reward" then return row.xp end
+            if mode == "Cash reward" then return row.stage > view.best and row.cash or 0 end
+            return math.max(not row.mostWanted and row.crateRarity or 0,
+                row.stage > view.best and row.firstClearRarity or 0)
+        end
+        for _, row in ipairs(view.stages) do
+            if safe(row, view, reservations, healthFloor, staminaReserve, minLevel, maxLevel, limitsEnabled, confirmedLimitsEnabled, maxConfirmedHits, maxConfirmedStamina) then
+                local value, previous = rank(row), chosen and rank(chosen)
+                if not chosen or value > previous or value == previous and mode == "Highest level" and row.stage > chosen.stage then
+                    chosen = row
+                elseif value == previous and row.stage ~= (top and top.stage)
+                    and chosen.stage ~= (top and top.stage) and mode ~= "Highest level" and row.stage < chosen.stage then
+                    chosen = row
+                end
+            end
+        end
+    end
+    if not chosen then return nil, view.selectionReason or "No safe available Boss stage" end
+    local reward = complete and chosen or {}
+    local encounter = view.encounterKnown and {enabled = confirmedLimitsEnabled,
+        maxHits = maxConfirmedHits, maxStamina = maxConfirmedStamina,
+        delayEnabled = confirmationDelayEnabled, delay = confirmationDelay,
+        hits = chosen.confirmedHits, stamina = chosen.confirmedStamina,
+        readyAt = view.confirmationReadyAt} or {}
     return { session = view.session, account = view.account,
         place = view.place, release = view.release,
         revision = view.revision, feature = "bosses",
@@ -89,6 +167,19 @@ function Bosses.propose(view, settings, reservations)
         resources = { stamina = view.staminaCost },
         intent = { kind = "bossStageAttack", stage = chosen.stage,
             healthFloor = healthFloor, staminaReserve = staminaReserve,
+            confirmedLimitsEnabled = encounter.enabled, maxConfirmedHits = encounter.maxHits,
+            maxConfirmedStamina = encounter.maxStamina,
+            confirmationDelayEnabled = encounter.delayEnabled, confirmationDelay = encounter.delay,
+            confirmedHitsBefore = encounter.hits, confirmedStaminaBefore = encounter.stamina,
+            confirmationReadyAt = encounter.readyAt,
+            selectionContract = complete and view.selectionContract or nil,
+            selectionMode = complete and mode or nil,
+            selectedCash = reward.cash, selectedXp = reward.xp,
+            selectedCrate = reward.crate, selectedFirstClearCrate = reward.firstClearCrate,
+            selectedCrateRarity = reward.crateRarity, selectedFirstClearRarity = reward.firstClearRarity,
+            selectedMostWanted = reward.mostWanted,
+            limitsEnabled = limitsEnabled, minLevel = minLevel,
+            maxLevel = maxLevel, selectedLevel = chosen.level,
             dayStamp = view.dayStamp, serverNow = view.serverNow,
             bestBefore = view.best,
             remainingHpBefore = chosen.remainingHp,

@@ -47,6 +47,16 @@ function GlobalBossAttackState.read(raw, context)
     view.staminaCost = 1 -- Saved GlobalBossRules.STAMINA_COST.
     view.usageHits = usage.hits
     view.lastServerNow = usage.lastServerNow
+    local load = raw.globalBossLoadProof
+    if type(load) == "table" then
+        local matched = true
+        for _, field in ipairs({"session", "account", "place", "release", "revision", "capturedAt"}) do
+            if load[field] ~= raw[field] then matched = false end
+        end
+        if matched then view.loadUsage = load end
+    end
+    view.attackCooldownUnavailable = type(raw.globalBossProof)=="table" and raw.globalBossProof.attackCooldownUnavailable==true
+    view.attackCooldown = type(raw.globalBossProof) == "table" and raw.globalBossProof.attackCooldown or nil
     return view, nil
 end
 

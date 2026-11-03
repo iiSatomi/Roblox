@@ -27,7 +27,7 @@ function TabSnapshotAssembler.new(tabs)
             "Invalid or duplicate tab module")
         seen[tab.id] = true
         if tab.ownedProofs ~= nil then
-            assert(type(tab.ownedProofs) == "table" and #tab.ownedProofs <= 9, "Invalid tab proof declaration")
+            assert(type(tab.ownedProofs) == "table" and #tab.ownedProofs <= 10, "Invalid tab proof declaration")
             local size = 0
             for key, field in pairs(tab.ownedProofs) do
                 size = size + 1

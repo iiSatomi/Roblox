@@ -33,12 +33,17 @@ function NativeGlobalBossSource.new(rule, readAttributes, stateReader, userId, f
         or type(release) ~= "string" or #release == 0 then
         return nil, "Current native Global Boss rule/attributes/identity required"
     end
+    -- Event/claim evidence is independent of attack admission. Once a native
+    -- cooldown has been observed, missing/bad values cannot revive legacy fallback.
+    local observedCooldown = rule.ATTACK_COOLDOWN ~= nil
     local closed, generation = false, 0
     local sourceKey = fingerprint:lower()
     local result = {}
     function result:Enrich(snapshot)
         local bound = header(snapshot, release)
         if closed or not bound then return nil, "Matching full Global Boss Sync required" end
+        local cooldown = rule.ATTACK_COOLDOWN
+        if cooldown ~= nil then observedCooldown = true end
         generation = generation + 1
         local observedGeneration, serverNow = generation, snapshot.native.serverNow
         local ok, attributes = pcall(readAttributes)
@@ -67,10 +72,21 @@ function NativeGlobalBossSource.new(rule, readAttributes, stateReader, userId, f
         end
         if closed or generation ~= observedGeneration or not same(header(snapshot, release), bound)
             or snapshot.native.serverNow ~= serverNow then return nil, "Global Boss source changed during capture" end
+        local currentCooldown = rule.ATTACK_COOLDOWN
+        if currentCooldown ~= nil then observedCooldown = true end
+        local cooldownStatus = "unavailable"
+        if cooldown == currentCooldown then
+            if number(cooldown, 0) and cooldown > 0 and cooldown <= 120 then cooldownStatus = "known"
+            elseif cooldown == nil and not observedCooldown then cooldownStatus = "legacy-absent" end
+        end
+        -- A changed or malformed cooldown fences new attacks, not exact terminal
+        -- hit/award observations or independently eligible claims.
         local enriched = {}
         for key, value in pairs(snapshot) do enriched[key] = value end
         enriched.globalBossProof = {account = bound.account, capturedAt = bound.capturedAt,
-            header = bound, sourceKey = sourceKey, event = event}
+            header = bound, sourceKey = sourceKey, event = event,
+            attackCooldown = cooldownStatus == "known" and cooldown or nil,
+            attackCooldownStatus = cooldownStatus, attackCooldownUnavailable = cooldownStatus == "unavailable"}
         enriched.localUserIdProof = {account = bound.account, capturedAt = bound.capturedAt,
             userId = userId, sourceKey = sourceKey}
         local context = {}
