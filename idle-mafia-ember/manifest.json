@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "3e6d4826b9d89c3825384545dd8f957131b8f4ec",
+  "releaseCommit": "11a699e5cf938a6259ae02fe1f08f72fa61f064d",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -107,7 +107,7 @@
     {
       "id": "ShopQuoteProducer",
       "path": "src/engine/ShopQuoteProducer.luau",
-      "sha256": "fbd078922187f310fb366586501b3f7ba431bb17988f1ee3cec980233e1270d9",
+      "sha256": "66763f41921ad60d7b9062063aa233550ee4c76cbcc9add0c1842478063238a2",
       "deps": []
     },
     {
@@ -461,7 +461,7 @@
     {
       "id": "ShopBuyEvidence",
       "path": "src/features/ShopBuyEvidence.luau",
-      "sha256": "594a620d3f753609c73f2ac9b3bdc15adcb3ab7c1d6060c6113927af667a914f",
+      "sha256": "40ef03d9b615e0589d5757e37ce37d5030316eeb9b6e08f0bbcba5c0c8ceecba",
       "deps": []
     },
     {
@@ -671,7 +671,7 @@
     {
       "id": "ShopState",
       "path": "src/game/ShopState.luau",
-      "sha256": "905c14b3acd6b2497e11a3164fb264def11315467bc7276fe8ead0f467a311f0",
+      "sha256": "a40ccb033f0bfc52d25d2fd679ac424a782c481b30eb363818f7c8bbbd444820",
       "deps": []
     },
     {
@@ -713,7 +713,7 @@
     {
       "id": "PendingAction",
       "path": "src/storage/PendingAction.luau",
-      "sha256": "76c2a5c9821acfcf793dd667314ea42bbdb142c8c60aa8ff40bb4eaf31833d86",
+      "sha256": "27ae578311d55045def4bfe760efab610ecfae7acdd7ec53d79bea11a53dd626",
       "deps": []
     },
     {
