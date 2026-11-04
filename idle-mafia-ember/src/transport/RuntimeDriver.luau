@@ -39,7 +39,9 @@ function Methods:ObserveChanged(payload)
     if not self.reader:ObserveChanged(payload) then
         return false, "Invalid changed state"
     end
-    return self:Tick()
+    -- State.onChanged invokes callbacks from the game's restricted thread.
+    -- Keep it read-only; the existing owned timer performs UI/dispatch work.
+    return true
 end
 
 function Methods:Close()

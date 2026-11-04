@@ -278,7 +278,11 @@ function Adapter:ApplyValues(values)
                     local restored, result = pcall(entry.handle.Set, entry.handle, entry.before, true)
                     if not restored or result == false then self.degraded = true end
                 end
-                self.lastError = "UI refused " .. key .. ": " .. tostring(reason or accepted or before)
+                local failure = reason
+                if not readOK then failure = before
+                elseif not setOK then failure = accepted
+                elseif failure == nil then failure = accepted end
+                self.lastError = "UI refused " .. key .. ": " .. tostring(failure)
                 if self.degraded then
                     self:Fail(self.lastError .. "; rollback failed, reload required")
                 end
