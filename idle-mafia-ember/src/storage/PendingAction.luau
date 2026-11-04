@@ -79,11 +79,13 @@ local function storeKey(key)
 end
 local function stringBytes(value)
     if type(value) ~= "string" then error("Recovery string invalid") end
-    local bytes = #value + 2 -- JSON quotes, plus worst-case escaping below.
-    for index = 1, #value do
-        local byte = value:byte(index)
-        if byte < 32 or byte >= 128 then bytes = bytes + 5
-        elseif byte == 34 or byte == 47 or byte == 92 then bytes = bytes + 1 end
+    local bytes = 2 -- JSON quotes; charge Unicode escapes per code point, not UTF-8 byte.
+    for _, code in utf8.codes(value) do
+        if code < 32 then bytes = bytes + 6
+        elseif code == 34 or code == 47 or code == 92 then bytes = bytes + 2
+        elseif code < 128 then bytes = bytes + 1
+        elseif code <= 65535 then bytes = bytes + 6
+        else bytes = bytes + 12 end
     end
     return bytes
 end
