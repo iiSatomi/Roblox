@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "b8f8d2a21bfc6166b743bcc914c256318a1b2bea",
+  "releaseCommit": "48fe06a857bb10f30136451ee6ada3e6d450edfc",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -1787,7 +1787,7 @@
     {
       "id": "RuntimeDriver",
       "path": "src/transport/RuntimeDriver.luau",
-      "sha256": "bd5b4ea59cd54f55e9bec9cce7d77b42e8bad532e63773baaeb4b5961ad0ef97",
+      "sha256": "97fcb1ab8e16f9af2c6e5203f2b1603dd5fc458d2fbe8c2aac0cd58c288cff78",
       "deps": []
     },
     {
@@ -1811,7 +1811,7 @@
     {
       "id": "EmberAdapter",
       "path": "src/ui/EmberAdapter.luau",
-      "sha256": "7cae2444a643b340d19acf68227cfa236bc8a08479a6f7b6597b2d991d028bfb",
+      "sha256": "62756e87b3cf9b436cfe61503ebf06718bb7eadcbed1006a436e333cea4a0236",
       "deps": []
     },
     {
