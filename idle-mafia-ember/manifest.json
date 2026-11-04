@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "35ae99b657a2eeb69cf89850e7f12910b638d18e",
+  "releaseCommit": "3e6d4826b9d89c3825384545dd8f957131b8f4ec",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -1337,7 +1337,7 @@
     {
       "id": "HeistProtocol",
       "path": "src/tabs/heists/HeistProtocol.luau",
-      "sha256": "3ac910b576858c7b3305118f6701dbdbf5e4fb0e91a804f9e2a1baa5cabaf1b1",
+      "sha256": "76871ab30f125d1f7a5d3ba5b7bfb9944ed5b4b06513a89d37d9b5004578b700",
       "deps": []
     },
     {
@@ -1355,7 +1355,7 @@
     {
       "id": "NativeHeistLease",
       "path": "src/tabs/heists/NativeHeistLease.luau",
-      "sha256": "b7f5d24d2a04115286c1a998ae9eff155375b9ff267a88672b5d36563eb0a853",
+      "sha256": "b707b683169988eeb3e3b7d54cec4ea96deee8c8f9a2aaad32bc8ab2eda47ed5",
       "deps": []
     },
     {
@@ -1601,7 +1601,7 @@
     {
       "id": "NativeRecallLease",
       "path": "src/tabs/territory/NativeRecallLease.luau",
-      "sha256": "ffd01277a825b38e1bff56fba7499fd3564626ce9b92fbdd8440e75d68546778",
+      "sha256": "082bbe30fd47fa4f97a57c730191e01ebfa2cf3f442b613544c27bc34de61623",
       "deps": []
     },
     {
@@ -1739,7 +1739,7 @@
     {
       "id": "NativeClientBindings",
       "path": "src/transport/NativeClientBindings.luau",
-      "sha256": "7fd7f23d656cd430a2b05f07826d3d9166ad86a323791568336ee531d079e4d9",
+      "sha256": "dd154d16ce1b0ee4a8a59bea30928648f4325a606e0e8d7bcbcf4a2e90fb709d",
       "deps": []
     },
     {
@@ -1757,7 +1757,7 @@
     {
       "id": "NativeEventAdapter",
       "path": "src/transport/NativeEventAdapter.luau",
-      "sha256": "eb785f0a54cd0c731967f90626b19ea34833b6ce0a78550390820be2742edd34",
+      "sha256": "18ac27e53c67e33bc046504bf4c1aecccc092bd79f999aecb7e1761c112407e1",
       "deps": []
     },
     {
@@ -1793,7 +1793,7 @@
     {
       "id": "RuntimeHost",
       "path": "src/transport/RuntimeHost.luau",
-      "sha256": "f5f24bf1fd23c45ed8fabf4694112cad61467db96bad3d8b59a7e9680c21c389",
+      "sha256": "b33a3a1c672e355c9188192c30b7f9127b598442f5960410bdb34d1d13d86ea1",
       "deps": []
     },
     {
