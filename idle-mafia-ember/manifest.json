@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "87aac1853e2d5902d7cb78c778891400588f9351",
+  "releaseCommit": "365b5eb29d80a2e1f4a69760b757a69830e46140",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -41,7 +41,7 @@
     {
       "id": "FeatureRegistry",
       "path": "src/engine/FeatureRegistry.luau",
-      "sha256": "aacfc783e89146b5d92332545635a696cb78bfbbdeddc6692f6fc1a7f189486f",
+      "sha256": "c55407e20f4afc488a9134fa3cb730c76faaeaa7eef27a2a2ad0247561e0a3e7",
       "deps": []
     },
     {
@@ -707,7 +707,7 @@
     {
       "id": "LegacySettings",
       "path": "src/storage/LegacySettings.luau",
-      "sha256": "825cfd4be1ba10a1352e08de0b9261af5734a273f2b06b821c4c479b3c82d51a",
+      "sha256": "9d8234e58e5d3474c3769bc6c1af7d5386374024eec047da3039092057ce8722",
       "deps": []
     },
     {
@@ -1109,7 +1109,7 @@
     {
       "id": "ContractGoalRequests",
       "path": "src/tabs/contracts/ContractGoalRequests.luau",
-      "sha256": "98dc3035ff2981398c1f3f8cf87371f58fd862b65ebab2a82bac431a9d5e71a7",
+      "sha256": "a505a013d8187a45b7da7e883fe8a2dd8a789870542fdb526d2b63cae59aa736",
       "deps": []
     },
     {
@@ -1121,7 +1121,7 @@
     {
       "id": "ContractsTab",
       "path": "src/tabs/contracts/Module.luau",
-      "sha256": "1d4727fbb4f492fdcb571e5871f12da825386e32bae593313b03acb8e900bafc",
+      "sha256": "92e9ab096a59d86c3317e2199c4f6d72cc16b7876fe76fe1fe31fc2cf6f67845",
       "deps": []
     },
     {
@@ -1337,7 +1337,7 @@
     {
       "id": "HeistProtocol",
       "path": "src/tabs/heists/HeistProtocol.luau",
-      "sha256": "a329326355dab5fbe602fcd81c372d676d07ee37b23249474264ca4159aa7579",
+      "sha256": "85cc935e5b777b72ff295b326e629f274f1f5fb7b4c969338ad86ee52db58da0",
       "deps": []
     },
     {
@@ -1697,19 +1697,19 @@
     {
       "id": "TrophyFocusBlocked",
       "path": "src/tabs/trophies/TrophyFocusBlocked.luau",
-      "sha256": "4dc3ac4f982909a1cb840c74ea2a9aaf734e6da7fcb7cb456b69ac5cce84b736",
+      "sha256": "1682aef67a2511fcc35c6196367eec77483264061038b6c56002e17a21f85589",
       "deps": []
     },
     {
       "id": "TrophyFocusState",
       "path": "src/tabs/trophies/TrophyFocusState.luau",
-      "sha256": "296a3a52789439dec606ec0381a58c8b720caf405c9673590857f13875f6988d",
+      "sha256": "9052ac12022df165c0bc40859d93d9818cff7deae357f5f44209eeb845da54f1",
       "deps": []
     },
     {
       "id": "TrophyGoalRequests",
       "path": "src/tabs/trophies/TrophyGoalRequests.luau",
-      "sha256": "a689b7fd2babad5e303c06015030730e4bf0e6f6bfcb277da7b32a0019ef6198",
+      "sha256": "9ea161d60eec8f77b0a069dbeccc578992907c467421aa1aceab352a1a0aca6b",
       "deps": []
     },
     {
@@ -1799,7 +1799,7 @@
     {
       "id": "Catalog",
       "path": "src/ui/Catalog.luau",
-      "sha256": "78690d7476298985fa43e833e66ffaa0a918c990ccb51963b0cd8e027f87a4db",
+      "sha256": "95892dc79bbc578c8dab2a293e8dab0ffea8f10bc0f9592717a37c158af5d242",
       "deps": []
     },
     {
