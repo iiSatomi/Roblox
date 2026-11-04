@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "aaa323e120b273b2af8291fdece224d7dbac9a4d",
+  "releaseCommit": "caf604947b0a6bbe990baa3a395574a716e1e68d",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -11,7 +11,7 @@
     {
       "id": "AutomationRuntime",
       "path": "src/engine/AutomationRuntime.luau",
-      "sha256": "3e06e835fced614848c84ffc65ac7288e6d28ad211cc52d8446e794204b2cf19",
+      "sha256": "a6d49a1fc1397db6ebde0b401621d612576113d8ba9faf684cf54694fd4e50cf",
       "deps": []
     },
     {
@@ -203,13 +203,13 @@
     {
       "id": "FamilyBossClaims",
       "path": "src/features/FamilyBossClaims.luau",
-      "sha256": "ce2397cbc10a8040959cf1b7f9e07c9cce7ac00ca273282f5f61c0931b588421",
+      "sha256": "e6eddf16377bbc1e21a08a048c91474a3583566b441b0560c765ea70f85989b8",
       "deps": []
     },
     {
       "id": "FamilyBossClaimsEvidence",
       "path": "src/features/FamilyBossClaimsEvidence.luau",
-      "sha256": "61ec6f86ed975ffdba25d0a6667ffc17269f3d2e2313fc66adc1501de0bf2c98",
+      "sha256": "4b48f1ae4474f463d2361ad3bfbb6a961639c3fccf98dc7ce82295be4a8f21b7",
       "deps": []
     },
     {
@@ -221,7 +221,7 @@
     {
       "id": "FavorHelpEvidence",
       "path": "src/features/FavorHelpEvidence.luau",
-      "sha256": "3381612bad51ae81cafc352d640bdef76092a79a986292b62909d182cac80e56",
+      "sha256": "110b6fe9f9c1029e7f278bf8440f4250790a793024540445005205e621857636",
       "deps": []
     },
     {
@@ -275,13 +275,13 @@
     {
       "id": "HeistCollect",
       "path": "src/features/HeistCollect.luau",
-      "sha256": "99d73ebbb3e0222bdce2761e20f7129b9c8e74a3eadd86fc3733d417ade9b1a7",
+      "sha256": "b8e69b41ec776df69e28de51bc2c870c38a6f459a52993b4bb93484e02b80805",
       "deps": []
     },
     {
       "id": "HeistCollectEvidence",
       "path": "src/features/HeistCollectEvidence.luau",
-      "sha256": "d1d3369b4fb0ed525e3b55e227571df6f892c93c346afa4c62baca347ae06a73",
+      "sha256": "b063f614999dee63f1ae7a2be27123fc0d530e7b48d384733f21d0b4065ab90e",
       "deps": []
     },
     {
@@ -293,7 +293,7 @@
     {
       "id": "HeistStartEvidence",
       "path": "src/features/HeistStartEvidence.luau",
-      "sha256": "6652a5b9675b97a4421e8f8c09d6fdee41a982eb860f5ca2cad287eaa5661c48",
+      "sha256": "c1485b2b9fabe59b4cc7cf0c78122cd33040405045a44c46e16ff9bb191408c9",
       "deps": []
     },
     {
@@ -437,7 +437,7 @@
     {
       "id": "SabotageEvidence",
       "path": "src/features/SabotageEvidence.luau",
-      "sha256": "c6233ed59a2e603b35d436b194bb13ac62679014625abc57e017db3d20d7cacc",
+      "sha256": "576fa5cbc41c2f8bf64999b9a9bc0abd5bb6e7510c80abbbadc02a9039a1325f",
       "deps": []
     },
     {
@@ -563,7 +563,7 @@
     {
       "id": "FamilyTakedownState",
       "path": "src/game/FamilyTakedownState.luau",
-      "sha256": "0ad3d0c4889fd389be151811af3d6a1f1d3bf442c7ea52e51db77ba87af4df85",
+      "sha256": "2a0325590784d2d7a28c756e690fc742090eb3f84ee1ed6575054bc9c1cfd5b0",
       "deps": []
     },
     {
@@ -695,7 +695,7 @@
     {
       "id": "Checkpoint",
       "path": "src/storage/Checkpoint.luau",
-      "sha256": "4ea3a36e1bb48637719e9f3fc976a68017879bfc0789b2919d5899692885a105",
+      "sha256": "063fa672e7ab108a5fed658311c08aae020be5e2292b6c883924541bb38f8356",
       "deps": []
     },
     {
@@ -713,7 +713,7 @@
     {
       "id": "PendingAction",
       "path": "src/storage/PendingAction.luau",
-      "sha256": "7ed30e99388c3984b35808195a94a0f6edab2d3a084486ef934b623dcbcd6a0e",
+      "sha256": "bcf9e30f0923bc27500bcc71484c35f7d2bea22c3bc8da420935d09ee2fcc5cc",
       "deps": []
     },
     {
@@ -989,13 +989,13 @@
     {
       "id": "CombatCallPlan",
       "path": "src/tabs/combat/CombatCallPlan.luau",
-      "sha256": "c572bc06ce2ccf81a6c4d967a5b0b39eb95fb4bcb63f03cab1dbf4ca368f29a6",
+      "sha256": "10db26a12b71559a77a40ac8bed4f749c5d483505e4b1051b78d03d2d4761782",
       "deps": []
     },
     {
       "id": "FamilyBossQuery",
       "path": "src/tabs/combat/FamilyBossQuery.luau",
-      "sha256": "f18e4d787e941d7ff543be144d6fd83296f1787c94c3ea09820d4f61c86aae63",
+      "sha256": "3a4605d5f0afd96e6202b92cda6598947219422982eb1e7cf2aaf74c87e6e974",
       "deps": []
     },
     {
@@ -1019,13 +1019,19 @@
     {
       "id": "CombatTab",
       "path": "src/tabs/combat/Module.luau",
-      "sha256": "4469052a18412cf02bf1b9628f4a77c1e7240d7c52e8b0097b2fbe61fcc3c79f",
+      "sha256": "ae9db8f4ac06e4b9b0a6eacfd8ff4b5e8c964e8a263a3552e9d655cd317fdf6d",
       "deps": []
     },
     {
       "id": "NativeBossCatalog",
       "path": "src/tabs/combat/NativeBossCatalog.luau",
       "sha256": "78499e781b72a41a921481103788acb3b6f8f6e09e5630c5254ad603c4c50a70",
+      "deps": []
+    },
+    {
+      "id": "NativeCombatLease",
+      "path": "src/tabs/combat/NativeCombatLease.luau",
+      "sha256": "d4720c07b14c5b5cebc17b567da62fc056ad961df1d81121d621ee6c550b24dd",
       "deps": []
     },
     {
@@ -1037,7 +1043,7 @@
     {
       "id": "PlayerFightEvidence",
       "path": "src/tabs/combat/PlayerFightEvidence.luau",
-      "sha256": "74794d4145062705bbea8689142779a1ee1213e1dff16b79db99a1dd5c151d9d",
+      "sha256": "959cff1dfb87127a375276b21ff4d4a8b0857148532ec5c8d6e582b845843d79",
       "deps": []
     },
     {
@@ -1067,19 +1073,25 @@
     {
       "id": "PlayerScoutEvidence",
       "path": "src/tabs/combat/PlayerScoutEvidence.luau",
-      "sha256": "df15d291c09c1b0cd59f80b84dc1ce1c7e56b4d351efb850072c1bcadb458291",
+      "sha256": "0fb132bf540a32783fdf465fc2c3629cf1b9054c62099f24de3eb0b3b23abdfe",
       "deps": []
     },
     {
       "id": "PlayerTargetState",
       "path": "src/tabs/combat/PlayerTargetState.luau",
-      "sha256": "1468fb60b4ae5aea76eb56bb2b216f54ffb26500ce5e5036a5944f742cba9b6a",
+      "sha256": "9fabe812dd41f0a6d6741873de7773d5dedd98c7e79a26fabc4c22fe005755a2",
       "deps": []
     },
     {
       "id": "TargetSelection",
       "path": "src/tabs/combat/TargetSelection.luau",
       "sha256": "54f1c0c8214a7bcb455f5f19bc0bf66f017b440b4c49e3d577b6a07e2a3a1752",
+      "deps": []
+    },
+    {
+      "id": "WarFightPlanner",
+      "path": "src/tabs/combat/WarFightPlanner.luau",
+      "sha256": "8c21a66737834a9cf56d414af806c4bab956e06d4c43e785d7219eaab44ce384",
       "deps": []
     },
     {
@@ -1307,7 +1319,7 @@
     {
       "id": "FavorsTab",
       "path": "src/tabs/favors/Module.luau",
-      "sha256": "7a86e6fd85c256f639cfec41c0907970255b6647833b88a1ede7bc449eb8c709",
+      "sha256": "35456077cf3ca338c2701c570f4a5df925aa079efd4e875ffaae2430e52d6619",
       "deps": []
     },
     {
@@ -1323,15 +1335,27 @@
       "deps": []
     },
     {
+      "id": "HeistProtocol",
+      "path": "src/tabs/heists/HeistProtocol.luau",
+      "sha256": "a329326355dab5fbe602fcd81c372d676d07ee37b23249474264ca4159aa7579",
+      "deps": []
+    },
+    {
       "id": "HeistsTab",
       "path": "src/tabs/heists/Module.luau",
-      "sha256": "eb46f2a629bc100e108e147e9e1592ea3b097f16c8225cae7e1d816ba833ca6a",
+      "sha256": "c2958fb04de9164e57c2e299985a295c2a09cf392863ba981c8c61ee0b702168",
       "deps": []
     },
     {
       "id": "NativeHeistCatalog",
       "path": "src/tabs/heists/NativeHeistCatalog.luau",
       "sha256": "7f35e9e206850aa361bc69fb3930c8552bea62affa671e3d8d8a8f6c6431b3ef",
+      "deps": []
+    },
+    {
+      "id": "NativeHeistLease",
+      "path": "src/tabs/heists/NativeHeistLease.luau",
+      "sha256": "b7f5d24d2a04115286c1a998ae9eff155375b9ff267a88672b5d36563eb0a853",
       "deps": []
     },
     {
@@ -1445,7 +1469,13 @@
     {
       "id": "PrestigeTab",
       "path": "src/tabs/prestige/Module.luau",
-      "sha256": "a899df896df94e254a2b50808cdabeae9d7b92fcf2a4bc4260283e30c4d39fe4",
+      "sha256": "3ac283e02d6509395c3da7edff904e1be964254c2e7a7a108ac1f8705fc993d8",
+      "deps": []
+    },
+    {
+      "id": "NativePrestigeLease",
+      "path": "src/tabs/prestige/NativePrestigeLease.luau",
+      "sha256": "53233fc34957d103edff4160e8f20c6e71fb76fce38e5db3f0f230bd7a7028cb",
       "deps": []
     },
     {
@@ -1559,7 +1589,13 @@
     {
       "id": "TerritoryTab",
       "path": "src/tabs/territory/Module.luau",
-      "sha256": "426114fed59a3acb99957d40b11705a3b490324e07b7799e4db97722d8246172",
+      "sha256": "8d4afcfe1a97213dfa73adf38ae67fe61189b73d69efd4be8ba3b83008a0c3d4",
+      "deps": []
+    },
+    {
+      "id": "NativeRecallLease",
+      "path": "src/tabs/territory/NativeRecallLease.luau",
+      "sha256": "ffd01277a825b38e1bff56fba7499fd3564626ce9b92fbdd8440e75d68546778",
       "deps": []
     },
     {
@@ -1569,9 +1605,15 @@
       "deps": []
     },
     {
+      "id": "RecallRuntime",
+      "path": "src/tabs/territory/RecallRuntime.luau",
+      "sha256": "c1afdd07add8d28ca96acb5373b577365e5560ef5aa913a7b29d5bb9791f18fd",
+      "deps": []
+    },
+    {
       "id": "RecallTransactions",
       "path": "src/tabs/territory/RecallTransactions.luau",
-      "sha256": "4cd1a495643e64884ae11998118c2a13cb9c962640ac668ddea2f7601d658b57",
+      "sha256": "7b193dc759a5b60132c34c3de41966bf5582717e5cc40a72c94324d9e903a0b6",
       "deps": []
     },
     {
@@ -1607,7 +1649,7 @@
     {
       "id": "TerritoryCallPlan",
       "path": "src/tabs/territory/TerritoryCallPlan.luau",
-      "sha256": "f1ba1348ecf99b83c732cabbac718cc417e88d6954d68b9f2ce6011ac6609f6d",
+      "sha256": "d15ea00e3a7ca0898346b69361040244a358ca59e84a1f4036ea3dd87fae4c68",
       "deps": []
     },
     {
@@ -1685,13 +1727,13 @@
     {
       "id": "NativeCallPlan",
       "path": "src/transport/NativeCallPlan.luau",
-      "sha256": "f7a8f70fa2678c59867080185600743ef11405834486ae32c6b6db2c41f0d127",
+      "sha256": "601ed088749ee7411a6863d3b4de9e924ed41c6843b3b86b195d4d7289945e7f",
       "deps": []
     },
     {
       "id": "NativeClientBindings",
       "path": "src/transport/NativeClientBindings.luau",
-      "sha256": "5c92e8b11621b8a994d5a43436452bac6545adbcb827301167144de53180bdf6",
+      "sha256": "fb70ee47963e5e5d6181592ea0a64b6dab2a0d404726eded2b354b78c79ea748",
       "deps": []
     },
     {
@@ -1703,7 +1745,7 @@
     {
       "id": "NativeDispatchAdapter",
       "path": "src/transport/NativeDispatchAdapter.luau",
-      "sha256": "2f1419ddbe4bbd1372ec9bfb4d173af85176c1dbc81af5bab86d3674c4784dac",
+      "sha256": "1b4d777f1eb962db929d705319096249c011e9ca88d8d431d1644a40a093dc39",
       "deps": []
     },
     {
@@ -1727,13 +1769,13 @@
     {
       "id": "NativeSnapshotReader",
       "path": "src/transport/NativeSnapshotReader.luau",
-      "sha256": "688e6fa9a542bb4c519e201a91fe42c37cbe6c49485fea9e09ed7e31def23fd5",
+      "sha256": "b4e5bbc4d27f16d7f32bf4fcf0b6359e1d6fe1ce22273967d200141e7bab351d",
       "deps": []
     },
     {
       "id": "ReadCoordinator",
       "path": "src/transport/ReadCoordinator.luau",
-      "sha256": "5a750779da8f026c799d1c2439ec14bfd0ce83cb076779ff2766b143e53f362c",
+      "sha256": "0dcd6f2cbfafda28544cd4c941edd730c3aa05ffc8da753bcf33acf3e150e098",
       "deps": []
     },
     {
@@ -1745,7 +1787,7 @@
     {
       "id": "RuntimeHost",
       "path": "src/transport/RuntimeHost.luau",
-      "sha256": "df6ba3f35f58655348619fef1c461a4d41802f2e4e4a4c2dd82328a7067ed849",
+      "sha256": "37ef676f8f239c513e53d4de27ff0c06b80356d82b9e4fc1e95fdecfd06d28ac",
       "deps": []
     },
     {
@@ -1763,13 +1805,13 @@
     {
       "id": "EmberAdapter",
       "path": "src/ui/EmberAdapter.luau",
-      "sha256": "6635fbe5c62e6e9ebf151d43a9af870f198082c800db14a8307c4f61fbecfbdc",
+      "sha256": "7cae2444a643b340d19acf68227cfa236bc8a08479a6f7b6597b2d991d028bfb",
       "deps": []
     },
     {
       "id": "App",
       "path": "src/App.luau",
-      "sha256": "0c90b4311e5068b22473bf88d999560155d19018d9e57117d5076df4e2c3fba3",
+      "sha256": "b5576793b167561f4900f484f99cb68be15cea003da4a74ce4ec30859fb2852b",
       "deps": []
     }
   ]
