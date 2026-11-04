@@ -677,9 +677,9 @@ function Methods:RecoverSaved(raw)
         or type(raw.native) ~= "table" or raw.native.fullSync ~= true then return end
     local state = self.session:Status()
     if state.state == "closed" or state.state == "stopped" then return end
-    local key = tostring(raw.session) .. ":" .. tostring(raw.revision) .. ":" .. tostring(raw.capturedAt)
-    if self.recoverySeen == key then return end
-    self.recoverySeen = key
+    -- Owned board/status reads can complete after the first step for this Sync.
+    -- The Sync header alone cannot deduplicate recovery: attached proof or a
+    -- durable terminal reply may now make the same fresh snapshot conclusive.
     self.recovering = true
     local completed = pcall(function()
     for _, record in ipairs(self.checkpoint:Records()) do
