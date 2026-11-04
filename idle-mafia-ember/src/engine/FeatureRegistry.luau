@@ -156,14 +156,19 @@ function FeatureRegistry.fromTabs(tabs, catalog)
                 or type(spec.evidence.evaluate) ~= "function"
                 or (spec.canDispatch ~= nil and type(spec.canDispatch) ~= "function")
                 or (spec.recoverSaved ~= nil and type(spec.recoverSaved) ~= "function")
-                or (spec.recordOutcome ~= nil and type(spec.recordOutcome) ~= "function") then
+                or (spec.recordOutcome ~= nil and type(spec.recordOutcome) ~= "function")
+                or (spec.goals ~= nil and (type(spec.goals) ~= "table"
+                    or type(spec.goals.derive) ~= "function"
+                    or type(spec.goals.observe) ~= "function"
+                    or (spec.goals.propose ~= nil and type(spec.goals.propose) ~= "function")
+                    or (spec.goals.canUseProposal ~= nil and type(spec.goals.canUseProposal) ~= "function"))) then
                 return nil, "Invalid tab feature descriptor"
             end
             seenFeatures[spec.id] = true
             specs[#specs + 1] = { id = spec.id, page = tab.id,
                 reader = spec.reader, planner = spec.planner,
                 evidence = spec.evidence, canDispatch = spec.canDispatch, lifecycle = spec.lifecycle, recoverSaved = spec.recoverSaved,
-                recordOutcome = spec.recordOutcome }
+                recordOutcome = spec.recordOutcome, goals = spec.goals }
         end
     end
     return specs, nil

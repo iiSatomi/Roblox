@@ -66,6 +66,9 @@ function ContractGoalRequests.derive(view, settings)
                 and settings.borrowCollect == true then
                 route = { "operations", "collect" }
                 metric = "collectedOperations"
+            elseif row.key == "heiststarts" and settings.borrowHeists == true then
+                route = { "heists" }
+                metric = "startedHeists"
             end
             if route and integer(row.progress, 0)
                 and integer(row.goal, 1) and row.progress < row.goal then

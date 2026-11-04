@@ -69,7 +69,9 @@ function TrophyGoalRequests.derive(view, settings)
         place = view.place, release = view.release,
         revision = view.revision, catalogKey = view.catalogKey,
         origin = "trophyFocus", targetId = id,
-        status = row.status, goal = row.goal, routes = row.route == "operations" and {"operations", "collect"} or { path.route },
+        status = row.status, goal = row.goal,
+        routes = row.route == "operations" and {"operations", "collect"}
+            or row.route == "heist" and {"heists", "heistCollect"} or { path.route },
     }
     return result, nil
 end

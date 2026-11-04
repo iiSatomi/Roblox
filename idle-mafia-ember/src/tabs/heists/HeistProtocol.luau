@@ -129,7 +129,12 @@ function Methods:Release(proposal)
     if type(proposal) ~= "table" or not features[proposal.feature] then return false end
     local released, why, category = self.lease:Release(proposal)
     if released or category == "absent" then
-        if self.active and self.active.proposal == proposal then self.active = nil end
+        if self.active and self.active.proposal == proposal then
+            -- The adapter releases native flags before its definitely-uninvoked
+            -- callback. Keep only that exact preparation for the append-only fact.
+            self.releasedPreparation = self.active.deliver == nil and self.active or nil
+            self.active = nil
+        end
         return true, nil
     end
     return false, why
@@ -207,6 +212,7 @@ function Methods:Wrap(spec)
             if owner.closed or owner:Unresolved() then return false, "Shared Heist protocol has an unresolved action", "controller_wait" end
             local acquired, why = owner.lease:Acquire(p, at + 45)
             if not acquired then return false, why, "controller_wait" end
+            owner.releasedPreparation = nil
             owner.active = {proposal = p, before = raw, baseline = baseline}
             return true, nil
         end,
@@ -220,9 +226,12 @@ function Methods:Wrap(spec)
         resolve = function(p) return owner:Release(p) end,
         unsent = function(p) return owner:Release(p) end,
         abandonedUnsent = function(p)
-            local active = owner.active
-            if not active or active.proposal ~= p or not owner.checkpoint then return false end
-            return owner.checkpoint:RecordUnsent(p, active.before, active.baseline)
+            local prepared = owner.active or owner.releasedPreparation
+            if not prepared or prepared.proposal ~= p or prepared.deliver ~= nil
+                or not owner.checkpoint then return false end
+            local saved = owner.checkpoint:RecordUnsent(p, prepared.before, prepared.baseline)
+            if saved and owner.releasedPreparation == prepared then owner.releasedPreparation = nil end
+            return saved
         end,
     }
     result.recoverSaved = function(data, after)

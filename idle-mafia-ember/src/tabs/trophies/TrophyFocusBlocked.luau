@@ -34,7 +34,7 @@ function TrophyFocusBlocked.inspect(view, settings)
         return { status = "mapped", feature = feature,
             reason = "Possible ordinary route; separate opt-in and progress proof required" }
     end
-    if row.route == "combat" or row.route == "favor"
+    if row.route == "combat" or row.route == "favor" or row.route == "sabotage"
         or row.route == "takedownLoot" then
         return { status = "blocked",
             reason = "This route needs a separate action permission and outcome proof" }
