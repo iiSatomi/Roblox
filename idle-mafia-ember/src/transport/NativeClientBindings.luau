@@ -74,6 +74,82 @@ local function resolve(game, requireModule, readUpvalues)
         local ok, value = pcall(requireModule, module)
         return ok and type(value) == "table" and value or nil
     end
+    -- Territory map IDs are a distinct namespace from catalog city IDs/names.
+    -- Keep the native Config switch and CityMaps lookup bound to these modules.
+    local currentTerritoryCities
+    local territoryConfig = config.TERRITORY
+    if type(territoryConfig) == "table" then
+        local cityMapsModule = child(mw, "CityMaps", "ModuleScript")
+        local cityMaps = optionalModule("CityMaps")
+        local flag, jobId = territoryConfig.cityMaps, game.JobId
+        local mapCities = type(cityMaps) == "table" and cityMaps.CITIES
+        local byName = type(cityMaps) == "table" and cityMaps.BY_NAME
+        local catalogCities, districts = gameData.CITIES, gameData.DISTRICTS_BY_ID
+        local retired = false
+        local function current()
+            if retired then return false end
+            local ok, valid = pcall(function()
+                return game.PlaceVersion == placeVersion and game.JobId == jobId and players.LocalPlayer == player
+                    and child(scripts, "MWClient", "LocalScript") == client
+                    and child(client, "State", "ModuleScript") == stateModule
+                    and child(replicated, "MW", "Folder") == mw
+                    and child(mw, "Config", "ModuleScript") == configModule and config.TERRITORY == territoryConfig
+                    and territoryConfig.cityMaps == flag and child(mw, "GameData", "ModuleScript") == gameDataModule
+                    and gameData.CITIES == catalogCities and gameData.DISTRICTS_BY_ID == districts
+                    and child(mw, "CityMaps", "ModuleScript") == cityMapsModule
+                    and (cityMaps == nil or cityMaps.CITIES == mapCities and cityMaps.BY_NAME == byName)
+            end)
+            if not ok or valid ~= true then retired = true end
+            return not retired
+        end
+        local function cityId(value)
+            return type(value) == "string" and #value > 0 and #value <= 120 and not value:find("[%c]")
+        end
+        currentTerritoryCities = {Current = current, Select = function(_, explicitId, districtId, native)
+            if not current() then return nil, "Native Territory city source changed" end
+            if flag ~= true then return {}, nil end -- Native false/nil Config sends nil, not a guessed default ID.
+            if type(mapCities) ~= "table" or #mapCities < 1 or #mapCities > 64
+                or type(byName) ~= "table" or type(catalogCities) ~= "table" or #catalogCities > 64
+                or type(mapCities[1]) ~= "table" or not cityId(mapCities[1].id) then
+                return nil, "Current native CityMaps required"
+            end
+            local ids = {}
+            for _, city in ipairs(mapCities) do
+                if type(city) ~= "table" or not cityId(city.id) or ids[city.id] then return nil, "Invalid native CityMaps" end
+                ids[city.id] = true
+            end
+            local selected = mapCities[1].id
+            if explicitId ~= nil then
+                if not cityId(explicitId) or not ids[explicitId] then return nil, "Unknown native map city ID" end
+                selected = explicitId
+            elseif districtId ~= nil then
+                local district = type(districts) == "table" and districts[districtId]
+                local city = type(district) == "table" and byName[district.city]
+                if type(city) ~= "table" or not cityId(city.id) or not ids[city.id] then
+                    return nil, "Selected district has no current native city mapping"
+                end
+                selected = city.id
+            else
+                local level = type(native) == "table" and tonumber(native.level) or nil
+                level = level or 1
+                if level ~= level or level < 0 or level > 9007199254740991 then return nil, "Invalid native city level" end
+                -- Native iteration order is significant; it does not sort thresholds.
+                for _, city in ipairs(catalogCities) do
+                    if type(city) ~= "table" or type(city.name) ~= "string" then return nil, "Invalid native city catalog" end
+                    local map = byName[city.name]
+                    if map ~= nil then
+                        local required = city.level or 1
+                        if type(map) ~= "table" or not cityId(map.id) or not ids[map.id]
+                            or type(required) ~= "number" or required ~= required
+                            or required < 0 or required > 9007199254740991 then return nil, "Invalid native city mapping" end
+                        if required <= level then selected = map.id end
+                    end
+                end
+            end
+            if not current() then return nil, "Native Territory city source changed" end
+            return {cityId = selected}, nil
+        end}
+    end
     local util = optionalModule("Util")
     local territory = optionalModule("TerritoryBonusRules")
     local globalBuff = optionalModule("GlobalBuffKinds")
@@ -733,7 +809,7 @@ local function resolve(game, requireModule, readUpvalues)
         currentFightNotifications = currentFightNotifications, currentPrestigeController = currentPrestigeController,
         nativeRemoteLink = nativeRemoteLink, currentPlayerInfo = currentPlayerInfo,
         currentEventShop = currentEventShop,
-        currentTerritorySeason = currentTerritorySeason,
+        currentTerritorySeason = currentTerritorySeason, currentTerritoryCities = currentTerritoryCities,
         currentCrateLuck = currentCrateLuck }
 end
 

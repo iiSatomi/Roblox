@@ -15,6 +15,10 @@ local function near(clock, timestamp)
         and math.floor(now / 300) == math.floor(timestamp / 300), now
 end
 
+local function timestamp(value)
+    return type(value) == "number" and value == value and value >= 0 and value < math.huge
+end
+
 function NativeQuoteSource.new(current, release, catalogKey)
     if type(current) ~= "table"
         or type(release) ~= "string" or #release == 0
@@ -46,8 +50,9 @@ function NativeQuoteSource.new(current, release, catalogKey)
             return nil, "Invalid current Shop catalog"
         end
         local item = current.gameData.ITEMS_BY_ID[offer.item]
-        if offer.goldPrice == nil
-            and not (item.kind == "crate" and item.paid == true) then
+        local kinds = {weapon=true, armor=true, vehicle=true, border=true, background=true, trophy=true, crate=true}
+        if offer.goldPrice == nil and offer.robuxPrice == nil
+            and (item.paid == nil or item.paid == false) and kinds[item.kind] then
             if offers[offer.item] ~= nil then
                 return nil, "Duplicate current cash Shop offer"
             end
@@ -61,7 +66,7 @@ function NativeQuoteSource.new(current, release, catalogKey)
 end
 
 function Methods:Stock(serverNow)
-    if not integer(serverNow, 0)
+    if not timestamp(serverNow)
         or not near(self.current.clock, serverNow) then
         return nil
     end
@@ -84,7 +89,7 @@ function Methods:CashQuote(itemId, slot, raw)
     local native = type(raw) == "table" and raw.native
     if not offer or type(native) ~= "table"
         or not integer(slot, 0)
-        or not integer(native.serverNow, 0)
+        or not timestamp(native.serverNow)
         or math.floor(native.serverNow / 300) ~= slot then
         return nil
     end

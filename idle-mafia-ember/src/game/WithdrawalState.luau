@@ -32,7 +32,9 @@ function WithdrawalState.read(raw, context)
         or request.revision ~= context.revision
         or request.capturedAt ~= context.capturedAt
         or (request.purpose ~= "operations"
-            and request.purpose ~= "safehouse")
+            and request.purpose ~= "safehouse"
+            and request.purpose ~= "heists"
+            and request.purpose ~= "properties" and request.purpose ~= "shop")
         or type(request.purchaseKey) ~= "string"
         or #request.purchaseKey == 0
         or not integer(request.requiredCash, 1) then

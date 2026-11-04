@@ -2,7 +2,7 @@
 local ReadCoordinator = {}
 local fields = {"session", "account", "place", "release", "revision", "capturedAt"}
 local arities = {HeistAction = {board = 1, status = 3}, FamilyAction = {info = 1, browse = 2},
-    FamilyBossAction = {state = 2}, TerritoryView = {map = 2, district = 4},
+    FamilyBossAction = {state = 2}, TerritoryView = {map = 4, district = 4},
     TerritoryAction = {fortview = 2}, TerritoryStatus = {recallstatus = 3}, ResidencyAction = {view = 3},
     MarketAction = {browse = 4, prices = 4, rap = 4}}
 local function finite(value)
@@ -50,6 +50,8 @@ local function callCopy(call)
         or call.args[3] > 9007199254740991 or call.args[2] ~= nil and not (type(call.args[2]) == "string"
             and #call.args[2] > 0 and #call.args[2] <= 120 or finite(call.args[2]) and call.args[2] >= 1
             and call.args[2] % 1 == 0 and call.args[2] <= 9007199254740991)) then return nil end
+    if call.remote == "TerritoryView" and call.args[1] == "map"
+        and (call.args[3] ~= nil or call.args[4] ~= nil) then return nil end
     if call.remote == "TerritoryStatus" and (call.kind ~= "statusOnly" or not finite(call.args[2])
         or call.args[2] < 1 or call.args[2] % 1 ~= 0 or call.args[2] > 9007199254740991
         or call.args[3] ~= nil) then return nil end

@@ -357,6 +357,9 @@ function ResourceReservations.new(identity, records, providers)
             elseif proposal.feature=="crewHire" and key=="cash" then
                 floor=proposal.intent.reserve
                 if not integer(floor) then return nil,"Crew hire reserve unavailable" end
+            elseif proposal.feature == "shop" and key == "cash" then
+                floor = proposal.intent.cashReserve
+                if not integer(floor) then return nil, "Shop Cash reserve unavailable" end
             end
             if reserved>0 or floor>0 then
                 local available=balance(raw.native,key)

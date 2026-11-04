@@ -312,6 +312,11 @@ local function heistBefore(proposal, before)
             savedNative[field] = native[field]
         end
     end
+    -- Sabotage dispatch binds the local Family identity; retain only that ID
+    -- for exact saved recapture. Older missing membership stays unknown.
+    if kind == "heistSabotage" and plain(native.family) then
+        savedNative.family = selectedFields(native.family, {"id"})
+    end
     local savedProof, savedBoard = {}, {}
     for field, value in pairs(proof) do savedProof[field] = value end
     for field, value in pairs(board) do if field ~= "rows" then savedBoard[field] = value end end
@@ -321,6 +326,26 @@ local function heistBefore(proposal, before)
     savedProof.board = savedBoard
     local saved = selectedFields(before, {"session", "account", "place", "release", "revision", "capturedAt",
         "heistProtocolProof", "heistCatalog", "catalogKey", "favorUsageProof", "sabotageUsageProof", "localUserIdProof"})
+    if kind == "heistSabotage" and proposal.intent.ownerProfileRequired == true then
+        local ownerProof, owner = before.sabotageOwnerProof, nil
+        if not plain(ownerProof) or not plain(ownerProof.header) or not plain(ownerProof.policy)
+            or not plain(ownerProof.rows) or #ownerProof.rows > 256 then return nil end
+        local size = 0
+        for index, row in ipairs(ownerProof.rows) do
+            if not plain(row) then return nil end
+            size = index
+            if row.rowId == proposal.intent.rowId then
+                if owner ~= nil then return nil end
+                owner = row
+            end
+        end
+        for index in pairs(ownerProof.rows) do
+            if not finite(index) or index % 1 ~= 0 or index < 1 or index > size then return nil end
+        end
+        if not owner then return nil end
+        saved.sabotageOwnerProof = selectedFields(ownerProof, {"header", "sourceKey", "ownFamilyId", "policy"})
+        saved.sabotageOwnerProof.rows = {owner}
+    end
     saved.native, saved.heistBoardProof = savedNative, savedProof
     return saved
 end
@@ -351,7 +376,39 @@ end
 
 -- Target catalogs are selection data, not durable outcome evidence. Keep only
 -- this action's high-only membership; current full history stays in the live owner.
+local function shopBefore(proposal, before)
+    local id = proposal.intent.itemId
+    local native = type(before) == "table" and before.native
+    if type(id) ~= "string" or not plain(native) then return nil end
+    local saved = selectedFields(before, {"session", "account", "place", "release", "revision", "capturedAt"})
+    if before.shopUsageProof ~= nil then
+        saved.shopUsageProof = selectedFields(before.shopUsageProof,
+            {"session", "account", "place", "release", "revision", "capturedAt", "attempted", "spent"})
+    end
+    saved.native = selectedFields(native, {"fullSync", "serverNow", "level", "cash"})
+    for _, origin in ipairs({"inventory", "inventoryBound", "collection", "collectionBound", "shopBought"}) do
+        if native[origin] ~= nil then
+            if not plain(native[origin]) then return nil end
+            saved.native[origin] = {[id] = native[origin][id]}
+        end
+    end
+    if type(native.autoBuyRules) == "table" then saved.native.autoBuyRules = selectedFields(native.autoBuyRules, {"on"}) end
+    if type(native.shopRotation) ~= "table" or type(native.shopRotation.bought) ~= "table"
+        or type(before.shopCatalog) ~= "table" or type(before.shopCatalog.offers) ~= "table"
+        or type(before.shopQuoteProof) ~= "table" or type(before.shopQuoteProof.stock) ~= "table"
+        or type(before.shopQuoteProof.quotes) ~= "table" then return nil end
+    saved.native.shopRotation = {slot = native.shopRotation.slot, bought = {[id] = native.shopRotation.bought[id]}}
+    saved.shopCatalog = selectedFields(before.shopCatalog, {"key", "release", "unlockLevel"})
+    saved.shopCatalog.offers = {[id] = before.shopCatalog.offers[id]}
+    saved.shopQuoteProof = selectedFields(before.shopQuoteProof,
+        {"session", "account", "place", "release", "revision", "capturedAt", "catalogKey", "slot"})
+    saved.shopQuoteProof.stock, saved.shopQuoteProof.quotes = {[id] = before.shopQuoteProof.stock[id]}, {[id] = before.shopQuoteProof.quotes[id]}
+    return saved
+end
+
 local function recoveryBefore(proposal, before)
+    if proposal.feature == "shop" and type(proposal.intent) == "table"
+        and proposal.intent.kind == "shopCashBuy" then return shopBefore(proposal, before) end
     if proposal.feature == "station" and type(proposal.intent) == "table"
         and proposal.intent.kind == "territoryRecall" then return recallBefore(before) end
     if heistKinds[proposal.feature] ~= nil and type(proposal.intent) == "table"

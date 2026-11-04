@@ -80,7 +80,11 @@ function HeistBoardState.read(raw, context)
         state = mine.settling == true and "settling" or "active"
         mineId, heistId, endsAt = mine.id, mine.heistId, mine.endsAt
     elseif result ~= nil then
-        if type(result) ~= "table" or not known[result.heistId]
+        -- Native results call the completed run ID "heistId"; it is not the
+        -- catalog template ID used by mine.heistId. Protocol binds the complete
+        -- result fingerprint before collection can be proposed.
+        if type(result) ~= "table" or not key(result.heistId)
+            or #result.heistId > 120 or result.heistId:find("[%c]")
             or type(result.ok) ~= "boolean" then
             return nil, "Incomplete personal Heist result"
         end

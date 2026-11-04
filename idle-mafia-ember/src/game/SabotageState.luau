@@ -15,6 +15,12 @@ local function key(value)
     return type(value) == "string" and #value > 0
 end
 
+local function familyId(value)
+    return type(value) == "string" and #value > 0 and #value <= 120
+        and value ~= "0" and value:match("^[%w_%-]+$") ~= nil
+        or integer(value, 1) and value <= 9007199254740991
+end
+
 local function rowId(value)
     return key(value) or integer(value, 1)
 end
@@ -26,6 +32,35 @@ local function used(row, countKey, legacyKey)
     if row[legacyKey] == nil or row[legacyKey] == false then return 0 end
     if row[legacyKey] == true then return 1 end
     return nil
+end
+
+local function ownerProof(raw, row, ownFamilyId)
+    local proof = raw.sabotageOwnerProof
+    if type(proof) ~= "table" or type(proof.header) ~= "table"
+        or proof.sourceKey ~= raw.catalogKey or proof.sourceKey ~= raw.heistBoardProof.sourceKey
+        or type(proof.sourceKey) ~= "string" or #proof.sourceKey ~= 64
+        or proof.ownFamilyId ~= ownFamilyId or type(proof.rows) ~= "table" or #proof.rows > 256
+        or type(proof.policy) ~= "table" then return nil end
+    for _, field in ipairs({"session", "account", "place", "release", "revision", "capturedAt"}) do
+        if proof.header[field] ~= raw[field] then return nil end
+    end
+    local selected, seen, count = nil, {}, 0
+    for index, profile in ipairs(proof.rows) do
+        if type(profile) ~= "table" or not rowId(profile.rowId) then return nil end
+        local id = type(profile.rowId) .. ":" .. tostring(profile.rowId)
+        if seen[id] then return nil end
+        seen[id], count = true, index
+        if profile.rowId == row.id then selected = profile end
+    end
+    for index in pairs(proof.rows) do if not integer(index, 1) or index > count then return nil end end
+    if not selected or selected.userId ~= row.ownerId or selected.name ~= row.ownerName
+        or not key(selected.name) or selected.level ~= row.ownerLevel or not integer(selected.level, 1)
+        or selected.familyId ~= row.famId or not familyId(selected.familyId)
+        or not timestamp(selected.observedAt) or not timestamp(selected.observedServerNow)
+        or selected.observedAt > raw.capturedAt or raw.capturedAt - selected.observedAt > 30
+        or selected.observedServerNow > raw.native.serverNow
+        or raw.native.serverNow - selected.observedServerNow > 30 then return nil end
+    return selected
 end
 
 function SabotageState.read(raw, context)
@@ -78,6 +113,8 @@ function SabotageState.read(raw, context)
         end
         catalog[item.id] = item.level
     end
+    local ownFamilyId = type(native.family) == "table" and native.family.id or nil
+    if not familyId(ownFamilyId) then ownFamilyId = nil end
     local rows, seen = {}, {}
     for _, row in ipairs(board.rows) do
         if type(row) ~= "table" or not rowId(row.id)
@@ -85,7 +122,8 @@ function SabotageState.read(raw, context)
             or not catalog[row.heistId]
             or not integer(row.endsAt, 0)
             or (row.friend ~= nil and type(row.friend) ~= "boolean")
-            or (row.famRel ~= nil and type(row.famRel) ~= "string") then
+            or (row.famRel ~= nil and type(row.famRel) ~= "string")
+            or (row.famId ~= nil and not familyId(row.famId)) then
             return nil, "Invalid sabotage row"
         end
         local helps = used(row, "helpsUsed", "helped")
@@ -94,25 +132,31 @@ function SabotageState.read(raw, context)
             return nil, "Invalid personal sabotage usage"
         end
         seen[row.id] = true
+        local related
+        if row.famRel == "family" then related = true
+        elseif ownFamilyId ~= nil and familyId(row.famId) then
+            related = tostring(row.famId) == tostring(ownFamilyId)
+        end
         rows[#rows + 1] = { id = row.id,
             heistId = row.heistId, ownerId = row.ownerId,
             level = catalog[row.heistId], endsAt = row.endsAt,
-            friend = row.friend == true,
-            family = row.famRel == "family",
-            helpsUsed = helps, sabosUsed = sabos }
+            friend = row.friend, family = related, familyId = row.famId,
+            helpsUsed = helps, sabosUsed = sabos, ownerProfile = ownerProof(raw, row, ownFamilyId) }
     end
     return { session = context.session, account = context.account,
         place = context.place, release = context.release,
         revision = context.revision,
         serverNow = heists.serverNow,
         serverDay = heists.serverDay,
-        selfId = player.userId, level = native.level,
+        selfId = player.userId, ownFamilyId = ownFamilyId, level = native.level,
         energy = native.pools.energy,
         favorsLeft = board.favorsLeft,
         favorCost = board.saboFavorCost,
         energyCost = board.saboEnergyCost,
         maxSabos = board.saboMaxPerHeist,
-        usageAttempts = usage.attempts, rows = rows }, nil
+        usageAttempts = usage.attempts, rows = rows,
+        ownerRelationPolicy = type(raw.sabotageOwnerProof) == "table" and raw.sabotageOwnerProof.policy or nil,
+        ownerSourceKey = type(raw.sabotageOwnerProof) == "table" and raw.sabotageOwnerProof.sourceKey or nil }, nil
 end
 
 return SabotageState

@@ -237,7 +237,13 @@ function Methods:Wrap(spec)
     result.recoverSaved = function(data, after)
         if owner.closed or not owner.checkpoint or type(data) ~= "table" or type(data.proposal) ~= "table" then return nil end
         local p = data.proposal
-        if p.feature ~= spec.id or not matches(proof(after), p.intent) then return nil end
+        if p.feature ~= spec.id then return nil end
+        if not matches(proof(after), p.intent) then
+            if spec.id == "heistCollect" and type(spec.evidence.recoverCompleted) == "function" then
+                return spec.evidence.recoverCompleted(data, after)
+            end
+            return nil
+        end
         for _, record in ipairs(owner.checkpoint:Records()) do
             if record.actionKey == p.actionKey and owner.checkpoint:KnownUnsent(record) then return "known_unsent" end
         end

@@ -15,6 +15,12 @@ local function key(value)
     return type(value) == "string" and #value > 0
 end
 
+local function familyId(value)
+    return type(value) == "string" and #value > 0 and #value <= 120
+        and value ~= "0" and value:match("^[%w_%-]+$") ~= nil
+        or integer(value, 1) and value <= 9007199254740991
+end
+
 local function rowId(value)
     return key(value) or integer(value, 1)
 end
@@ -239,6 +245,43 @@ local function current(raw, id)
     return nil
 end
 
+local function ownerProfile(raw, intent, row)
+    local fields = {"ownerProfileName", "ownerProfileLevel", "ownerProfileAt", "ownerProfileServerNow",
+        "ownerPolicyAllies", "ownerPolicyEnemies", "ownerPolicyMode", "ownerSourceKey"}
+    if intent.ownerProfileRequired == nil then
+        for _, field in ipairs(fields) do if intent[field] ~= nil then return false end end
+        return true
+    end
+    local proof = raw.sabotageOwnerProof
+    if intent.ownerProfileRequired ~= true or type(proof) ~= "table" or type(proof.header) ~= "table"
+        or type(proof.policy) ~= "table" or type(proof.rows) ~= "table" or #proof.rows > 256
+        or proof.ownFamilyId ~= intent.ownFamilyId or proof.sourceKey ~= intent.ownerSourceKey
+        or proof.sourceKey ~= raw.catalogKey or proof.sourceKey ~= raw.heistBoardProof.sourceKey
+        or type(proof.sourceKey) ~= "string" or #proof.sourceKey ~= 64 or not proof.sourceKey:match("^[%x]+$")
+        or proof.policy.relationAllies ~= intent.ownerPolicyAllies or proof.policy.relationEnemies ~= intent.ownerPolicyEnemies
+        or proof.policy.enemyMode ~= intent.ownerPolicyMode or not key(intent.ownerProfileName)
+        or row.ownerName ~= intent.ownerProfileName or not integer(intent.ownerProfileLevel, 1)
+        or row.ownerLevel ~= intent.ownerProfileLevel or not timestamp(intent.ownerProfileAt)
+        or not timestamp(intent.ownerProfileServerNow) or intent.ownerProfileAt > raw.capturedAt
+        or raw.capturedAt - intent.ownerProfileAt > 30 or intent.ownerProfileServerNow > raw.native.serverNow
+        or raw.native.serverNow - intent.ownerProfileServerNow > 30 then return false end
+    for _, field in ipairs({"session", "account", "place", "release", "revision", "capturedAt"}) do
+        if proof.header[field] ~= raw[field] then return false end
+    end
+    local selected, seen, count = nil, {}, 0
+    for index, profile in ipairs(proof.rows) do
+        if type(profile) ~= "table" or not rowId(profile.rowId) then return false end
+        local id = type(profile.rowId) .. ":" .. tostring(profile.rowId)
+        if seen[id] then return false end
+        seen[id], count = true, index
+        if profile.rowId == intent.rowId then selected = profile end
+    end
+    for index in pairs(proof.rows) do if not integer(index, 1) or index > count then return false end end
+    return selected ~= nil and selected.userId == intent.ownerId and selected.name == intent.ownerProfileName
+        and selected.level == intent.ownerProfileLevel and selected.familyId == intent.ownerFamilyId
+        and selected.observedAt == intent.ownerProfileAt and selected.observedServerNow == intent.ownerProfileServerNow
+end
+
 function SabotageEvidence.capture(proposal, before)
     local intent = type(proposal) == "table" and proposal.intent
     if type(proposal) ~= "table" or proposal.feature ~= "sabotage"
@@ -246,6 +289,7 @@ function SabotageEvidence.capture(proposal, before)
         or not rowId(intent.rowId) or not key(intent.heistId)
         or not integer(intent.ownerId, 1)
         or not integer(intent.selfId, 1)
+        or not familyId(intent.ownerFamilyId) or not familyId(intent.ownFamilyId)
         or not integer(intent.sabosBefore, 0)
         or not integer(intent.favorsBefore, 0)
         or not integer(intent.expectedFavorCost, 0)
@@ -261,11 +305,16 @@ function SabotageEvidence.capture(proposal, before)
     end
     local board, row, usage, player, native =
         current(before, intent.rowId)
+    local ownFamilyId = type(native) == "table" and type(native.family) == "table" and native.family.id or nil
     if not board or row.heistId ~= intent.heistId
         or row.ownerId ~= intent.ownerId
         or player.userId ~= intent.selfId
         or row.ownerId == player.userId
-        or row.friend == true or row.famRel == "family"
+        or row.friend ~= false or row.famRel == "family"
+        or not familyId(ownFamilyId) or not familyId(row.famId)
+        or ownFamilyId ~= intent.ownFamilyId or row.famId ~= intent.ownerFamilyId
+        or tostring(row.famId) == tostring(ownFamilyId)
+        or not ownerProfile(before, intent, row)
         or used(row, "helpsUsed", "helped") ~= 0
         or used(row, "sabosUsed", "sabotaged")
             ~= intent.sabosBefore
@@ -355,7 +404,8 @@ local function reconcile(proposal, beforeHeader, after, reply, baseline, restart
         and used(row, "sabosUsed", "sabotaged") == baseline.sabosBefore + 1
         and used(row, "helpsUsed", "helped") == used(baseline.row, "helpsUsed", "helped")
         and row.endsAt == baseline.row.endsAt and row.friend == baseline.row.friend
-        and row.famRel == baseline.row.famRel and same(boardState(board), expectedBoard)
+        and row.famRel == baseline.row.famRel and row.famId == baseline.row.famId
+        and same(boardState(board), expectedBoard)
     if (restart or proposal.intent.sequence ~= nil)
         and not resourceEffect(baseline, native, reply, true)
         and not regeneratedEffect(baseline, native, reply, after.heistProtocolProof) then return "pending" end

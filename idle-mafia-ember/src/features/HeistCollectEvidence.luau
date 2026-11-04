@@ -159,12 +159,12 @@ function HeistCollectEvidence.capture(proposal, before)
         nativeSourceKey = intent.nativeSourceKey, resultKey = intent.resultKey,
         result = result, rewards = rewards, inventory = loose, inventoryBound = bound,
         cash = native.cash, level = native.level, xp = native.xp, maxLevel = native.maxLevel,
-        prestige = native.prestige, projection = projection}, nil
+        prestige = native.prestige, projection = projection, xpThresholds = copied(protocol.xpThresholds)}, nil
 end
 
-local function custody(native, protocol, baseline, unchanged)
+local function custody(native, protocol, baseline, unchanged, awardedProjection)
     local rewards = baseline.rewards
-    local projection = baseline.projection
+    local projection = awardedProjection or baseline.projection
     local level = unchanged and baseline.level or projection.level
     local xp = unchanged and baseline.xp or projection.xp
     local maxLevel = baseline.maxLevel ~= nil and math.max(baseline.maxLevel, level) or nil
@@ -196,8 +196,12 @@ end
 local function terminalQuote(reply, baseline)
     local reward, result = baseline.rewards, baseline.result
     if reply.collected ~= result.ok then return false end
-    if result.ok and (reply.cash ~= reward.cash or reply.xp ~= reward.xp) then return false end
-    for _, field in ipairs({"cash", "xp", "gold", "crates", "bonusCrates"}) do
+    -- The board quotes base XP; the owned terminal reply quotes the actual
+    -- awarded XP after native bonuses. Its exact replicated effect is checked
+    -- below using thresholds captured before this same action.
+    if result.ok and (reply.cash ~= reward.cash or not integer(reply.xp, 0)) then return false end
+    if not result.ok and reply.xp ~= nil and reply.xp ~= 0 then return false end
+    for _, field in ipairs({"cash", "gold", "crates", "bonusCrates"}) do
         if reply[field] ~= nil and reply[field] ~= reward[field] then return false end
     end
     for _, field in ipairs({"crateId", "bonusCrateId"}) do
@@ -205,7 +209,7 @@ local function terminalQuote(reply, baseline)
     end
     return true
 end
-local function reconcile(proposal, before, after, reply, baseline, restart)
+local function reconcile(proposal, before, after, reply, baseline, restart, completedReceipt)
     local intent = type(proposal) == "table" and proposal.intent
     if not validIntent(intent) or type(baseline) ~= "table" or type(baseline.result) ~= "table"
         or type(baseline.rewards) ~= "table" or type(baseline.projection) ~= "table"
@@ -218,30 +222,60 @@ local function reconcile(proposal, before, after, reply, baseline, restart)
     local native, board, protocol, proof = current(after)
     if not native or board.mine ~= nil or proof.sourceKey ~= baseline.boardSourceKey
         or native.serverNow < baseline.serverNow or board.serverNow < baseline.boardServerNow
-        or protocol.controllerCounter ~= baseline.sequence
+        or (not completedReceipt and protocol.controllerCounter ~= baseline.sequence)
         or not (after.session == baseline.session and after.revision > baseline.revision
             and after.capturedAt >= baseline.capturedAt
             or restart and after.session ~= baseline.session and native.serverNow > baseline.serverNow) then return "pending" end
+    -- A completed positive receipt already owns the original invocation. A
+    -- different controller supplies only fresh replicated custody; its sequence
+    -- is never adopted as authority for that historical action.
+    if completedReceipt and protocol.nativeJob == baseline.nativeJob
+        and protocol.nativeEpoch == baseline.nativeEpoch then return "pending" end
     for _, field in ipairs(scope) do
-        if intent[field] ~= baseline[field] or protocol[field] ~= baseline[field] then return "pending" end
+        if intent[field] ~= baseline[field]
+            or (not completedReceipt or field == "nativeSourceKey") and protocol[field] ~= baseline[field] then return "pending" end
     end
     if reply.ok == false then
         return protocol.resultKey == baseline.resultKey and equal(copied(board.result), baseline.result)
             and custody(native, protocol, baseline, true) and "rejected" or "pending"
     end
-    return reply.ok == true and board.result == nil and protocol.resultKey == nil
-        and terminalQuote(reply, baseline) and custody(native, protocol, baseline, false) and "confirmed" or "pending"
+    if reply.ok ~= true or board.result ~= nil or protocol.resultKey ~= nil
+        or not terminalQuote(reply, baseline) then return "pending" end
+    local savedProtocol = before.heistProtocolProof
+    local awarded = baseline.result.ok and reply.xp or 0
+    local thresholds = baseline.xpThresholds
+        or type(savedProtocol) == "table" and savedProtocol.xpThresholds
+        or baseline.projection.thresholds
+    local projection = projectXP({level = baseline.level, xp = baseline.xp}, awarded, thresholds)
+    if not projection then return "pending" end
+    return custody(native, protocol, baseline, false, projection) and "confirmed" or "pending"
 end
 
 function HeistCollectEvidence.evaluate(proposal, before, after, reply, baseline)
     return reconcile(proposal, before, after, reply, baseline, false)
 end
-function HeistCollectEvidence.recoverSaved(data, after)
+local function savedBaseline(data)
     if type(data) ~= "table" or type(data.reply) ~= "table" then return nil end
     local baseline = HeistCollectEvidence.capture(data.proposal, data.before)
-    if not baseline or not equal(baseline, data.baseline) then return nil end
+    -- Older exact records retained the full protocol in before, but only the
+    -- base-XP threshold subset in baseline. Validate their original shape;
+    -- recovery can still use that saved protocol without rewriting history.
+    if baseline and type(data.baseline) == "table" and data.baseline.xpThresholds == nil then
+        baseline.xpThresholds = nil
+    end
+    return baseline and equal(baseline, data.baseline) and baseline or nil
+end
+function HeistCollectEvidence.recoverSaved(data, after)
+    local baseline = savedBaseline(data)
+    if not baseline then return nil end
     local result = reconcile(data.proposal, data.before, after, data.reply, baseline, true)
     return (result == "confirmed" or result == "rejected") and result or nil
+end
+function HeistCollectEvidence.recoverCompleted(data, after)
+    local baseline = savedBaseline(data)
+    if not baseline or baseline.result.ok ~= true or data.reply.ok ~= true or data.reply.collected ~= true then return nil end
+    local result = reconcile(data.proposal, data.before, after, data.reply, baseline, true, true)
+    return result == "confirmed" and result or nil
 end
 function HeistCollectEvidence.canDispatch(proposal, raw)
     return HeistCollectEvidence.capture(proposal, raw) ~= nil

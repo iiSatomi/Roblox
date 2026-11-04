@@ -27,6 +27,29 @@ local function copy(source)
     return result
 end
 
+local function pendingFunding(checkpoint)
+    local purposes = { heists = true, operations = true, properties = true, safehouse = true, shop = true }
+    local held = {}
+    for _, record in ipairs(checkpoint:Records()) do
+        if record.feature == "withdraw" then
+            local data = checkpoint:Recovery(record.actionKey)
+            local intent = data and data.proposal and data.proposal.intent
+            local baseline = data and data.baseline
+            local purpose = type(intent) == "table" and intent.purpose
+            if type(intent) == "table" and intent.kind == "purposeWithdrawal" and purposes[purpose]
+                and type(intent.purchaseKey) == "string" and #intent.purchaseKey > 0
+                and type(baseline) == "table" and baseline.purpose == purpose
+                and baseline.purchaseKey == intent.purchaseKey then
+                held[purpose] = true
+            else
+                -- Older/incomplete records cannot safely identify one origin.
+                for id in pairs(purposes) do held[id] = true end
+            end
+        end
+    end
+    return held
+end
+
 local function withUsageProofs(raw, checkpoint, reservations, controller, readController, currentController, readEnabled)
     if type(raw) ~= "table" then return raw end
     local observed = copy(raw)
@@ -43,6 +66,7 @@ local function withUsageProofs(raw, checkpoint, reservations, controller, readCo
     observed.familyAttackUsageProof = nil
     observed.familyUsageProof = nil
     observed.chestUsageProof = nil
+    observed.shopUsageProof = nil
     observed.eventShopUsageProof = nil
     observed.marketRentUsageProof = nil
     observed.crewHireUsageProof=nil
@@ -117,6 +141,7 @@ local function withUsageProofs(raw, checkpoint, reservations, controller, readCo
         observed.familyUsageProof = checkpoint:FamilyContributionUsage(raw)
     end
     if type(checkpoint.ChestUsage) == "function" then observed.chestUsageProof = checkpoint:ChestUsage(raw) end
+    if type(checkpoint.ShopUsage) == "function" then observed.shopUsageProof = checkpoint:ShopUsage(raw) or false end
     if type(checkpoint.EventShopUsage) == "function" then observed.eventShopUsageProof = checkpoint:EventShopUsage(raw) end
     if type(checkpoint.CrewHireUsage)=="function" then observed.crewHireUsageProof=checkpoint:CrewHireUsage(raw) end
     if type(checkpoint.PlayerFightUsage) == "function" then observed.playerFightUsageProof = checkpoint:PlayerFightUsage(raw) end
@@ -269,7 +294,9 @@ function AutomationRuntime.new(deps)
         return copied
     end
     local journal = m.Journal.new(100)
-    local checkpoint = m.Checkpoint.new(deps.storage, m.FamilyContributionUsage, m.ResourceReservations, m.PendingAction, m.EventShopUsage, m.MarketRentUsage,m.CrewHireUsage,m.PlayerFightUsage,m.Chests)
+    local shopUsage = m.ShopBuy or (features.shop and features.shop.planner)
+    if type(shopUsage) ~= "table" or type(shopUsage.copy) ~= "function" then shopUsage = nil end
+    local checkpoint = m.Checkpoint.new(deps.storage, m.FamilyContributionUsage, m.ResourceReservations, m.PendingAction, m.EventShopUsage, m.MarketRentUsage,m.CrewHireUsage,m.PlayerFightUsage,m.Chests,shopUsage)
     local reservationOwner
     if m.ResourceReservations ~= nil then
         reservationOwner = m.ResourceReservations.new(deps.identity,
@@ -877,6 +904,9 @@ function Methods:Step(raw, settings)
         return self:Status()
     end
 
+    local fundingHolds = pendingFunding(self.checkpoint)
+    for purpose in pairs(fundingHolds) do enabled[purpose] = false end
+
     local now = self.clock:Now()
     local context, contextReason = self.context:Read(raw, self.identity, now, 2)
     if not context then
@@ -946,11 +976,20 @@ function Methods:Step(raw, settings)
             planningRaw.groupMembership = proofs.groupMembership
         end
     end
-    if type(planningRaw) == "table" and planningRaw.fundingRequest == nil
+    -- Funding authority belongs to the current guarded planners. A supplied
+    -- snapshot field cannot bypass a disabled purpose, native owner or limit.
+    if type(planningRaw) == "table" and planningRaw.fundingRequest ~= nil then
+        planningRaw = copy(planningRaw)
+        planningRaw.fundingRequest = nil
+    end
+    if type(planningRaw) == "table"
         and type(self.modules.FundingCoordinator) == "table"
         and type(self.modules.FundingCoordinator.derive) == "function" then
         local ok, request = pcall(self.modules.FundingCoordinator.derive,
-            planningRaw, context, settings, reservations, self.modules)
+            planningRaw, context, settings, reservations, self.modules,
+            { features = self.features, featurePages = self.featurePages,
+                tabReasons = tabReasons, requirePages = self.snapshotAssembler ~= nil,
+                reservations = self.reservationOwner, blockedFeatures = fundingHolds })
         if ok and type(request) == "table" then
             planningRaw = copy(planningRaw)
             planningRaw.fundingRequest = request
@@ -961,7 +1000,9 @@ function Methods:Step(raw, settings)
         local page = self.featurePages[spec.id]
         local tabReason = self.snapshotAssembler and not page
             and "Missing feature tab ownership" or tabReasons[page]
-        if enabled[spec.id] and tabReason then
+        if fundingHolds[spec.id] then
+            self.reasons[spec.id] = "Awaiting confirmation of Bank funding for this purchase"
+        elseif enabled[spec.id] and tabReason then
             self.reasons[spec.id] = tabReason
         elseif enabled[spec.id] and spec.goals then
             self.reasons[spec.id] = "Awaiting current goal arbitration"

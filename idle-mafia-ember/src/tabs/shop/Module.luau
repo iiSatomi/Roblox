@@ -1,4 +1,4 @@
--- One chosen cash offer; Gold purchases and native Auto Buy stay separate.
+-- Source-ordered cash offers; Gold purchases and native Auto Buy stay separate.
 local ShopTab = {}
 local Methods = {}
 Methods.__index = Methods
@@ -20,7 +20,7 @@ function ShopTab.BuildUI(section, feature, bind, numeric)
     local row = { feature = feature, tabOwned = true,
         status = group:Status({ Text = "Activity",
             Default = "Off — UI only" }) }
-    row.custom = group:Group({ Text = "Selected cash offer", Open = false })
+    row.custom = group:Group({ Text = "Cash selection and limits", Open = false })
     for _, field in ipairs(feature.custom) do
         local key = "shop.custom." .. field.id
         if field.type == "number" then
@@ -29,6 +29,11 @@ function ShopTab.BuildUI(section, feature, bind, numeric)
                 Text = field.label, Default = tostring(field.value),
                 FireOnBlur = true,
             })
+        elseif field.type == "boolean" then
+            bind(row.custom, "Toggle", key, { Text = field.label, Default = field.value })
+        elseif field.type == "select" then
+            bind(row.custom, "Dropdown", key, { Text = field.label,
+                Options = field.options, Default = field.value })
         else
             assert(field.type == "text", "Invalid Shop control")
             bind(row.custom, "Input", key, {
@@ -53,19 +58,31 @@ function ShopTab.new(deps)
         and type(deps.ShopBuyEvidence.evaluate) == "function",
         "Missing Shop tab modules")
     local catalog = deps.NativeShopCatalog.new(
-        deps.gameData, deps.fingerprint, deps.release)
+        deps.gameData, deps.fingerprint, deps.release, deps.config)
     return setmetatable({ id = "shop", deps = deps,
-        catalog = catalog }, Methods)
+        catalog = catalog, clock = deps.clock, closed = false }, Methods)
 end
 
 function Methods:Enrich(snapshot)
+    if self.closed then return nil, "Shop tab closed" end
     return self.catalog:Enrich(snapshot)
 end
+
+function Methods:Close() self.closed = true end
 
 function Methods:Descriptors()
     local d = self.deps
     return { { id = "shop", reader = d.ShopState,
-        planner = d.ShopBuy, evidence = d.ShopBuyEvidence } }
+        planner = d.ShopBuy, evidence = d.ShopBuyEvidence,
+        recoverSaved = d.ShopBuyEvidence.recoverSaved,
+        canDispatch = function(proposal)
+            local i = proposal.intent
+            if self.closed or type(self.clock) ~= "table" or type(self.clock.Now) ~= "function"
+                or type(i.quoteServerNow) ~= "number" or type(i.quoteCapturedAt) ~= "number"
+                or type(i.quoteExpires) ~= "number" then return false end
+            local elapsed = self.clock:Now() - i.quoteCapturedAt
+            return elapsed >= 0 and elapsed <= 2 and i.quoteServerNow + elapsed <= i.quoteExpires - 5
+        end } }
 end
 
 return ShopTab

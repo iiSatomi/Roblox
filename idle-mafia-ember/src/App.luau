@@ -95,6 +95,16 @@ function App.start(dependencies)
             for key, value in pairs(self.model.values) do
                 if key:sub(1, #prefix) == prefix then choices[key] = value end
             end
+            if feature == "withdraw" then
+                -- A queued shortfall belongs to the original purchase choices.
+                for _, purpose in ipairs({ "heists", "properties", "operations", "safehouse", "shop" }) do
+                    local origin = purpose .. "."
+                    for key, value in pairs(self.model.values) do
+                        if key:sub(1, #origin) == origin then choices[key] = value end
+                    end
+                end
+                choices["shared.energyReserve"] = self.model.values["shared.energyReserve"]
+            end
             if energyActivities[feature] and self.model.specs["shared.energyReserve"] then
                 choices["shared.energyReserve"] = self.model.values["shared.energyReserve"]
             end
@@ -568,9 +578,19 @@ function App.start(dependencies)
                     and self.model.values["withdraw.enabled"] == true,
                     maxWithdrawal = self.model.values["withdraw.custom.maxWithdrawal"],
                     allowOperations = enabled
-                        and self.model.values["operations.enabled"] == true,
+                        and self.model.values["operations.enabled"] == true
+                        and self.model.values["withdraw.custom.allowOperations"] == true,
                     allowSafehouse = enabled
-                        and self.model.values["safehouse.enabled"] == true },
+                        and self.model.values["safehouse.enabled"] == true
+                        and self.model.values["withdraw.custom.allowSafehouse"] == true,
+                    allowHeists = enabled
+                        and self.model.values["heists.enabled"] == true
+                        and self.model.values["withdraw.custom.allowHeists"] == true,
+                    allowProperties = enabled
+                        and self.model.values["properties.enabled"] == true
+                        and self.model.values["withdraw.custom.allowProperties"] == true,
+                    allowShop = enabled and self.model.values["shop.enabled"] == true
+                        and self.model.values["withdraw.custom.allowShop"] == true },
             }
             -- New descriptor slices inherit their own switch, policy and
             -- bounded Custom values until they need special dependencies.

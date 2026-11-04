@@ -1,4 +1,4 @@
--- Saved TerritoryView("map", city) read, staged without mutations.
+-- Native TerritoryView("map", city, nil, nil) read, staged without mutations.
 local TerritoryMapQuery = {}
 local Methods = {}
 Methods.__index = Methods
@@ -41,7 +41,7 @@ function Methods:Prepare(cityId, snapshot)
     self.token = self.token + 1
     local bound = header(snapshot)
     local request = { remote = "TerritoryView",
-        method = "InvokeServer", arity = 2,
+        method = "InvokeServer", arity = 4,
         args = { "map", cityId }, token = self.token,
         cityId = cityId, header = bound,
         familyId = type(snapshot) == "table" and type(snapshot.native) == "table"

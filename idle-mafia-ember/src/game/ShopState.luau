@@ -36,6 +36,7 @@ function ShopState.read(raw, context)
         or catalog.release ~= context.release
         or type(catalog.key) ~= "string" or #catalog.key ~= 64
         or type(catalog.offers) ~= "table"
+        or catalog.unlockLevel ~= nil and not integer(catalog.unlockLevel, 0)
         or type(proof) ~= "table"
         or proof.session ~= context.session
         or proof.account ~= context.account
@@ -53,6 +54,30 @@ function ShopState.read(raw, context)
         return nil, "Current native Shop stock and cash quotes required"
     end
     local offers, count = {}, 0
+    local known, order = {}, nil
+    for id in pairs(catalog.offers) do known[id] = true end
+    if catalog.knownIds ~= nil then
+        if type(catalog.knownIds) ~= "table" then return nil, "Invalid Shop identities" end
+        for id, present in pairs(catalog.knownIds) do
+            if type(id) ~= "string" or present ~= true then return nil, "Invalid Shop identities" end
+            known[id] = true
+        end
+    end
+    if catalog.order ~= nil then
+        if type(catalog.order) ~= "table" or #catalog.order > 512 then return nil, "Invalid native Shop order" end
+        local seen, size = {}, 0
+        order = {}
+        for index, id in ipairs(catalog.order) do
+            if type(id) ~= "string" or seen[id] or catalog.offers[id] == nil then return nil, "Invalid native Shop order" end
+            seen[id], order[index] = true, id
+        end
+        for index in pairs(catalog.order) do
+            if not integer(index, 1) or index > #order then return nil, "Invalid native Shop order" end
+            size = size + 1
+        end
+        for id in pairs(catalog.offers) do if not seen[id] then return nil, "Incomplete native Shop order" end end
+        if size ~= #order then return nil, "Invalid native Shop order" end
+    end
     for id, row in pairs(catalog.offers) do
         if type(id) ~= "string" or type(row) ~= "table"
             or not integer(row.level, 1)
@@ -72,10 +97,17 @@ function ShopState.read(raw, context)
         end
         if proof.stock[id] == true then
             local price = proof.quotes[id]
-            if not integer(price, 1) then
+            if not integer(price, 1) or price > row.ceiling then
                 return nil, "Invalid current Shop quote"
             end
-            offers[id] = { cost = price, level = row.level,
+            local total = native.inventory[id] or 0
+            for _, origin in ipairs({"inventoryBound", "collection", "collectionBound"}) do
+                if type(native[origin]) ~= "table" then total = nil; break end
+                local owned = native[origin][id] or 0
+                if not integer(owned, 0) then return nil, "Invalid Shop item origin" end
+                total = total + owned
+            end
+            offers[id] = { cost = price, level = row.level, totalOwned = total,
                 kind = row.kind, rarity = row.rarity,
                 limit = row.limit,
                 bought = type(native.shopBought) == "table"
@@ -86,14 +118,26 @@ function ShopState.read(raw, context)
         count = count + 1
         if count > 512 then return nil, "Shop catalog too large" end
     end
+    local usage
+    if raw.shopUsageProof ~= nil then
+        local p = raw.shopUsageProof
+        if type(p) ~= "table" or not integer(p.attempted, 0) or not integer(p.spent, 0)
+            or p.spent > 9007199254740991 or p.attempted > p.spent or p.unknown ~= nil then
+            return nil, "Invalid Shop Cash allowance"
+        end
+        for _, field in ipairs({"session", "account", "place", "release", "revision", "capturedAt"}) do
+            if p[field] ~= context[field] then return nil, "Shop Cash allowance changed" end
+        end
+        usage = {version = 1, attempted = p.attempted, spent = p.spent}
+    end
     return { session = context.session, account = context.account,
         place = context.place, release = context.release,
         revision = context.revision, capturedAt = context.capturedAt,
-        catalogKey = catalog.key, slot = proof.slot,
-        level = native.level, cash = native.cash,
+        catalogKey = catalog.key, slot = proof.slot, serverNow = native.serverNow,
+        level = native.level, unlockLevel = catalog.unlockLevel or 1, cash = native.cash,
         autoBuy = type(native.autoBuyRules) == "table"
             and native.autoBuyRules.on == true,
-        offers = offers }, nil
+        offers = offers, order = order, knownIds = known, usage = usage }, nil
 end
 
 return ShopState

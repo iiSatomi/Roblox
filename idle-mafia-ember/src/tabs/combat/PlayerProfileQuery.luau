@@ -44,12 +44,17 @@ local function fresh(row, target, bound)
         and bound.capturedAt >= row.observedAt and bound.capturedAt - row.observedAt <= 30
 end
 local function profile(raw, target, bound)
+    -- Native public replies omit hidden-stat and Scout-only fields. Require all
+    -- public numbers before accepting that shape; explicit hidden stays hidden.
+    local hidden = type(raw) == "table" and raw.statsHidden
+    if type(raw) == "table" and raw.statsHidden == nil and raw.scoutCost == nil
+        and number(raw.atk, 1) and number(raw.def, 1) and number(raw.crew, 0) then hidden = false end
     if type(raw) ~= "table" or raw.userId ~= target.userId or raw.level ~= target.level
         or raw.name ~= target.name or not integer(raw.maxLevel, raw.level) or not family(raw.familyId)
-        or raw.familyId ~= target.familyId or type(raw.statsHidden) ~= "boolean"
-        or not integer(raw.scoutCost, 1) or raw.scoutCost > 5 then return nil end
+        or raw.familyId ~= target.familyId or type(hidden) ~= "boolean"
+        or (hidden or raw.scoutCost ~= nil) and (not integer(raw.scoutCost, 1) or raw.scoutCost > 5) then return nil end
     local row = {userId = raw.userId, name = raw.name, level = raw.level, maxLevel = raw.maxLevel,
-        familyId = raw.familyId, scoutCost = raw.scoutCost, statsHidden = raw.statsHidden,
+        familyId = raw.familyId, scoutCost = raw.scoutCost, statsHidden = hidden,
         observedServerNow = bound.serverNow, observedAt = bound.capturedAt, friendshipStatus = "unknown", shieldStatus = "unknown"}
     if raw.shieldLeft ~= nil then
         if not number(raw.shieldLeft, 0) then return nil end
@@ -65,7 +70,7 @@ local function profile(raw, target, bound)
             if not number(row.shieldUntil, 0) then return nil end
         end
     end
-    if raw.statsHidden == false then
+    if hidden == false then
         if not number(raw.atk, 1) or not number(raw.def, 1) or not number(raw.crew, 0) then return nil end
         row.attack, row.defense, row.crew = raw.atk, raw.def, raw.crew
     end

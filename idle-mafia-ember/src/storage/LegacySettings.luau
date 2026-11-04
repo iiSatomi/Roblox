@@ -233,6 +233,15 @@ local defaults = {
     stationMinSourceDefenders = 2,
     stationMoveCooldownMinutes = 30,
 }
+-- Saved Interface extensions were absent from Core.defaults but used by the
+-- old planner as c[purpose .. "UseBank"] == true. Import the complete group
+-- when present, so omitted old flags cannot inherit broader current defaults.
+local savedFundingTargets = {
+    heistsUseBank = "withdraw.custom.allowHeists",
+    operationsUseBank = "withdraw.custom.allowOperations",
+    propertiesUseBank = "withdraw.custom.allowProperties",
+    safehouseUseBank = "withdraw.custom.allowSafehouse",
+}
 local targets = {
     operationLimits = "operations.custom.limitsEnabled",
     operationMinLevel = "operations.custom.minLevel",
@@ -255,6 +264,18 @@ local targets = {
     depositThreshold = "bank.custom.depositThreshold",
     bankCashToKeep = "bank.custom.cashToKeep",
     withdrawalLimit = "withdraw.custom.maxWithdrawal",
+    shopBuyAll = "shop.custom.selection",
+    shopSelected = "shop.custom.selectedIds",
+    shopKind = "shop.custom.kind",
+    shopRule = "shop.custom.priceRule",
+    shopCashMax = "shop.custom.cashMax",
+    shopOwnedCap = "shop.custom.ownedCap",
+    shopMinRarity = "shop.custom.minRarity",
+    shopCosmetics = "shop.custom.allowCosmetics",
+    shopCrates = "shop.custom.allowCrates",
+    shopRarityOverride = "shop.custom.rarityOverride",
+    shopOverrideRarities = "shop.custom.overrideRarities",
+    shopUseBank = "withdraw.custom.allowShop",
     bossHitDelay = "bosses.custom.confirmationDelay",
     bossMode = "bosses.custom.selection",
     globalBossHealthFloor = "globalBossAttack.custom.healthFloor",
@@ -366,6 +387,8 @@ local saleRarities = { Common = "1", Uncommon = "2", Rare = "3", Epic = "4", Leg
 local saleKinds = { weapon = true, armor = true, vehicle = true, crate = true, border = true,
     background = true, trophy = true, consumable = true, token = true }
 local saleMaps = { marketSellBlockedItems = true, marketSellBlockedKinds = true, marketSellBlockedRarities = true }
+local shopFields = { "shopKind", "shopRule", "shopCashMax", "shopOwnedCap", "shopMinRarity",
+    "shopCosmetics", "shopCrates", "shopRarityOverride", "shopOverrideRarities", "shopUseBank" }
 -- The old shared switch gates level/cost ranges for both fight modes and samples for ordinary mugs.
 local combatRanges = { combatMinTargetLevel = "minTargetLevel", combatMaxTargetLevel = "maxTargetLevel",
     combatMinStaminaCost = "minStaminaCost", combatMaxStaminaCost = "maxStaminaCost", combatMinSamples = "minSamples" }
@@ -375,13 +398,6 @@ local restorativeThresholds = { consumableHealthBelow = true, consumableEnergyBe
 -- Every deliberately excluded schema-17 control is explained in the visible review.
 -- Exclusion retains original intent; it never applies a permission or resets a ledger.
 local blockedReasons = {
-    -- Known saved extensions remain unknown to the schema, even when false or empty.
-    heistsUseBank = "Additional saved Heist Bank-funding permission is outside the recorded baseline; choose current funding and withdrawal permissions explicitly.",
-    operationsUseBank = "Additional saved Operation Bank-funding permission is outside the recorded baseline; import cannot authorize funding or withdrawal.",
-    propertiesUseBank = "Additional saved Property Bank-funding permission is outside the recorded baseline; import cannot authorize funding or withdrawal.",
-    safehouseUseBank = "Additional saved Safehouse Bank-funding permission is outside the recorded baseline; import cannot authorize funding or withdrawal.",
-    shopBuyAll = "Additional saved Shop buy-all selection is outside the recorded baseline and cannot map to the current single selected Cash offer.",
-    shopSelected = "Additional saved Shop multi-item selection is outside the recorded baseline; no current single Cash offer is chosen implicitly.",
     perAction = "The old global per-action limit was replaced by feature-specific spending rules; select current limits explicitly.",
     sessionBudget = "The old global session budget was replaced by feature-specific allowances; import cannot establish unused funds.",
     propertyReplace = "Legacy property replacement permits selling an owned property; current import cannot authorize replacement or sale.",
@@ -404,16 +420,6 @@ local blockedReasons = {
     briefcaseKeyLimit = "The legacy Briefcase key-use limit has no current profile equivalent; import cannot reset consumed key allowance.",
     crateLuckOnly = "The old crate luck-only condition has no current Chest preference; dropping it would allow opening outside the chosen luck window.",
     consumableUseTradable = "Choose current item-custody permission explicitly; a legacy size preference never authorizes tradable consumption.",
-    shopKind = "Legacy Shop category selection cannot identify the current single selected Cash offer; no item is selected implicitly.",
-    shopRule = "Legacy buy-all and conditional price rules are not the current explicit single-offer purchase policy.",
-    shopCashMax = "The legacy Cash ceiling applied only under its price rule and could be bypassed by rarity override; it is not an unconditional purchase cap.",
-    shopOwnedCap = "Legacy total-owned item cap has no current Shop equivalent; a purchase attempt cap measures different ownership.",
-    shopMinRarity = "The legacy minimum Shop rarity filter has no current single-offer preference; no candidate selection is inferred.",
-    shopCosmetics = "Legacy cosmetic-category purchase permission does not authorize a current selected Shop purchase.",
-    shopCrates = "Legacy crate-category purchase permission does not authorize a current selected Shop purchase.",
-    shopRarityOverride = "Legacy rarity override bypassed ordinary Shop selection or price constraints; current import cannot grant that bypass.",
-    shopOverrideRarities = "The rarity-override allowlist belongs to the old conditional Shop bypass; it is not a current purchase allowlist.",
-    shopUseBank = "Using Bank funds for Shop purchases requires current funding permission; a legacy toggle cannot authorize withdrawal.",
     shopGold = "Legacy Gold Shop purchasing is a separate currency permission; current selected-Cash Shop controls cannot represent it.",
     shopGoldMax = "The legacy per-offer Gold ceiling has no current Cash-Shop equivalent; it cannot become Cash budget or earned-Gold permission.",
     shopGoldReserve = "The legacy Shop Gold reserve has no current Shop Gold lane; importing it into another feature would change its scope.",
@@ -517,7 +523,7 @@ function LegacySettings.preview(raw, model)
     local original = copy(raw)
     if not original then return nil, nil, "Invalid or oversized legacy settings" end
     local report = { baseline = 17, original = original,
-        mapped = {}, currentDefaults = {}, unresolved = {}, unresolvedReasons = {} }
+        mapped = {}, currentDefaults = {}, defaultExclusions = {}, unresolved = {}, unresolvedReasons = {} }
     local settings = original.settings or original
     if type(settings) ~= "table" or settings.version ~= 17 then
         return nil, report, "Unsupported legacy settings version; expected 17"
@@ -528,6 +534,76 @@ function LegacySettings.preview(raw, model)
         unresolved[key] = true
         report.unresolvedReasons[key] = reason or blockedReasons[key]
             or "No reviewed equivalent for this legacy choice; original intent is retained. Choose current settings explicitly."
+    end
+    local hasSavedFunding = false
+    for key in pairs(savedFundingTargets) do
+        if settings[key] ~= nil then hasSavedFunding = true end
+    end
+    if hasSavedFunding then
+        local mapped, valid = {}, true
+        for key, target in pairs(savedFundingTargets) do
+            local choice = settings[key]
+            if choice == nil then choice = false end
+            if type(choice) ~= "boolean" then
+                block(key, "Saved purpose-specific Bank funding must be an explicit boolean.")
+                valid = false
+            else mapped[target] = choice end
+        end
+        if valid then
+            if model:Validate({schema = 1, values = mapped}, true) then
+                for target, choice in pairs(mapped) do report.mapped[target] = choice end
+            else
+                for key in pairs(savedFundingTargets) do
+                    if settings[key] ~= nil then
+                        block(key, "Current purpose-specific Bank funding controls are unavailable; no shared withdrawal permission is substituted.")
+                    end
+                end
+            end
+        end
+    end
+    local shopHandled, hasShop = {}, settings.shopBuyAll ~= nil
+    for _, key in ipairs(shopFields) do if settings[key] ~= nil then hasShop = true end end
+    if settings.shopSelected ~= nil and (type(settings.shopSelected) ~= "table" or next(settings.shopSelected) ~= nil) then hasShop = true end
+    if hasShop then
+        local mapped, valid = {}, true
+        local function refuse(key, reason) block(key, reason); valid = false end
+        local function selectionMap(value, rarity)
+            if type(value) ~= "table" then return nil end
+            local ids, count = {}, 0
+            for id, on in pairs(value) do
+                count = count + 1
+                if count > 64 or type(id) ~= "string" or #id > 120 or not id:match("^[%w_%-]+$")
+                    or type(on) ~= "boolean" or rarity and not saleRarities[id] then return nil end
+                if on then ids[#ids + 1] = rarity and saleRarities[id] or id end
+            end
+            table.sort(ids)
+            return table.concat(ids, ",")
+        end
+        for _, key in ipairs(shopFields) do
+            shopHandled[key] = true
+            local value = settings[key]
+            if value == nil then value = defaults[key] end
+            if key == "shopOverrideRarities" then value = selectionMap(value, true)
+            elseif key == "shopKind" then value = ({["All gear"]="Combat gear",weapon="Weapons",armor="Armor",vehicle="Vehicles"})[value] or value end
+            local target = targets[key]
+            if value == nil or not model:Validate({schema=1,values={[target]=value}}, true) then
+                refuse(key, "Invalid or unavailable cash Shop preference; the complete Shop group must be reviewed.")
+            else mapped[target] = value end
+        end
+        shopHandled.shopBuyAll, shopHandled.shopSelected = true, true
+        local mode = settings.shopBuyAll
+        if mode ~= nil and type(mode) ~= "boolean" then refuse("shopBuyAll", "Saved Shop mode must be a boolean; no mode is inferred.") end
+        local selected = settings.shopSelected
+        if selected == nil then selected = {} end
+        local ids = selectionMap(selected, false)
+        if not ids then refuse("shopSelected", "Shop selections must be bounded item-ID-to-boolean maps.")
+        elseif mode == nil and ids ~= "" then refuse("shopSelected", "A nonempty saved Shop selection needs its explicit shopBuyAll mode.") end
+        mapped[targets.shopBuyAll] = mode == nil and "Category rules" or mode == true and "All cash items" or "Selected cash items"
+        mapped[targets.shopSelected] = ids or ""
+        if valid and not model:Validate({schema=1,values=mapped}, true) then
+            refuse("shopBuyAll", "Current cash Shop selection controls are unavailable; no fallback item is imported.")
+        end
+        if valid then for target, value in pairs(mapped) do report.mapped[target] = value end end
     end
     local heistModes = {["Best chest"]=true,Balanced=true,["Highest tier"]=true,["Lowest stake"]=true,["XP / hour"]=true,["Profit / hour"]=true,["Selected heist"]=true}
     local favorModes = {Balanced=true,["Cash reward"]=true,["XP reward"]=true,["Ending soon"]=true,["Highest tier"]=true}
@@ -708,7 +784,14 @@ function LegacySettings.preview(raw, model)
             if #ids > 1 then target = "familyStamina.custom.selectedPerks" end
             mappedValue = #ids == 1 and ids[1] or table.concat(ids, ",")
         end
-        if baseline == nil or type(value) ~= type(baseline)
+        if shopHandled[key] then
+            -- Cash rules form one validated group; activity and remaining budgets are never imported.
+        elseif savedFundingTargets[key] then
+            -- The complete extension group was validated above; withdrawal stays off.
+        elseif key == "shopSelected" and type(value) == "table" and next(value) == nil then
+            report.currentDefaults[#report.currentDefaults + 1] = key
+            report.defaultExclusions[key] = "The empty saved Shop selection contains no selected IDs. No offer is imported; current Shop defaults remain off, and an explicit saved selection mode still requires review."
+        elseif baseline == nil or type(value) ~= type(baseline)
             or type(value) == "number" and math.abs(value) > 9007199254740991 then block(key)
         elseif singleHeist and (key == "heistMode" or key == "heistId" or key == "heistSelection" or key == "selectedHeists") then
             -- This original single-ID group was validated and mapped above.

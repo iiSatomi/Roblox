@@ -66,9 +66,9 @@ function SettingsTab.new(section, ember, userOrigin, alive, callbacks, window, p
     windowGroup:Description({
         Text = "F8 shows or hides the window. Use the search box to find a control. Theme changes last for this session only; reduced motion is enabled.",
     })
-    local targets = { ["Owned chests"] = "chests", ["Event Shop"] = "eventShop", ["Family Cash"] = "familyCash",
+    local targets = { ["Cash Shop"] = "shop", ["Owned chests"] = "chests", ["Event Shop"] = "eventShop", ["Family Cash"] = "familyCash",
         ["Family Gold"] = "familyGold", ["Family Stamina"] = "familyStamina", ["Market rental"] = "marketRent",["Crew hires"]="crewHire", ["Crew stationing"] = "station", ["Residence requests"] = "residency" }
-    local units = {chests = "crates",eventShop = "medals", familyCash = "Cash", familyGold = "Gold", familyStamina = "Stamina", marketRent = "Gold",crewHire="Cash", station="resources", residency="resources"}
+    local units = {shop = "authorized Cash",chests = "crates",eventShop = "medals", familyCash = "Cash", familyGold = "Gold", familyStamina = "Stamina", marketRent = "Gold",crewHire="Cash", station="resources", residency="resources"}
     local available = callbacks and callbacks.allowanceAvailable == true
         and type(callbacks.allowancePreview) == "function" and type(callbacks.allowanceConfirm) == "function"
     local allowances = section:Group({Text = "Run allowances", Open = false, Disabled = not available,
@@ -86,7 +86,7 @@ function SettingsTab.new(section, ember, userOrigin, alive, callbacks, window, p
         if label ~= selected then selected = label; cancel() end
         return targets[label]
     end
-    selection = allowances:Dropdown({Text = "Allowance", Options = {"Owned chests", "Event Shop", "Family Cash", "Family Gold", "Family Stamina", "Market rental", "Crew hires", "Crew stationing", "Residence requests"},
+    selection = allowances:Dropdown({Text = "Allowance", Options = {"Cash Shop", "Owned chests", "Event Shop", "Family Cash", "Family Gold", "Family Stamina", "Market rental", "Crew hires", "Crew stationing", "Residence requests"},
         Default = selected, Save = false, FireOnStart = false, Reapply = false,
         Callback = function(value, _, origin)
             if not alive() or not userOrigin(origin) then return end
@@ -103,7 +103,8 @@ function SettingsTab.new(section, ember, userOrigin, alive, callbacks, window, p
             local ok, preview, reason = pcall(callbacks.allowancePreview, feature)
             if not alive() then return end
             if ok and type(preview) == "table" and preview.feature == feature and preview.unknown == true then
-                status:Set("Previous chest use is unknown. Confirm to begin a fresh local allowance; this does not establish past consumption.", true)
+                local description = feature == "shop" and "Previous Shop Cash use is unknown" or "Previous chest use is unknown"
+                status:Set(description .. ". Confirm to begin a fresh local allowance; this does not establish past consumption.", true)
             elseif ok and type(preview) == "table" and preview.feature == feature then
                 status:Set(tostring(preview.attempted) .. " counted attempts; " .. tostring(preview.spent)
                     .. " counted " .. units[feature] .. ". Confirm to clear this local allowance.", true)

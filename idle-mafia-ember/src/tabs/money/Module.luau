@@ -23,15 +23,19 @@ function MoneyTab.BuildUI(section, feature, bind, numeric)
     local row = { feature = feature, tabOwned = true,
         status = group:Status({ Text = "Activity",
             Default = "Off — UI only" }) }
-    row.custom = group:Group({ Text = "Cash limits", Open = false })
+    row.custom = group:Group({ Text = feature.id == "withdraw"
+        and "Funding purposes and cash limits" or "Cash limits", Open = false })
     for _, field in ipairs(feature.custom) do
-        assert(field.type == "number", "Invalid Money custom control")
         local key = feature.id .. ".custom." .. field.id
-        numeric[key] = true
-        bind(row.custom, "Input", key, {
-            Text = field.label, Default = tostring(field.value),
-            FireOnBlur = true,
-        })
+        if field.type == "boolean" then
+            bind(row.custom, "Toggle", key, { Text = field.label, Default = field.value })
+        else
+            assert(field.type == "number", "Invalid Money custom control")
+            numeric[key] = true
+            bind(row.custom, "Input", key, {
+                Text = field.label, Default = tostring(field.value), FireOnBlur = true,
+            })
+        end
     end
     return row
 end

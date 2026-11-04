@@ -96,7 +96,7 @@ function FeatureRegistry.build(exports, catalog)
             return nil, "Invalid feature evidence: " .. evidenceName
         end
         specs[#specs + 1] = { id = id, reader = reader,
-            planner = planner, evidence = evidence, recoverSaved = (id == "operations" or id == "properties") and evidence.recoverSaved or nil }
+            planner = planner, evidence = evidence, recoverSaved = (id == "operations" or id == "properties" or id == "shop") and evidence.recoverSaved or nil }
     end
     return specs, nil
 end

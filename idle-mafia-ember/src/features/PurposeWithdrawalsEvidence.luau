@@ -92,11 +92,15 @@ function PurposeWithdrawalsEvidence.evaluate(proposal, beforeHeader, after,
     end
     local cash, banked = balances(after)
     if not cash then return "pending" end
+    if reply.pending == true then return "pending" end
     local advanced = type(after.revision) == "number"
         and after.revision > baseline.revision
         and cash == baseline.cash + baseline.amount
         and banked == baseline.banked - baseline.amount
-    if reply.ok == false then return advanced and "pending" or "rejected" end
+    if reply.ok == false then
+        return cash == baseline.cash and banked == baseline.banked
+            and "rejected" or "pending"
+    end
     if reply.ok == true and advanced then return "confirmed" end
     return "pending"
 end

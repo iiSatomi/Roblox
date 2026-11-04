@@ -87,16 +87,28 @@ function HeistsTab.new(deps)
     local catalog = deps.NativeHeistCatalog.new(deps.gameData,
         deps.fingerprint, deps.release)
     local boardQuery = deps.BoardQuery.new(deps.identity)
+    local ownerFamilies
+    if type(deps.OwnerFamilyQuery) == "table" and type(deps.OwnerFamilyQuery.new) == "function"
+        and type(deps.nativeReadSource) == "table" and type(deps.nativeReadSource.Current) == "function"
+        and type(deps.TargetSelection) == "table" then
+        ownerFamilies = deps.OwnerFamilyQuery.new(deps.identity, deps.fingerprint,
+            deps.nativeReadSource, deps.TargetSelection)
+    end
     return setmetatable({ id = "heists", deps = deps,
         catalog = catalog, recovery = deps.SequenceRecovery,
-        boardQuery = boardQuery, protocol = deps.heistProtocol, ownedProofs = {"heistProtocolProof"}, closed = false }, Methods)
+        boardQuery = boardQuery, protocol = deps.heistProtocol, ownerFamilies = ownerFamilies,
+        ownedProofs = {"heistProtocolProof", "sabotageOwnerProof"}, closed = false }, Methods)
 end
 
-function Methods:Enrich(snapshot)
+function Methods:Enrich(snapshot, settings)
     if self.closed then return nil, "Heists tab closed" end
     local enriched, why = self.catalog:Enrich(snapshot)
     if not enriched then return nil, why end
     if self.protocol then enriched = self.protocol:Enrich(enriched) end
+    if self.ownerFamilies then
+        self.ownerFamilies:Configure(type(settings) == "table" and settings.sabotage)
+        enriched.sabotageOwnerProof = self.ownerFamilies:Read(snapshot)
+    end
     return enriched, nil
 end
 
@@ -145,8 +157,21 @@ function Methods:ReadSources(reader)
             return self:BoardCall()
         end,
         accept = function(snapshot, _, reply) return self:StageBoard(snapshot, reply) end,
-        commit = function(staged) return not self.closed and reader:AttachHeistBoard(staged) end,
+        commit = function(staged)
+            if self.closed or reader:AttachHeistBoard(staged) ~= true then return false end
+            if self.ownerFamilies then self.ownerFamilies:ObserveBoard(staged) end
+            return true
+        end,
     }}
+    if self.ownerFamilies then
+        sources[#sources + 1] = {id = "sabotageOwnerProfile", interval = 1,
+            enabled = function(settings, _, snapshot)
+                return self.ownerFamilies:Configure(settings.sabotage) and self.ownerFamilies:NeedsRead(snapshot)
+            end,
+            prepare = function(snapshot) return self.ownerFamilies:Prepare(snapshot) end,
+            accept = function(snapshot, request, reply) return self.ownerFamilies:Accept(snapshot, request, reply) end,
+            commit = function(staged) return self.ownerFamilies:Commit(staged) end}
+    end
     if self.protocol then
         sources[#sources + 1] = {id = "heistStatus", interval = 3, statusOnly = true, confirmFeatures = confirmations,
             enabled = function() return not self.closed and self.protocol:StatusCall() ~= nil end,
@@ -159,6 +184,7 @@ end
 
 function Methods:Close()
     self.closed = true
+    if self.ownerFamilies then self.ownerFamilies:Close() end
     if self.protocol then self.protocol:Close() end
 end
 
@@ -178,8 +204,14 @@ function Methods:Descriptors()
             planner = deps.HeistCollect,
             evidence = deps.HeistCollectEvidence },
         { id = "sabotage", reader = deps.SabotageState,
-            planner = deps.Sabotage,
-            evidence = deps.SabotageEvidence },
+            planner = {propose = function(view, settings, reservations)
+                return deps.Sabotage.propose(view, settings, reservations, deps.TargetSelection)
+            end},
+            evidence = deps.SabotageEvidence,
+            canDispatch = function(proposal)
+                return proposal.intent.ownerProfileRequired ~= true
+                    or self.ownerFamilies ~= nil and self.ownerFamilies:CanDispatch(proposal)
+            end },
     }
     if self.protocol then for i, row in ipairs(rows) do rows[i] = self.protocol:Wrap(row) end end
     return rows

@@ -306,6 +306,8 @@ function RuntimeHost.start(deps)
     if type(deps.EventShopBuyer) == "table" then
         callPlan = deps.NativeCallPlan.withEvents(callPlan, deps.EventShopBuyer)
     end
+    appDeps.territoryCitySource = currentClient and clientBindings.currentTerritoryCities
+        or not currentClient and deps.territoryCitySource or nil
     appDeps.playerInfoSource = currentClient and clientBindings.currentPlayerInfo or not currentClient and deps.playerInfoSource or nil
     appDeps.nativePrestigeController = currentClient and clientBindings.currentPrestigeController
         or not currentClient and deps.nativePrestigeController or nil

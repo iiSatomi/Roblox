@@ -257,7 +257,8 @@ local function selection(raw, context, mode)
             and profile.observedAt <= raw.capturedAt and raw.capturedAt - profile.observedAt <= 30
             and type(profile.statsHidden) == "boolean" and (profile.statsHidden or finite(profile.defense) and profile.defense >= 1)
             and (not warMode or profile.statsHidden or finite(profile.attack) and profile.attack >= 1 and finite(profile.crew))
-            and integer(profile.scoutCost, frame.scoutCost) and profile.scoutCost <= 5
+            and (profile.statsHidden == false and profile.scoutCost == nil
+                or integer(profile.scoutCost, frame.scoutCost) and profile.scoutCost <= 5)
             and type(facts) == "table" and integer(facts.remainingDaily, 0) and facts.remainingDaily <= frame.dailyTargetCap and finite(facts.cooldownLeft)
             and facts.sameFamily == false and facts.manualWarning == false
             and (profile.shieldUntil == nil or finite(profile.shieldUntil) and profile.shieldUntil <= base.serverNow)
@@ -357,7 +358,8 @@ function PlayerTargetState.readWar(raw, context)
         local profile = type(proof.profiles) == "table" and proof.profiles[tostring(row.userId)]
         if type(profile) == "table" and profile.userId == row.userId and profile.name == row.name
             and profile.level == row.level and profile.familyId == row.familyId and type(profile.statsHidden) == "boolean"
-            and integer(profile.scoutCost, 1) and profile.scoutCost <= 5
+            and (profile.statsHidden == false and profile.scoutCost == nil
+                or integer(profile.scoutCost, 1) and profile.scoutCost <= 5)
             and finite(profile.observedAt) and profile.observedAt <= raw.capturedAt and raw.capturedAt - profile.observedAt <= 30
             and finite(profile.observedServerNow) and profile.observedServerNow <= raw.native.serverNow
             and raw.native.serverNow - profile.observedServerNow <= 30 then
