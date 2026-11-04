@@ -20,6 +20,26 @@ local function same(a, b, restart)
     return true
 end
 
+local function validRotation(rotation, slot, id)
+    if rotation == nil then return true end
+    return type(rotation) == "table" and integer(rotation.slot, 0)
+        and rotation.slot <= slot
+        and (rotation.bought == nil or type(rotation.bought) == "table"
+            and (rotation.bought[id] == nil or type(rotation.bought[id]) == "boolean"))
+end
+
+local function boughtThisRotation(rotation, slot, id)
+    return rotation ~= nil and rotation.slot == slot
+        and type(rotation.bought) == "table" and rotation.bought[id] == true
+end
+
+local function sameRotation(a, b, id)
+    if a == nil or b == nil then return a == b end
+    return type(a) == "table" and type(b) == "table" and a.slot == b.slot
+        and type(a.bought) == type(b.bought)
+        and (a.bought == nil or a.bought[id] == b.bought[id])
+end
+
 function ShopBuyEvidence.capture(proposal, before)
     local intent = type(proposal) == "table" and proposal.intent
     if not same(proposal, before)
@@ -45,11 +65,8 @@ function ShopBuyEvidence.capture(proposal, before)
         or not finiteAtLeast(native.serverNow, 0)
         or math.floor(native.serverNow / 300) ~= intent.slot
         or native.serverNow % 300 > 295
-        or type(native.shopRotation) ~= "table"
-        or native.shopRotation.slot ~= intent.slot
-        or type(native.shopRotation.bought) ~= "table"
-        or (native.shopRotation.bought[intent.itemId] ~= nil
-            and native.shopRotation.bought[intent.itemId] ~= false)
+        or not validRotation(native.shopRotation, intent.slot, intent.itemId)
+        or boughtThisRotation(native.shopRotation, intent.slot, intent.itemId)
         or (native.shopBought ~= nil
             and type(native.shopBought) ~= "table")
         or (type(native.shopBought) == "table"
@@ -104,7 +121,7 @@ function ShopBuyEvidence.capture(proposal, before)
             return nil, "Shop Cash allowance changed"
         end
     end
-    return { session = proposal.session, account = proposal.account,
+    local baseline = { session = proposal.session, account = proposal.account,
         place = proposal.place, release = proposal.release,
         revision = proposal.revision, itemId = intent.itemId,
         slot = intent.slot, beforeOwned = intent.beforeOwned,
@@ -113,7 +130,18 @@ function ShopBuyEvidence.capture(proposal, before)
         trackedBought = type(native.shopBought) == "table",
         inventoryBound = type(native.inventoryBound) == "table" and (native.inventoryBound[intent.itemId] or 0) or nil,
         collection = type(native.collection) == "table" and (native.collection[intent.itemId] or 0) or nil,
-        collectionBound = type(native.collectionBound) == "table" and (native.collectionBound[intent.itemId] or 0) or nil }, nil
+        collectionBound = type(native.collectionBound) == "table" and (native.collectionBound[intent.itemId] or 0) or nil }
+    -- Existing current-rotation baselines retain their exact saved schema.
+    -- Older/absent rotations need their own no-effect rejection evidence.
+    if native.shopRotation == nil then
+        baseline.priorRotation = false
+    elseif native.shopRotation.slot < intent.slot then
+        baseline.priorRotation = {slot = native.shopRotation.slot}
+        if native.shopRotation.bought ~= nil then
+            baseline.priorRotation.bought = {[intent.itemId] = native.shopRotation.bought[intent.itemId]}
+        end
+    end
+    return baseline, nil
 end
 
 local function reconcile(proposal, beforeHeader, after, reply, baseline, restart)
@@ -131,11 +159,7 @@ local function reconcile(proposal, beforeHeader, after, reply, baseline, restart
     local native = after.native
     if type(native) ~= "table" or native.fullSync ~= true
         or type(native.inventory) ~= "table"
-        or type(native.shopRotation) ~= "table"
-        or native.shopRotation.slot ~= baseline.slot
-        or type(native.shopRotation.bought) ~= "table"
-        or (native.shopRotation.bought[baseline.itemId] ~= nil
-            and type(native.shopRotation.bought[baseline.itemId]) ~= "boolean")
+        or not validRotation(native.shopRotation, baseline.slot, baseline.itemId)
         or (native.shopBought ~= nil
             and type(native.shopBought) ~= "table")
         or (type(native.shopBought) == "table")
@@ -157,13 +181,20 @@ local function reconcile(proposal, beforeHeader, after, reply, baseline, restart
         or not finiteAtLeast(native.serverNow, beforeHeader.native.serverNow)) then return "pending" end
     local granted = native.inventory[baseline.itemId]
         == baseline.beforeOwned + 1
-        and native.shopRotation.bought[baseline.itemId] == true
+        and boughtThisRotation(native.shopRotation, baseline.slot, baseline.itemId)
         and native.cash == baseline.cashBefore - baseline.cost
         and (not baseline.trackedBought
             or native.shopBought[baseline.itemId]
                 == baseline.beforeBought + 1)
+    local samePriorRotation = baseline.priorRotation == false and native.shopRotation == nil
+        or type(baseline.priorRotation) == "table"
+            and sameRotation(native.shopRotation, baseline.priorRotation, baseline.itemId)
+    local currentEmpty = native.shopRotation ~= nil
+        and native.shopRotation.slot == baseline.slot
+        and not boughtThisRotation(native.shopRotation, baseline.slot, baseline.itemId)
     local unchanged = (native.inventory[baseline.itemId] or 0) == baseline.beforeOwned
-        and native.shopRotation.bought[baseline.itemId] ~= true
+        and (samePriorRotation or currentEmpty)
+        and not boughtThisRotation(native.shopRotation, baseline.slot, baseline.itemId)
         and native.cash == baseline.cashBefore
         and (not baseline.trackedBought or (native.shopBought[baseline.itemId] or 0) == baseline.beforeBought)
     if reply.ok == false then return unchanged and "rejected" or "pending" end

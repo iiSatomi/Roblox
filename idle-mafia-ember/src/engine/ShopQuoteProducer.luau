@@ -19,7 +19,6 @@ function ShopQuoteProducer.derive(raw, context, source)
         or type(source.CashQuote) ~= "function"
         or type(native) ~= "table" or native.fullSync ~= true
         or not finiteAtLeast(native.serverNow, 0)
-        or type(native.shopRotation) ~= "table"
         or type(catalog) ~= "table"
         or catalog.release ~= context.release
         or type(catalog.key) ~= "string" or #catalog.key ~= 64
@@ -35,8 +34,15 @@ function ShopQuoteProducer.derive(raw, context, source)
         return nil, "Current native Shop quote source required"
     end
     local slot = math.floor(native.serverNow / 300)
-    if native.serverNow % 300 > 295
-        or native.shopRotation.slot ~= slot then
+    local rotation = native.shopRotation
+    -- The server retains the last purchase rotation until another purchase.
+    -- Current stock/quotes still come from the native clock and stock function.
+    if rotation ~= nil and (type(rotation) ~= "table"
+        or not integer(rotation.slot, 0) or rotation.slot > slot
+        or rotation.bought ~= nil and type(rotation.bought) ~= "table") then
+        return nil, "Invalid Shop purchase rotation"
+    end
+    if native.serverNow % 300 > 295 then
         return nil, "Shop rotation is changing"
     end
     local ok, stock, nextAt, stockSlot = pcall(

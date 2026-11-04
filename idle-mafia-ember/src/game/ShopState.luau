@@ -23,6 +23,8 @@ function ShopState.read(raw, context)
     end
     local native, catalog, proof = raw.native, raw.shopCatalog,
         raw.shopQuoteProof
+    local rotation
+    if type(native) == "table" then rotation = native.shopRotation end
     if type(native) ~= "table" or native.fullSync ~= true
         or not integer(native.level, 1)
         or not nonnegative(native.cash)
@@ -30,8 +32,10 @@ function ShopState.read(raw, context)
         or type(native.inventory) ~= "table"
         or (native.shopBought ~= nil
             and type(native.shopBought) ~= "table")
-        or type(native.shopRotation) ~= "table"
-        or type(native.shopRotation.bought) ~= "table"
+        or rotation ~= nil and (type(rotation) ~= "table"
+            or not integer(rotation.slot, 0)
+            or rotation.slot > math.floor(native.serverNow / 300)
+            or rotation.bought ~= nil and type(rotation.bought) ~= "table")
         or type(catalog) ~= "table"
         or catalog.release ~= context.release
         or type(catalog.key) ~= "string" or #catalog.key ~= 64
@@ -48,11 +52,11 @@ function ShopState.read(raw, context)
         or not integer(proof.slot, 0)
         or proof.slot ~= math.floor(native.serverNow / 300)
         or native.serverNow % 300 > 295
-        or proof.slot ~= native.shopRotation.slot
         or type(proof.stock) ~= "table"
         or type(proof.quotes) ~= "table" then
         return nil, "Current native Shop stock and cash quotes required"
     end
+    local rotationBought = rotation and rotation.bought or {}
     local offers, count = {}, 0
     local known, order = {}, nil
     for id in pairs(catalog.offers) do known[id] = true end
@@ -91,8 +95,8 @@ function ShopState.read(raw, context)
             or not integer(native.inventory[id] or 0, 0)
             or (proof.stock[id] ~= nil
                 and type(proof.stock[id]) ~= "boolean")
-            or (native.shopRotation.bought[id] ~= nil
-                and type(native.shopRotation.bought[id]) ~= "boolean") then
+            or (rotationBought[id] ~= nil
+                and type(rotationBought[id]) ~= "boolean") then
             return nil, "Invalid Shop offer or custody"
         end
         if proof.stock[id] == true then
@@ -113,7 +117,8 @@ function ShopState.read(raw, context)
                 bought = type(native.shopBought) == "table"
                     and (native.shopBought[id] or 0) or 0,
                 owned = native.inventory[id] or 0,
-                rotationBought = native.shopRotation.bought[id] == true }
+                rotationBought = rotation ~= nil and rotation.slot == proof.slot
+                    and rotationBought[id] == true }
         end
         count = count + 1
         if count > 512 then return nil, "Shop catalog too large" end

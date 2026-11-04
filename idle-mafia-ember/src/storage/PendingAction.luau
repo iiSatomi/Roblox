@@ -393,11 +393,17 @@ local function shopBefore(proposal, before)
         end
     end
     if type(native.autoBuyRules) == "table" then saved.native.autoBuyRules = selectedFields(native.autoBuyRules, {"on"}) end
-    if type(native.shopRotation) ~= "table" or type(native.shopRotation.bought) ~= "table"
-        or type(before.shopCatalog) ~= "table" or type(before.shopCatalog.offers) ~= "table"
+    if type(before.shopCatalog) ~= "table" or type(before.shopCatalog.offers) ~= "table"
         or type(before.shopQuoteProof) ~= "table" or type(before.shopQuoteProof.stock) ~= "table"
         or type(before.shopQuoteProof.quotes) ~= "table" then return nil end
-    saved.native.shopRotation = {slot = native.shopRotation.slot, bought = {[id] = native.shopRotation.bought[id]}}
+    if native.shopRotation ~= nil then
+        if not plain(native.shopRotation) or native.shopRotation.bought ~= nil
+            and not plain(native.shopRotation.bought) then return nil end
+        saved.native.shopRotation = {slot = native.shopRotation.slot}
+        if native.shopRotation.bought ~= nil then
+            saved.native.shopRotation.bought = {[id] = native.shopRotation.bought[id]}
+        end
+    end
     saved.shopCatalog = selectedFields(before.shopCatalog, {"key", "release", "unlockLevel"})
     saved.shopCatalog.offers = {[id] = before.shopCatalog.offers[id]}
     saved.shopQuoteProof = selectedFields(before.shopQuoteProof,
