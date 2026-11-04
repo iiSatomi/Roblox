@@ -1,6 +1,6 @@
 -- Pinned UI smoke test. Runtime/gameplay activation is always false.
-local sourceCommit = "35ae99b657a2eeb69cf89850e7f12910b638d18e"
-local manifestCommit = "649274a5eecf80c30e05705da07e29bbd7edc5ca"
+local sourceCommit = "3e6d4826b9d89c3825384545dd8f957131b8f4ec"
+local manifestCommit = "2bc62b642f7cf4a2d62f83755ef13763dbb980fe"
 local root = "https://raw.githubusercontent.com/iiSatomi/Roblox/"
 local project = "/idle-mafia-ember/"
 local hashApi = crypt or (syn and syn.crypt)
@@ -26,7 +26,7 @@ local function pinnedModule(path, digest)
 end
 
 local manifestBytes = fetch(root .. manifestCommit .. project .. "manifest.json",
-    "8572a31fc393ea76f2f189543d31e95553eb92de4dd77d3495e32e0e8f4ea4d6", "manifest")
+    "f9ab21b6afbcde44a5d50b299195d368e9f9e4fa5a0ccaa5a50c0b1ffb62f056", "manifest")
 local manifest = game:GetService("HttpService"):JSONDecode(manifestBytes)
 assert(manifest.releaseCommit == sourceCommit, "Manifest pin mismatch")
 
@@ -61,8 +61,8 @@ local env = {
 }
 local app, reason = ExecutorEntry.start({
     commit = sourceCommit, manifest = manifest,
-    place = "73897506680154", gameVersion = "0.26.644",
-    fingerprint = "e763ddd36b6ee5dfc754512b3106d207f13d01d1ce23d8a2a2ae42cf7eed8edb",
+    place = "73897506680154", gameVersion = "0.26.645.1",
+    fingerprint = "7032df7733506f1f80739faca9c9d66d688d6d5a38b2a506b1e8de1fd6c22c78",
     directory = "IdleMafiaEmber",
 }, {
     ReleaseAdapters = ReleaseAdapters, Bootstrap = Bootstrap,
