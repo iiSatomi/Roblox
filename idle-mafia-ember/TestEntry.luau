@@ -1,6 +1,6 @@
 -- Pinned UI smoke test. Runtime/gameplay activation is always false.
-local sourceCommit = "caf604947b0a6bbe990baa3a395574a716e1e68d"
-local manifestCommit = "c9ab94a04cb3f33a4b98be99967f76da21c741dc"
+local sourceCommit = "87aac1853e2d5902d7cb78c778891400588f9351"
+local manifestCommit = "c60c144e5bf386538b205e8a00cbcc10311205a1"
 local root = "https://raw.githubusercontent.com/iiSatomi/Roblox/"
 local project = "/idle-mafia-ember/"
 local hashApi = crypt or (syn and syn.crypt)
@@ -26,7 +26,7 @@ local function pinnedModule(path, digest)
 end
 
 local manifestBytes = fetch(root .. manifestCommit .. project .. "manifest.json",
-    "009ade40c42b646879455aabd9e69d7f5e398c566345477a467bf9d488fec714", "manifest")
+    "551e13babeaf8c7118b950dc2f959d425c0bc597970d88d6c97b3f07cf2f699b", "manifest")
 local manifest = game:GetService("HttpService"):JSONDecode(manifestBytes)
 assert(manifest.releaseCommit == sourceCommit, "Manifest pin mismatch")
 
