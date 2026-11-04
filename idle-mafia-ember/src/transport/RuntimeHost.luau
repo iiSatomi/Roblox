@@ -89,6 +89,7 @@ function RuntimeHost.start(deps)
     end
     local remotesFolder = deps.remotesFolder
     local nativeState = deps.nativeState
+    local teleportSignal = deps.teleportSignal
     local sourceObserver = deps.sourceObserver
     local executorRuntimeApi = deps.executorRuntimeApi
     local executorStorageApi = deps.executorStorageApi
@@ -138,6 +139,8 @@ function RuntimeHost.start(deps)
             or type(bindings.combatRules) ~= "table" then
             return nil, "Current client bindings unavailable"
         end
+        if bindings.teleportSignal == nil then return nil, "Current local-player teleport feed unavailable" end
+        teleportSignal = bindings.teleportSignal
         clientBindings = bindings
         local observed, observer = pcall(deps.NativeClientObserver.new,
             deps.clientGame, deps.clientRequire, deps.clientHash)
@@ -218,7 +221,7 @@ function RuntimeHost.start(deps)
     end
     appDeps.requestLane = requestLane
     local eventsOk, events = pcall(deps.NativeEventAdapter.fromFolder,
-        remotesFolder, nativeState)
+        remotesFolder, nativeState, teleportSignal)
     if not eventsOk or type(events) ~= "table" then
         resolver:Close()
         return nil, "Current Sync or State feed unavailable"
@@ -650,6 +653,26 @@ function RuntimeHost.start(deps)
         return nil, "Changed-state subscription failed"
     end
     handles[#handles + 1] = changed
+
+    if teleportSignal ~= nil then
+        local subscribed, connection = pcall(events.SubscribeTeleport, events, function(state)
+            if host.active and state ~= "Failed" then
+                -- Close before another queued send; sent actions keep their exact
+                -- durable custody. A failed/aborted transfer never restarts them.
+                host.transferState = state
+                host:Destroy()
+            end
+        end)
+        if not subscribed or not disconnectable(connection) then
+            host:Destroy()
+            return nil, "Teleport subscription failed"
+        end
+        if not host.active then
+            pcall(connection.Disconnect, connection)
+            return nil, "Server transfer interrupted startup"
+        end
+        handles[#handles + 1] = connection
+    end
 
     if currentClient then
         local latestOk, latest = pcall(clientBindings.nativeState.latest)

@@ -194,7 +194,7 @@ function NativeHeistLease.bind(deps)
     end
     local ok, result, reason = pcall(function()
         local build, jobId = game.PlaceVersion, game.JobId
-        if game.PlaceId ~= 73897506680154 or (build ~= 648 and build ~= 653) then return nil, "Unreviewed Heist build" end
+        if game.PlaceId ~= 73897506680154 or (build ~= 648 and build ~= 653 and build ~= 654) then return nil, "Unreviewed Heist build" end
         local players, replicated = game:GetService("Players"), game:GetService("ReplicatedStorage")
         local player = players.LocalPlayer
         local scripts = child(player, "PlayerScripts", "PlayerScripts")

@@ -3,7 +3,7 @@ local NativeEventAdapter = {}
 local Methods = {}
 Methods.__index = Methods
 
-function NativeEventAdapter.new(syncSignal, state)
+function NativeEventAdapter.new(syncSignal, state, teleportSignal)
     local readable, connect = pcall(function()
         return syncSignal.Connect
     end)
@@ -13,10 +13,10 @@ function NativeEventAdapter.new(syncSignal, state)
         return nil, "Missing saved-client Sync or State feed"
     end
     return setmetatable({ syncSignal = syncSignal,
-        state = state }, Methods), nil
+        state = state, teleportSignal = teleportSignal }, Methods), nil
 end
 
-function NativeEventAdapter.fromFolder(folder, state)
+function NativeEventAdapter.fromFolder(folder, state, teleportSignal)
     local readable, find = pcall(function()
         return folder.FindFirstChild
     end)
@@ -36,7 +36,7 @@ function NativeEventAdapter.fromFolder(folder, state)
     if not valid or signal == nil then
         return nil, "Invalid current Sync remote"
     end
-    return NativeEventAdapter.new(signal, state)
+    return NativeEventAdapter.new(signal, state, teleportSignal)
 end
 
 function Methods:SubscribeSync(callback)
@@ -64,6 +64,22 @@ function Methods:SubscribeChanged(callback)
     if not readable or type(disconnect) ~= "function" then
         error("Invalid State connection")
     end
+    return connection
+end
+
+function Methods:SubscribeTeleport(callback)
+    if type(callback) ~= "function" then error("Invalid teleport callback") end
+    local readable, connect = pcall(function() return self.teleportSignal.Connect end)
+    if not readable or type(connect) ~= "function" then error("Missing local-player teleport feed") end
+    local connection = self.teleportSignal:Connect(function(state)
+        local ok, name = pcall(function() return state.Name end)
+        if ok and (name == "RequestedFromServer" or name == "Started"
+            or name == "WaitingForServer" or name == "InProgress" or name == "Failed") then
+            callback(name)
+        end
+    end)
+    local valid, disconnect = pcall(function() return connection.Disconnect end)
+    if not valid or type(disconnect) ~= "function" then error("Invalid teleport connection") end
     return connection
 end
 

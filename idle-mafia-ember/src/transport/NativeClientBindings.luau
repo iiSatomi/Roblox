@@ -10,10 +10,10 @@ local function child(parent, name, class)
 end
 
 local function resolve(game, requireModule, readUpvalues)
-    -- Reviewed Combat/Prestige/Player-info contracts: 648 and matching 653 captures.
+    -- Reviewed Combat/Prestige/Player-info contracts: 648, 653 and matching 654 captures.
     -- Capture before State or any other require can yield; never adopt a later build.
     local placeVersion = game.PlaceVersion
-    local verifiedControllerBuild = placeVersion == 648 or placeVersion == 653
+    local verifiedControllerBuild = placeVersion == 648 or placeVersion == 653 or placeVersion == 654
     local controllerVersionRetired = false
     local function controllerVersionCurrent()
         if game.PlaceVersion ~= placeVersion then controllerVersionRetired = true end
@@ -798,7 +798,7 @@ local function resolve(game, requireModule, readUpvalues)
         end
     end
     return { moduleFolder = mw, remotesFolder = remotes,
-        nativeState = state, stateModule = stateModule,
+        nativeState = state, stateModule = stateModule, teleportSignal = player.OnTeleport,
         currentDailyBuffRules = dailyBuffRules,
         config = config, gameData = gameData,
         gearSets = gearSets, combatRules = config.COMBAT,

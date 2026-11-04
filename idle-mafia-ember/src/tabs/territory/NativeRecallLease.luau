@@ -162,7 +162,7 @@ function NativeRecallLease.bind(deps)
         or not primitives(get,set,env.iscclosure) then return nil,"Non-yielding Recall reflection unavailable" end
     local ok,result,reason=pcall(function()
         local build,jobId=game.PlaceVersion,game.JobId
-        if game.PlaceId~=73897506680154 or (build~=648 and build~=653) or not text(jobId) then return nil,"Unreviewed Recall build" end
+        if game.PlaceId~=73897506680154 or (build~=648 and build~=653 and build~=654) or not text(jobId) then return nil,"Unreviewed Recall build" end
         local players,replicated=game:GetService("Players"),game:GetService("ReplicatedStorage")
         local player=players.LocalPlayer
         local userId=player and player.UserId

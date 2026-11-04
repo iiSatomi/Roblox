@@ -237,15 +237,19 @@ function Methods:Wrap(spec)
     result.recoverSaved = function(data, after)
         if owner.closed or not owner.checkpoint or type(data) ~= "table" or type(data.proposal) ~= "table" then return nil end
         local p = data.proposal
-        if p.feature ~= spec.id then return nil end
+        if p.feature ~= spec.id or p.account ~= owner.identity.account or p.place ~= owner.identity.place
+            or p.release ~= owner.identity.release or type(after) ~= "table"
+            or after.account ~= p.account or after.place ~= p.place or after.release ~= p.release then return nil end
+        -- An exact adapter receipt proves no invocation began. It survives a
+        -- server/controller change without adopting that controller's counter.
+        for _, record in ipairs(owner.checkpoint:Records()) do
+            if record.actionKey == p.actionKey and owner.checkpoint:KnownUnsent(record) then return "known_unsent" end
+        end
         if not matches(proof(after), p.intent) then
             if spec.id == "heistCollect" and type(spec.evidence.recoverCompleted) == "function" then
                 return spec.evidence.recoverCompleted(data, after)
             end
             return nil
-        end
-        for _, record in ipairs(owner.checkpoint:Records()) do
-            if record.actionKey == p.actionKey and owner.checkpoint:KnownUnsent(record) then return "known_unsent" end
         end
         if type(spec.evidence.recoverSaved) == "function" then return spec.evidence.recoverSaved(data, after) end
         if not terminal(data.reply) then return nil end
