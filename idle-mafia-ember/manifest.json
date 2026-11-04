@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "7f6025fe8b47e264f122002116569a82365ad4e4",
+  "releaseCommit": "35ae99b657a2eeb69cf89850e7f12910b638d18e",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -11,7 +11,7 @@
     {
       "id": "AutomationRuntime",
       "path": "src/engine/AutomationRuntime.luau",
-      "sha256": "e75ec0a26c4ccba58a8c3e9818d8ca62e4a4e56a8266bfe4fb06e858753990b3",
+      "sha256": "bd2b9fb26f2a98ebffe001488394fd15970c0ef98879316ce67673682e4872d9",
       "deps": []
     },
     {
