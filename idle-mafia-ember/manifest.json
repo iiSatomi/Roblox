@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "caf604947b0a6bbe990baa3a395574a716e1e68d",
+  "releaseCommit": "87aac1853e2d5902d7cb78c778891400588f9351",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -713,7 +713,7 @@
     {
       "id": "PendingAction",
       "path": "src/storage/PendingAction.luau",
-      "sha256": "bcf9e30f0923bc27500bcc71484c35f7d2bea22c3bc8da420935d09ee2fcc5cc",
+      "sha256": "1b6759eff932b06a986e38ed8e3eb7cf48c9ac7ad1be77899712377b7991dc49",
       "deps": []
     },
     {
