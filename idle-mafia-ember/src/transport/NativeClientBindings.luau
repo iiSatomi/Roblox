@@ -249,6 +249,14 @@ local function resolve(game, requireModule, readUpvalues)
                 and child(remotes, "Notify", "RemoteEvent") == notify
         end
         local fightModule, fight, attackFunction, remainingFunction, cooldownFunction
+        local ownedCombatGateways
+        local function gatewayMatches(name, actual, original, context)
+            if actual == original then return true end
+            local proof = ownedCombatGateways
+            if not proof or proof.context ~= context or proof[name] ~= actual or proof.original[name] ~= original then return false end
+            local ok, valid = pcall(proof.Current)
+            return ok and valid == true
+        end
         local function nativeFunctions()
             if not current() or not controllerVersionCurrent() or type(readUpvalues) ~= "function"
                 or child(mw, "Config", "ModuleScript") ~= configModule then error("Native fight guard unavailable") end
@@ -273,7 +281,9 @@ local function resolve(game, requireModule, readUpvalues)
             end
             local attack = child(remotes, "Attack", "RemoteFunction")
             local linked = nativeRemoteLink and nativeRemoteLink:Resolve("Attack") or attack
-            if not attack or linked == nil or up[2].Remotes.Attack ~= linked then error("Native Attack instance changed") end
+            if not attack or linked == nil or not gatewayMatches("Attack", up[2].Remotes.Attack, linked, up[2]) then
+                error("Native Attack instance changed")
+            end
             if linked ~= attack and (type(linked) ~= "table" or linked.Instance ~= attack
                 or linked.Name ~= "Attack" or type(linked.InvokeServer) ~= "function") then error("Native Attack wrapper changed") end
             if not controllerVersionCurrent() then error("Native fight build changed") end
@@ -282,17 +292,37 @@ local function resolve(game, requireModule, readUpvalues)
         local function finite(value)
             return type(value) == "number" and value == value and value >= 0 and value <= 9007199254740991
         end
+        local function nativeFamily(value, minimum)
+            return type(value) == "string" and #value > 0 and #value <= 120 and not value:find("[%c]")
+                or finite(value) and value % 1 == 0 and value >= minimum
+        end
         local function canAttack(proposal, target)
-            if type(proposal) ~= "table" or proposal.feature ~= "combat"
+            if type(proposal) ~= "table" or (proposal.feature ~= "combat" and proposal.feature ~= "warCombat")
                 or type(proposal.intent) ~= "table" or proposal.intent.kind ~= "playerAttack"
                 or proposal.intent.target ~= target or not finite(target) or target % 1 ~= 0 or target < 1
                 or target == player.UserId or type(proposal.resources) ~= "table" then
-                return false, "Exact ordinary player attack required"
+                return false, "Exact player attack required"
             end
             local up, busy = nativeFunctions()
             local data = state.latest()
             local pools = type(data) == "table" and data.pools
             local rules = config.COMBAT
+            if proposal.feature == "warCombat" then
+                local i = proposal.intent
+                local own = type(data) == "table" and type(data.family) == "table" and data.family.id
+                local war = type(data) == "table" and type(data.derived) == "table" and data.derived.war
+                if not nativeFamily(own, 1) or not nativeFamily(i.warFamilyId, 1)
+                    or i.ownFamilyId ~= own or i.warFamilyId ~= i.familyId
+                    or i.warFamilyId == own or type(i.warFamilyId) ~= type(own)
+                    or type(war) ~= "table" or war.state ~= "active"
+                    or war.enemyId ~= nil and war.enemyId ~= i.warFamilyId
+                    or not finite(data.serverNow) or i.serverNow ~= data.serverNow
+                    or i.warDay ~= math.floor(data.serverNow / 86400) or not finite(i.warStatusServerNow)
+                    or math.abs(data.serverNow - i.warStatusServerNow) > 10
+                    or math.floor(i.warStatusServerNow / 86400) ~= i.warDay then
+                    return false, "Exact current War enemy and scoring day required"
+                end
+            end
             if busy[1] ~= false or not finite(busy[5]) or busy[5] > os.clock()
                 or not finite(up[4]) or up[4] > os.time()
                 or type(pools) ~= "table" or not finite(pools.health) or not finite(pools.stamina)
@@ -313,7 +343,7 @@ local function resolve(game, requireModule, readUpvalues)
                 or not finite(data.serverNow) or not finite(data.shieldUntil)
                 or data.shieldUntil > data.serverNow then return false, "Native busy, shield or resource guard" end
             local row = {userId = target, familyId = proposal.intent.familyId}
-            if not (type(row.familyId) == "string" and #row.familyId <= 120 or row.familyId == 0)
+            if not nativeFamily(row.familyId, 0)
                 or up[3](row) ~= false or up[5].warning(target) ~= nil then
                 return false, "Native Family or war warning requires manual handling"
             end
@@ -355,7 +385,8 @@ local function resolve(game, requireModule, readUpvalues)
             if type(up) ~= "table" or up[3] ~= false or type(up[5]) ~= "table"
                 or up[5].State ~= state or up[5].Config ~= config or type(up[5].Remotes) ~= "table"
                 or not raw or type(linked) ~= "table" or linked.Instance ~= raw or linked.Name ~= "ScoutPlayer"
-                or type(linked.InvokeServer) ~= "function" or up[5].Remotes.ScoutPlayer ~= linked then
+                or type(linked.InvokeServer) ~= "function"
+                or not gatewayMatches("ScoutPlayer", up[5].Remotes.ScoutPlayer, linked, up[5]) then
                 return false, "Native Scout busy or context changed"
             end
             local data = state.latest()
@@ -436,6 +467,72 @@ local function resolve(game, requireModule, readUpvalues)
             return ok and type(value) == "function" and value or nil
         end
         local isFriends = friendshipMethod()
+        local function combatController()
+            -- Capture the server before a module require or source inspection
+            -- can yield. A later return to this JobId never revives this port.
+            local job, place, account, retired = game.JobId, tostring(game.PlaceId), player.Name, false
+            if type(job) ~= "string" or #job == 0 then return nil, "Native Combat server unavailable" end
+            local up = nativeFunctions()
+            local module = child(client, "ProfilePopup", "ModuleScript")
+            if not module then return nil, "Native Scout source unavailable" end
+            local popup = requireModule(module)
+            local open, confirm = type(popup) == "table" and popup.open, fight.confirm
+            local context, blocked, perform = up[2], up[1], up[7]
+            if type(open) ~= "function" or type(confirm) ~= "function"
+                or context.confirmDialog ~= confirm then return nil, "Native Combat confirmation source changed" end
+            local profileValues, confirmValues = readUpvalues(open), readUpvalues(confirm)
+            if type(profileValues) ~= "table" or profileValues[5] ~= context
+                or type(confirmValues) ~= "table" or confirmValues[4] ~= context
+                or type(context.gui) ~= "table" and typeof(context.gui) ~= "Instance" then
+                return nil, "Native Combat contexts differ"
+            end
+            local root, nativeRemotes = confirmValues[1], context.Remotes
+            local modal = child(root, "ConfirmModal", "Frame")
+            if not modal or context.gui.Root.Modals ~= root or type(nativeRemotes) ~= "table" then
+                return nil, "Native Combat modal ownership unavailable"
+            end
+            local attack = nativeRemoteLink and nativeRemoteLink:Resolve("Attack")
+            local scout = nativeRemoteLink and nativeRemoteLink:Resolve("ScoutPlayer")
+            if type(attack) ~= "table" or type(scout) ~= "table"
+                or nativeRemotes.Attack ~= attack or nativeRemotes.ScoutPlayer ~= scout then
+                return nil, "Native Combat gateways differ"
+            end
+            local boundFight, boundAttack = fightModule, attackFunction
+            local function controllerCurrent()
+                if game.JobId ~= job or tostring(game.PlaceId) ~= place or player.Name ~= account then retired = true end
+                if retired or not current() or not controllerVersionCurrent()
+                    or child(client, "FightTab", "ModuleScript") ~= boundFight
+                    or child(client, "ProfilePopup", "ModuleScript") ~= module
+                    or fight.attack ~= boundAttack or fight.confirm ~= confirm or popup.open ~= open
+                    or context.Remotes ~= nativeRemotes or context.confirmDialog ~= confirm
+                    or context.State ~= state or context.Config ~= config
+                    or context.gui.Root.Modals ~= root or child(root, "ConfirmModal", "Frame") ~= modal then return false end
+                local values, profileNow, confirmNow = readUpvalues(boundAttack), readUpvalues(open), readUpvalues(confirm)
+                return values[1] == blocked and values[2] == context and values[7] == perform
+                    and readUpvalues(blocked)[2] == context and profileNow[5] == context
+                    and confirmNow[1] == root and confirmNow[4] == context
+                    and nativeRemoteLink:Resolve("Attack") == attack and nativeRemoteLink:Resolve("ScoutPlayer") == scout
+            end
+            if not controllerCurrent() then return nil, "Native Combat controller changed during binding" end
+            return {Current = controllerCurrent, jobId = job, place = place, account = account,
+                fightModule = boundFight, profileModule = module,
+                readValues = readUpvalues, attackBlocked = blocked, profileOpen = open, confirm = confirm, context = context,
+                remotes = nativeRemotes, modals = root, attack = attack, scout = scout,
+                RegisterGateways = function(_, attackProxy, scoutProxy, valid)
+                    if ownedCombatGateways or type(valid) ~= "function" or not controllerCurrent()
+                        or nativeRemotes.Attack ~= attackProxy or nativeRemotes.ScoutPlayer ~= scoutProxy
+                        or type(attackProxy) ~= "table" or type(scoutProxy) ~= "table"
+                        or attackProxy.Instance ~= attack.Instance or scoutProxy.Instance ~= scout.Instance
+                        or attackProxy.Name ~= "Attack" or scoutProxy.Name ~= "ScoutPlayer" then return nil end
+                    local proof = {context = context, Attack = attackProxy, ScoutPlayer = scoutProxy,
+                        original = {Attack = attack, ScoutPlayer = scout}, Current = valid}
+                    ownedCombatGateways = proof
+                    return proof
+                end,
+                UnregisterGateways = function(_, proof)
+                    if ownedCombatGateways == proof then ownedCombatGateways = nil end
+                end}, nil
+        end
         currentFightNotifications = {Current = current, CombatFrame = function(_, native, targets)
             local ok, value = pcall(combatFrame, native, targets)
             return ok and value or nil
@@ -447,6 +544,9 @@ local function resolve(game, requireModule, readUpvalues)
             local ok, value = pcall(isFriends, player, target)
             if not ok or type(value) ~= "boolean" or not current() or friendshipMethod() ~= isFriends then return nil end
             return value
+        end, CombatController = function()
+            local ok, value, why = pcall(combatController)
+            return ok and value or nil, ok and why or "Native Combat controller inspection failed"
         end, Subscribe = function(_, callback)
             if not current() then error("Current fight notifications changed") end
             return notify.OnClientEvent:Connect(callback)

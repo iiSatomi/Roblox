@@ -26,4 +26,11 @@ function TerritoryCallPlan.describe(proposal)
     end
     return nil, "Unreviewed Territory mutation signature"
 end
+function TerritoryCallPlan.withRecall(base,owner)
+    assert(type(base)=="table" and type(base.describe)=="function" and type(owner)=="table" and type(owner.Describe)=="function","Bound Recall call owner required")
+    return {describe=function(p)
+        if type(p)=="table" and p.feature=="station" and type(p.intent)=="table" and p.intent.kind=="territoryRecall" then return owner:Describe(p) end
+        return base.describe(p)
+    end}
+end
 return TerritoryCallPlan

@@ -25,7 +25,7 @@ local function dense(rows)
     return count == #rows
 end
 
-function PlayerTargetState.read(raw, context, rules)
+local function readTargets(raw, context, rules, ownedTargets)
     if type(raw) ~= "table" or type(context) ~= "table"
         or type(rules) ~= "table" then
         return nil, "Missing Combat target input"
@@ -36,7 +36,7 @@ function PlayerTargetState.read(raw, context, rules)
             return nil, "Combat snapshot header changed"
         end
     end
-    local native, proof = raw.native, raw.hitListProof
+    local native, proof = raw.native, ownedTargets or raw.hitListProof
     local pools = type(native) == "table" and native.pools
     local daily = type(native) == "table" and native.attackDaily
     if type(native) ~= "table" or native.fullSync ~= true
@@ -89,6 +89,10 @@ function PlayerTargetState.read(raw, context, rules)
         rows = rows }, nil
 end
 
+function PlayerTargetState.read(raw, context, rules)
+    return readTargets(raw, context, rules)
+end
+
 local scopeFields = {"session", "account", "place", "release", "revision", "capturedAt"}
 local function matchingHeader(proof, raw)
     if type(proof) ~= "table" then return false end
@@ -111,8 +115,9 @@ local function usageRow(row)
         and row.attempted <= 1000000 and row.spent <= 1000000
         and row.spent >= row.attempted and row.spent <= row.attempted * 5
 end
-function PlayerTargetState.readSelection(raw, context)
-    local proof = type(raw) == "table" and raw.hitListProof
+local function selection(raw, context, mode)
+    local warMode = mode == "warCombat"
+    local proof = type(raw) == "table" and (warMode and raw.warRosterProof or raw.hitListProof)
     local frame = type(proof) == "table" and proof.nativeFrame
     if type(raw) ~= "table" or type(raw.native) ~= "table" or type(context) ~= "table"
         or not integer(raw.revision, 0) or not finite(raw.capturedAt) or not finite(raw.native.serverNow)
@@ -139,7 +144,7 @@ function PlayerTargetState.readSelection(raw, context)
         or war.active and (frame.ownFamilyId == 0 or not family(war.enemyFamilyId) or war.enemyFamilyId == 0
             or war.enemyFamilyId == frame.ownFamilyId or type(war.enemyFamilyId) ~= type(frame.ownFamilyId))
         or not war.active and war.enemyFamilyId ~= nil then return nil, "Verified current war state and enemy identity required" end
-    local base, why = PlayerTargetState.read(raw, context, frame)
+    local base, why = readTargets(raw, context, frame, proof)
     local pools, stats = raw.native.pools, raw.native.stats
     local ownFamily = type(raw.native.family) == "table" and raw.native.family.id or raw.native.family == nil and 0
     if not base or type(stats) ~= "table" or frame.maxHealth ~= stats.maxHealth
@@ -148,7 +153,7 @@ function PlayerTargetState.readSelection(raw, context)
     end
     if frame.busy or frame.shielded or frame.globalCooldown > 0 then return nil, "Native Combat, shield or cooldown needs manual attention" end
     local usage = raw.playerFightUsageProof
-    local lane = type(usage) == "table" and type(usage.usage) == "table" and type(usage.usage.lanes) == "table" and usage.usage.lanes.combat
+    local lane = type(usage) == "table" and type(usage.usage) == "table" and type(usage.usage.lanes) == "table" and usage.usage.lanes[mode]
     if type(usage) ~= "table" or usage.account ~= raw.account or usage.capturedAt ~= raw.capturedAt
         or type(lane) ~= "table" or not usageRow(lane.attack) or not usageRow(lane.scout) then
         return nil, "Owned independent player Stamina allowances required"
@@ -174,7 +179,7 @@ function PlayerTargetState.readSelection(raw, context)
             end
             local upperTime = at % 1 == 0 and at + 1 or at
             cooldowns[key] = math.max(cooldowns[key] or 0, math.max(row.serverNow, upperTime) + frame.targetCooldown)
-            if row.feature == "combat" then
+            if row.feature == mode then
                 histories[key] = histories[key] or {}
                 histories[key][#histories[key] + 1] = {at = at, cash = row.receipt.cashConfirmed, won = row.receipt.won}
             end
@@ -183,7 +188,7 @@ function PlayerTargetState.readSelection(raw, context)
     -- Optional high-only history comes from this tab's ledger, never native estimates.
     -- Malformed/unknown metadata keeps ordinary selection available but cannot opt in.
     local high, highTargets = ledger.highValue, {}
-    local highKnown = type(high) == "table" and high.known == true and high.lastRequestId == lastId
+    local highKnown = not warMode and type(high) == "table" and high.known == true and high.lastRequestId == lastId
         and integer(high.count, 0) and high.count <= 128 and type(high.targets) == "table"
     if highKnown then
         local count, seen, present, retained = 0, {}, {}, {}
@@ -231,29 +236,53 @@ function PlayerTargetState.readSelection(raw, context)
         scoutAttempted = lane.scout.attempted, scoutSpent = lane.scout.spent,
         sourceKey = proof.sourceKey, highValueKnown = highKnown == true,
         war = {active = war.active, enemyFamilyId = war.enemyFamilyId}, targets = {}}
+    if warMode then
+        for _, key in ipairs({"statusServerNow", "ownRemaining", "ownCap", "canScore", "canFeed", "eligibleAt"}) do
+            view.war[key] = war[key]
+        end
+    end
     for _, key in ipairs(scopeFields) do view[key] = raw[key] end
     for index, target in ipairs(proof.rows) do
         local key, facts = tostring(target.userId), frame.targets[tostring(target.userId)]
         local profile = proof.profiles[key]
+        local quote = target.stamina
+        if warMode and type(facts) == "table" and facts.staminaCost ~= nil then
+            if quote == nil then quote = facts.staminaCost
+            elseif quote ~= facts.staminaCost then quote = nil end
+        end
         local valid = type(profile) == "table" and profile.userId == target.userId and profile.name == target.name
             and profile.level == target.level and profile.familyId == target.familyId and family(target.familyId)
             and finite(profile.observedServerNow) and profile.observedServerNow <= base.serverNow
             and base.serverNow - profile.observedServerNow <= 30 and finite(profile.observedAt)
             and profile.observedAt <= raw.capturedAt and raw.capturedAt - profile.observedAt <= 30
             and type(profile.statsHidden) == "boolean" and (profile.statsHidden or finite(profile.defense) and profile.defense >= 1)
+            and (not warMode or profile.statsHidden or finite(profile.attack) and profile.attack >= 1 and finite(profile.crew))
             and integer(profile.scoutCost, frame.scoutCost) and profile.scoutCost <= 5
             and type(facts) == "table" and integer(facts.remainingDaily, 0) and facts.remainingDaily <= frame.dailyTargetCap and finite(facts.cooldownLeft)
             and facts.sameFamily == false and facts.manualWarning == false
             and (profile.shieldUntil == nil or finite(profile.shieldUntil) and profile.shieldUntil <= base.serverNow)
-            and target.shielded == false and integer(target.stamina, frame.staminaCost) and target.stamina <= frame.maxStaminaCost
+            and (not warMode and target.shielded == false or warMode and target.shielded ~= true
+                and (target.shielded == nil or target.shielded == false or target.shielded == 0)
+                and (profile.shieldStatus == "clear" or profile.shieldStatus == "shielded"
+                    and finite(profile.shieldUntil) and profile.shieldUntil <= base.serverNow))
+            and integer(quote, frame.staminaCost) and quote <= frame.maxStaminaCost
             and not unknownTimes[key]
         if valid then
             local row = {userId = target.userId, name = target.name, level = target.level,
                 familyId = target.familyId, highValue = highKnown and highTargets[key] ~= nil or nil,
-                staminaCost = target.stamina, scoutCost = profile.scoutCost,
+                staminaCost = quote, scoutCost = profile.scoutCost,
                 remainingDaily = math.min(base.rows[index].remainingDaily, facts.remainingDaily), shieldUntil = 0,
                 attacksToday = math.max(base.rows[index].attacksToday, frame.dailyTargetCap - facts.remainingDaily, todayCounts[key] or 0),
                 cooldownUntil = math.max(base.serverNow + facts.cooldownLeft, cooldowns[key] or 0), history = histories[key] or {}}
+            if warMode then
+                row.warFamilyId = war.enemyFamilyId
+                if type(target.warStatus) == "table" then
+                    row.warStatus = {}
+                    for _, field in ipairs({"day", "remaining", "cap", "attacksRemaining", "attacksCap", "pairRemaining", "canScore"}) do
+                        row.warStatus[field] = target.warStatus[field]
+                    end
+                end
+            end
             if profile.friendshipStatus == "reported" and type(profile.friend) == "boolean"
                 and profile.friendshipObservedAt == profile.observedServerNow then row.friend = profile.friend end
             if profile.statsHidden == false and finite(profile.defense) and profile.defense >= 1 then
@@ -263,13 +292,17 @@ function PlayerTargetState.readSelection(raw, context)
             if type(scout) == "table" and scout.kind == "scout" and scout.level == profile.level
                 and finite(scout.defense) and scout.defense >= 1 and finite(scout.at)
                 and scout.at <= base.serverNow and base.serverNow - scout.at <= 1800
-                and (not row.stats or scout.at > row.stats.at) then
+                and (warMode or not row.stats or scout.at > row.stats.at) then
                 row.stats = {at = scout.at, defense = scout.defense, kind = "scout", level = scout.level}
             end
             view.targets[#view.targets + 1] = row
         end
     end
     return view, nil
+end
+
+function PlayerTargetState.readSelection(raw, context)
+    return selection(raw, context, "combat")
 end
 
 -- War observations are independent of ordinary hit-list/profile facts. This
@@ -348,6 +381,62 @@ function PlayerTargetState.readWar(raw, context)
         view.targets[index] = target
     end
     return view, nil
+end
+
+-- Selection consumes the independent roster and its native frame. The ordinary
+-- list is never consulted for War identity, quotes, profiles or scoring caps.
+function PlayerTargetState.readWarSelection(raw, context)
+    local observed, why = PlayerTargetState.readWar(raw, context)
+    if not observed or observed.war.active ~= true then return observed, why end
+    return selection(raw, context, "warCombat")
+end
+
+-- Capture-time/final-dispatch proof for one exact War target. Durable allowance
+-- custody remains in Checkpoint; this rechecks native identity and eligibility.
+function PlayerTargetState.readWarAttempt(p, raw)
+    local i = type(p) == "table" and p.intent
+    if type(i) ~= "table" or p.feature ~= "warCombat" or type(raw) ~= "table"
+        or type(raw.native) ~= "table" or p.revision ~= raw.revision then return nil end
+    for _, key in ipairs({"session", "account", "place", "release"}) do if p[key] ~= raw[key] then return nil end end
+    local context = {serverNow = raw.native.serverNow}
+    for _, key in ipairs(scopeFields) do context[key] = raw[key] end
+    local view = PlayerTargetState.readWarSelection(raw, context)
+    local war = view and view.war
+    if not view or view.status ~= "known" or i.serverNow ~= view.serverNow
+        or i.attack ~= view.attack or i.ownFamilyId ~= view.ownFamilyId or i.warFamilyId ~= war.enemyFamilyId or i.familyId ~= war.enemyFamilyId
+        or i.warDay ~= math.floor(view.serverNow / 86400) or i.warStatusServerNow ~= war.statusServerNow
+        or war.canScore ~= true or not finite(war.statusServerNow)
+        or math.floor(war.statusServerNow / 86400) ~= i.warDay
+        or war.eligibleAt ~= nil and (not finite(war.eligibleAt) or war.eligibleAt > view.serverNow)
+        or not integer(war.ownRemaining, 0) or not integer(war.ownCap, war.ownRemaining)
+        or not integer(i.scoutMaxAge, 1) or i.scoutMaxAge > 1800
+        or i.maxStaminaExposure ~= view.maxNativeStaminaCost or i.attackExposure ~= view.maxNativeStaminaCost
+        or type(p.resources) ~= "table" or p.resources.stamina ~= i.maxStaminaExposure then return nil end
+    for _, row in ipairs(view.targets) do
+        if row.userId == i.target then
+            local cap, stats = row.warStatus, row.stats
+            if row.name ~= i.targetName or row.level ~= i.targetLevel or row.familyId ~= i.familyId
+                or row.warFamilyId ~= i.warFamilyId or row.userId == view.ownUserId or row.friend ~= false
+                or row.staminaCost ~= i.attackQuote or row.remainingDaily < 1 or row.cooldownUntil > view.serverNow
+                or type(cap) ~= "table" or cap.day ~= i.warDay or cap.canScore ~= true
+                or not integer(cap.remaining, 1) or not integer(cap.cap, cap.remaining)
+                or not integer(cap.attacksRemaining, 1) or not integer(cap.attacksCap, cap.attacksRemaining)
+                or not integer(cap.pairRemaining, 1) then return nil end
+            local fresh = type(stats) == "table" and stats.kind == "scout" and stats.level == row.level
+                and finite(stats.at) and stats.at <= view.serverNow and view.serverNow - stats.at <= i.scoutMaxAge
+                and finite(stats.defense) and stats.defense >= 1
+            if i.kind == "playerAttack" then
+                if not fresh or i.statsAt ~= stats.at or i.defense ~= stats.defense
+                    or not finite(i.minPowerRatio) or i.minPowerRatio < 0.01
+                    or view.attack / stats.defense < i.minPowerRatio
+                    or i.expectedStaminaCost ~= row.staminaCost then return nil end
+            elseif i.kind == "playerScout" then
+                if i.allowScout ~= true or fresh or i.expectedStaminaCost ~= row.scoutCost then return nil end
+            else return nil end
+            return {view = view, target = row}
+        end
+    end
+    return nil
 end
 
 return PlayerTargetState

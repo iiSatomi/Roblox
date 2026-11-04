@@ -326,7 +326,8 @@ function AutomationRuntime.new(deps)
         end
         local owner = lifecycle(proposal)
         if owner then
-            local ok, prepared, why = pcall(owner.prepare, proposal, raw, baseline, deps.clock:Now())
+            local ok, prepared, why, category = pcall(owner.prepare, proposal, raw, baseline, deps.clock:Now())
+            if ok and prepared ~= true and category == "controller_wait" then return false, why end
             if not ok or prepared ~= true then return failed(ok and why or "Feature preparation raised") end
             if session.state ~= "running" then return false, "Session changed during preparation" end
         end
@@ -398,6 +399,12 @@ function AutomationRuntime.new(deps)
         goalStates = {}, goalObserved = {}, outcomes = {}, recoveries = {}, recoveryControls = {}, reasons = {}, globalReason = "Paused",
     }, Methods)
     for _, tab in ipairs(self.tabInstances) do
+        if type(tab.BindCheckpoint) == "function" then
+            tab:BindCheckpoint(checkpoint, function()
+                if self.closed or self.closing then return nil end
+                return self.latestOutcomeSnapshot
+            end)
+        end
         if type(tab.BindFightPersistence) == "function" then
             tab:BindFightPersistence(checkpoint, function()
                 if self.closed or self.closing then return nil end
@@ -437,6 +444,14 @@ function AutomationRuntime.new(deps)
         end
     end
     return self
+end
+
+function Methods:SupportsFeature(feature)
+    if self.closed or self.closing then return false end
+    for _, tab in ipairs(self.tabInstances) do
+        if type(tab.SupportsFeature) == "function" and tab:SupportsFeature(feature) then return true end
+    end
+    return false
 end
 
 -- Availability describes configured ownership, never current readiness or permission.

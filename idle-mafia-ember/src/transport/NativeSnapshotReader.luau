@@ -164,9 +164,14 @@ function Methods:AttachFamilyBoss(staged)
         or not proof.sourceKey:match("^[%x]+$") or type(proof.state) ~= "table"
         or proof.account ~= self.identity.account or proof.capturedAt ~= self.capturedAt then return false end
     for _, key in ipairs(identityKeys) do if proof.header[key] ~= self.identity[key] then return false end end
+    local family = native.family
+    local membershipMatches = (family == nil and proof.header.familyId == nil
+        and proof.state.famId == nil and proof.state.inFamily == false
+        and type(proof.state.claims) == "table")
+        or (type(family) == "table" and family.id ~= nil
+            and proof.state.famId == family.id and proof.header.familyId == family.id)
     if proof.header.revision ~= self.revision or proof.header.capturedAt ~= self.capturedAt
-        or type(native.family) ~= "table" or proof.state.famId ~= native.family.id
-        or proof.header.familyId ~= native.family.id or proof.header.serverNow ~= native.serverNow then return false end
+        or not membershipMatches or proof.header.serverNow ~= native.serverNow then return false end
     self.familyTakedownProof = proof
     return true
 end

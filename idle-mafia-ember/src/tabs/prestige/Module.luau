@@ -62,7 +62,7 @@ function PrestigeTab.new(deps)
         reset = reset, blocked = deps.PrestigeBlocked, controller = deps.nativePrestigeController,
         controllerRead = type(deps.nativePrestigeController) == "table" and deps.nativePrestigeController.Read or nil,
         controllerCurrent = type(deps.nativePrestigeController) == "table" and deps.nativePrestigeController.Current or nil,
-        resetModule = deps.PrestigeReset, describeReset = type(deps.PrestigeReset) == "table" and deps.PrestigeReset.describe or nil }, Methods)
+        nativePrestigeLease = deps.nativePrestigeLease, resetModule = deps.PrestigeReset, describeReset = type(deps.PrestigeReset) == "table" and deps.PrestigeReset.describe or nil }, Methods)
 end
 
 function Methods:Enrich(snapshot)
@@ -95,6 +95,8 @@ end
 function Methods:Close()
     self.closed, self.latestSnapshot = true, nil
     if type(self.controller) == "table" and type(self.controller.Close) == "function" then pcall(self.controller.Close, self.controller) end
+    if self.nativePrestigeLease ~= self.controller and type(self.nativePrestigeLease) == "table"
+        and type(self.nativePrestigeLease.Close) == "function" then pcall(self.nativePrestigeLease.Close, self.nativePrestigeLease) end
 end
 
 function Methods:Descriptors()

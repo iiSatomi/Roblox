@@ -102,7 +102,7 @@ function Adapter.new(ember, catalog, callbacks)
             local row
             if feature.page == "heists" and callbacks.heistsModule then
                 row = callbacks.heistsModule.BuildUI(
-                    sections.heists, feature, bind, self.numeric)
+                    sections.heists, feature, bind, self.numeric, {available = type(callbacks.featureAvailable) == "function" and callbacks.featureAvailable(feature.id)})
             elseif feature.page == "jobs" and callbacks.jobsModule then
                 row = callbacks.jobsModule.BuildUI(
                     sections.jobs, feature, bind, function()
@@ -113,10 +113,10 @@ function Adapter.new(ember, catalog, callbacks)
                     sections.operations, feature, bind, self.numeric)
             elseif feature.page == "favors" and callbacks.favorsModule then
                 row = callbacks.favorsModule.BuildUI(
-                    sections.favors, feature, bind, self.numeric)
+                    sections.favors, feature, bind, self.numeric, {available = type(callbacks.featureAvailable) == "function" and callbacks.featureAvailable(feature.id)})
             elseif feature.page == "combat" and callbacks.combatModule then
                 row = callbacks.combatModule.BuildUI(
-                    sections.combat, feature, bind, self.numeric)
+                    sections.combat, feature, bind, self.numeric, {available = type(callbacks.featureAvailable) == "function" and callbacks.featureAvailable(feature.id)})
             elseif feature.page == "crew" and callbacks.crewModule then
                 row = callbacks.crewModule.BuildUI(
                     sections.crew, feature, bind, self.numeric, {
@@ -197,8 +197,8 @@ function Adapter.new(ember, catalog, callbacks)
                     row.custom = group:Group({ Text = "Custom limits", Open = false })
                     for _, field in ipairs(feature.custom) do
                         local key = feature.id .. ".custom." .. field.id
-                        if field.type == "number" then
-                            self.numeric[key] = true
+                        if field.type == "number" or field.type == "text" then
+                            if field.type == "number" then self.numeric[key] = true end
                             bind(row.custom, "Input", key, {
                                 Text = field.label, Default = tostring(field.value), FireOnBlur = true,
                             })

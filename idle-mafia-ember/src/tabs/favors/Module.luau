@@ -5,7 +5,7 @@ Methods.__index = Methods
 
 local sequenceReason = "Mutation sequence ownership unverified"
 
-function FavorsTab.BuildUI(section, feature, bind, numeric)
+function FavorsTab.BuildUI(section, feature, bind, numeric, capabilities)
     assert(type(section) == "table" and type(feature) == "table"
         and feature.id == "favors" and feature.page == "favors"
         and type(bind) == "function"
@@ -43,11 +43,9 @@ function FavorsTab.BuildUI(section, feature, bind, numeric)
         end
     end
     if feature.limits then group:Description({ Text = feature.limits }) end
-    return { feature = feature, tabOwned = true,
-        custom = custom,
-        blockedReason = sequenceReason,
-        status = group:Status({ Text = "Activity",
-            Default = "Blocked — " .. sequenceReason }) }
+    local reason = not (type(capabilities) == "table" and capabilities.available == true) and sequenceReason or nil
+    return { feature = feature, tabOwned = true, custom = custom, blockedReason = reason,
+        status = group:Status({ Text = "Activity", Default = reason and ("Blocked — " .. reason) or "Off" }) }
 end
 
 function FavorsTab.new(deps)
@@ -65,7 +63,11 @@ function FavorsTab.new(deps)
         and type(deps.BoardReadRuntime.new) == "function",
         "Missing Favors tab modules")
     return setmetatable({ id = "favors", deps = deps,
-        boardQuery = deps.BoardQuery.new(deps.identity) }, Methods)
+        boardQuery = deps.BoardQuery.new(deps.identity), protocol = deps.heistProtocol }, Methods)
+end
+
+function Methods:SupportsFeature(feature)
+    return feature == "favors" and self.protocol ~= nil
 end
 
 function Methods:BoardCall()
@@ -84,8 +86,9 @@ end
 
 function Methods:Descriptors()
     local deps = self.deps
-    return { { id = "favors", reader = deps.FavorsState,
-        planner = deps.FavorHelp, evidence = deps.FavorHelpEvidence } }
+    local spec = {id = "favors", reader = deps.FavorsState, planner = deps.FavorHelp, evidence = deps.FavorHelpEvidence}
+    if self.protocol then spec = self.protocol:Wrap(spec) end
+    return {spec}
 end
 
 return FavorsTab

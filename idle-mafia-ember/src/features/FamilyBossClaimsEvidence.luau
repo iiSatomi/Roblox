@@ -53,7 +53,8 @@ local function current(raw)
         or proof.capturedAt ~= raw.capturedAt
         or type(state) ~= "table"
         or not integer(state.week, 1)
-        or not familyId(state.famId)
+        or (not familyId(state.famId) and not (state.famId == nil
+            and state.inFamily == false and native.family == nil))
         or type(state.inFamily) ~= "boolean"
         or type(state.claims) ~= "table"
         or type(usages) ~= "table" then
@@ -85,7 +86,7 @@ local function capture(proposal, before, dispatch)
         or intent.kind ~= "familyBossClaim"
         or not integer(intent.week, 1)
         or not integer(intent.currentWeek, intent.week)
-        or not familyId(intent.famId)
+        or (intent.famId ~= nil and not familyId(intent.famId))
         or not integer(intent.stage, 0) or intent.stage > 100
         or not timestamp(intent.expiresAt, 0)
         or not integer(intent.attemptsBefore, 0)
@@ -97,10 +98,9 @@ local function capture(proposal, before, dispatch)
     local native, state, usages = current(before)
     local usage = usages and usages[tostring(intent.week)]
     if not native or intent.currentWeek ~= state.week
-        or state.week < intent.week
+        or state.week < intent.week or state.famId ~= intent.famId
         or (intent.week == state.week
-            and (state.famId ~= intent.famId
-                or state.inFamily ~= true
+            and (state.inFamily ~= true
                 or intent.stage < 1 or intent.stage > 5))
         or native.serverNow >= intent.expiresAt
         or (not dispatch and (type(usage) ~= "table"
@@ -192,7 +192,7 @@ local function reconcile(proposal, beforeHeader, after, reply, baseline, restart
         or reply.pending == true or reply.code == "rate_limited" or reply.code == "presence" then return "pending" end
     local native, state, usages = current(after)
     if not native or native.serverNow < baseline.awards.serverNow or native.serverNow >= baseline.expiresAt
-        or state.week ~= baseline.currentWeek or (baseline.week == baseline.currentWeek and state.famId ~= baseline.famId)
+        or state.week ~= baseline.currentWeek or state.famId ~= baseline.famId
         or after.familyTakedownProof.sourceKey ~= baseline.awards.sourceKey then return "pending" end
     local usage = usages[tostring(baseline.week)]
     if type(usage) ~= "table" or usage.account ~= after.account or usage.capturedAt ~= after.capturedAt

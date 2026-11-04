@@ -158,6 +158,7 @@ function Bootstrap.start(release, adapters, activateRuntime)
         clientRequire = adapters.clientRequire,
         clientHash = adapters.clientHash,
         executorEnv = executorEnv,
+        executionRegistry = adapters.executionRegistry,
         scheduler = adapters.scheduler,
         httpService = http,
     }

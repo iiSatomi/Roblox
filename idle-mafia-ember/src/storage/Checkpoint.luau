@@ -1099,10 +1099,21 @@ function Methods:Save(raw, before, baseline)
         local stage = type(intent) == "table" and intent.stage
         local count = type(intent) == "table"
             and intent.attemptsBefore
+        local native = type(before) == "table" and before.native
+        local proof = type(before) == "table" and before.familyTakedownProof
+        local state = type(proof) == "table" and proof.state
+        local historicalWithoutFamily = type(intent) == "table" and intent.famId == nil
+            and integer(week, 1) and integer(intent.currentWeek, week + 1)
+            and type(native) == "table" and native.fullSync == true and native.family == nil
+            and type(state) == "table" and state.week == intent.currentWeek
+            and state.inFamily == false and state.famId == nil
+            and proof.account == raw.account and proof.capturedAt == before.capturedAt
+            and type(baseline) == "table" and baseline.famId == nil
+            and baseline.week == week and baseline.currentWeek == intent.currentWeek and baseline.stage == stage
         if type(intent) ~= "table"
             or intent.kind ~= "familyBossClaim"
             or not integer(week, 1)
-            or not familyId(intent.famId)
+            or not (familyId(intent.famId) or historicalWithoutFamily)
             or not integer(stage, 0) or stage > 100
             or not integer(intent.expiresAt, 0)
             or not integer(count, 0)
@@ -1306,11 +1317,16 @@ function Methods:Resolve(actionKey, outcome)
             if outcome == "schedule_failed" and record.feature == "station" and record.recovery then
                 local data = self.pendingModule and self.pendingModule.Decode(record.recovery, record)
                 local intent = data and data.proposal.intent
-                if not intent or intent.kind ~= "territoryStation" or data.reply ~= nil
-                    or not integer(intent.attemptedBefore, 0) or stationAttempts ~= intent.attemptedBefore + 1 then
-                    return false, "Station unsent attempt proof changed"
-                end
-                stationAttempts = intent.attemptedBefore
+                if not intent then return false, "Station unsent attempt proof changed" end
+                if intent.kind == "territoryStation" then
+                    if data.reply ~= nil or not integer(intent.attemptedBefore, 0)
+                        or stationAttempts ~= intent.attemptedBefore + 1 then
+                        return false, "Station unsent attempt proof changed"
+                    end
+                    stationAttempts = intent.attemptedBefore
+                elseif intent.kind ~= "territoryRecall" then
+                    return false, "Unknown Station unsent action"
+                end -- Recall's separate transaction owner refunds only its own unsent attempt.
             end
             if outcome == "schedule_failed" and record.familyCharge then
                 familyContributionUsage = self.familyUsageModule.rollback(familyContributionUsage, record.familyCharge)

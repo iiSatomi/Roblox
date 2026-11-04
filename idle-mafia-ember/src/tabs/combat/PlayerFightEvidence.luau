@@ -9,6 +9,14 @@ local function integer(v, low, high) return number(v, low, high) and v % 1 == 0 
 local function text(v, high)
     return type(v) == "string" and #v > 0 and #v <= high and not v:find("[%c]")
 end
+local warFields = {"familyId", "ownFamilyId", "warFamilyId", "warDay", "warStatusServerNow",
+    "attackQuote", "attackExposure", "attack", "scoutMaxAge", "statsAt", "defense", "minPowerRatio", "minWinChance"}
+local warIdentityFields = {"familyId", "ownFamilyId", "warFamilyId", "warDay"}
+local function validWarIdentity(raw)
+    local function family(v) return integer(v, 1) or text(v, 120) end
+    return family(raw.ownFamilyId) and family(raw.warFamilyId) and raw.ownFamilyId ~= raw.warFamilyId
+        and type(raw.ownFamilyId) == type(raw.warFamilyId) and raw.familyId == raw.warFamilyId and raw.warDay == raw.day
+end
 local ruleFields = {"highPromoteCash", "highDemoteBelow", "highDemoteHits"}
 local function validRules(raw)
     if raw.highPromoteCash == nil and raw.highDemoteBelow == nil and raw.highDemoteHits == nil then return true end
@@ -44,10 +52,11 @@ local function daily(native, target)
     if count == nil then count = 0 end
     return integer(count, 0) and count or nil
 end
-function Evidence.new(receipts)
+function Evidence.new(receipts, warReader)
     assert(type(receipts) == "table" and type(receipts.Project) == "function"
         and type(receipts.Settled) == "function", "Missing native fight receipt validators")
     local result = {}
+    local warAttempt = type(warReader) == "table" and warReader.readWarAttempt
     local function pair(initial, receipt, baseline)
         local first, last = receipts.Project(initial), receipts.Project(receipt)
         if not first or not last or first.ok ~= true or type(first.won) ~= "boolean" or first.cashStage ~= 1
@@ -85,7 +94,16 @@ function Evidence.new(receipts)
             end
         end
         for k in pairs(p.resources) do if k ~= "stamina" then return nil, "Unsupported fight charge" end end
-        local proof, targets, usage = before.playerFightProof, before.hitListProof, before.playerFightUsageProof
+        local warFacts
+        if p.feature == "warCombat" then
+            if type(warAttempt) ~= "function" or warReader.readWarAttempt ~= warAttempt then
+                return nil, "Owned War eligibility reader required"
+            end
+            warFacts = warAttempt(p, before)
+            if not warFacts then return nil, "Exact current War target eligibility required" end
+        end
+        local proof, targets, usage = before.playerFightProof,
+            p.feature == "warCombat" and before.warRosterProof or before.hitListProof, before.playerFightUsageProof
         if type(proof) ~= "table" or not same(proof, before) or proof.sourceKey ~= i.sourceKey
             or proof.revision ~= before.revision or proof.capturedAt ~= before.capturedAt
             or type(targets) ~= "table" or targets.account ~= before.account or targets.capturedAt ~= before.capturedAt
@@ -105,7 +123,8 @@ function Evidence.new(receipts)
         end
         local pools, count = before.native.pools, daily(before.native, i.target)
         if not selected or selected.name ~= i.targetName or selected.level ~= i.targetLevel
-            or selected.stamina ~= i.expectedStaminaCost or selected.shielded ~= false
+            or (warFacts and warFacts.target.staminaCost or selected.stamina) ~= i.expectedStaminaCost
+            or (not warFacts and selected.shielded ~= false)
             or type(pools) ~= "table" or not number(pools.stamina, exposure)
             or not number(pools.health, 0) or count == nil then return nil, "Selected player quote changed" end
         if i.dailyOnly ~= nil and type(i.dailyOnly) ~= "boolean" or i.dailyOnly == true and count ~= 0 then
@@ -118,6 +137,7 @@ function Evidence.new(receipts)
         for _, k in ipairs(scope) do baseline[k] = p[k] end
         if i.maxStaminaExposure ~= nil then baseline.staminaExposure = exposure end
         for _, key in ipairs(ruleFields) do baseline[key] = i[key] end
+        if warFacts then for _, key in ipairs(warFields) do baseline[key] = i[key] end end
         return baseline, nil
     end
     local function original(data, live)
@@ -138,6 +158,10 @@ function Evidence.new(receipts)
                 or b.day ~= math.floor(b.serverNow / 86400) or not integer(b.dailyBefore, 0) then return nil end
             if not validRules(i) or not validRules(b) then return nil end
             for _, key in ipairs(ruleFields) do if i[key] ~= b[key] then return nil end end
+            if p.feature == "warCombat" then
+                if not validWarIdentity(b) then return nil end
+                for _, key in ipairs(warFields) do if i[key] ~= b[key] then return nil end end
+            end
             return b
         end
         local baseline = result.capture(data.proposal, data.before)
@@ -152,12 +176,14 @@ function Evidence.new(receipts)
             or not text(raw.targetName, 64) or not integer(raw.day, 0) or raw.day ~= math.floor(raw.serverNow / 86400)
             or not integer(raw.dailyBefore, 0) then return nil end
         if not validRules(raw) or raw.feature ~= "combat" and raw.highPromoteCash ~= nil then return nil end
+        if raw.feature == "warCombat" and not validWarIdentity(raw) then return nil end
         local first, last = pair(raw.initial, raw.receipt, raw)
         if not first then return nil end
         local out = {initial = first, receipt = last}
         for _, k in ipairs({"requestId", "actionKey", "feature", "target", "session", "revision", "serverNow",
             "staminaCost", "sourceKey", "targetLevel", "targetName", "day", "dailyBefore"}) do out[k] = raw[k] end
         for _, key in ipairs(ruleFields) do out[key] = raw[key] end
+        if raw.feature == "warCombat" then for _, key in ipairs(warIdentityFields) do out[key] = raw[key] end end
         for k in pairs(raw) do if out[k] == nil then return nil end end
         return out
     end
@@ -168,6 +194,7 @@ function Evidence.new(receipts)
             out[k] = baseline[k]
         end
         for _, key in ipairs(ruleFields) do out[key] = baseline[key] end
+        if p.feature == "warCombat" then for _, key in ipairs(warIdentityFields) do out[key] = baseline[key] end end
         return result.copyOutcome(out)
     end
     local function matched(data, after, live, persistOwned)

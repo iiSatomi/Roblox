@@ -29,16 +29,18 @@ function FamilyBossClaims.propose(view, settings)
         return nil, "Family reward claims disabled"
     end
     if view.status ~= "known" or type(view.week) ~= "number"
-        or not familyId(view.famId)
+        or not (familyId(view.famId) or view.famId == nil and view.inFamily == false)
+        or type(view.inFamily) ~= "boolean"
         or type(view.serverNow) ~= "number"
         or type(view.claims) ~= "table"
-        or type(view.claimedStages) ~= "table"
+        or (view.claimedStages ~= nil and type(view.claimedStages) ~= "table")
+        or (view.inFamily == true and type(view.claimedStages) ~= "table")
         or type(view.attemptedByWeek) ~= "table"
         or type(view.attemptCountByWeek) ~= "table" then
         return nil, "Current Family claim state required"
     end
     local claimed = {}
-    for _, stage in ipairs(view.claimedStages) do
+    for _, stage in ipairs(view.claimedStages or {}) do
         claimed[stage] = true
     end
     local chosen

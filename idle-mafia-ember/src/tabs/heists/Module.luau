@@ -9,7 +9,7 @@ local blocked = {
     sabotage = "Mutation sequence ownership unverified",
 }
 
-function HeistsTab.BuildUI(section, feature, bind, numeric)
+function HeistsTab.BuildUI(section, feature, bind, numeric, capabilities)
     assert(type(section) == "table" and type(feature) == "table"
         and feature.page == "heists" and blocked[feature.id]
         and type(bind) == "function"
@@ -46,10 +46,9 @@ function HeistsTab.BuildUI(section, feature, bind, numeric)
             end
         end
     end
-    local row = { feature = feature, tabOwned = true, custom = custom,
-        blockedReason = blocked[feature.id],
-        status = group:Status({ Text = "Activity",
-            Default = "Blocked — " .. blocked[feature.id] }) }
+    local reason = not (type(capabilities) == "table" and capabilities.available == true) and blocked[feature.id] or nil
+    local row = { feature = feature, tabOwned = true, custom = custom, blockedReason = reason,
+        status = group:Status({ Text = "Activity", Default = reason and ("Blocked — " .. reason) or "Off" }) }
     if feature.limits then group:Description({ Text = feature.limits }) end
     return row
 end
@@ -90,12 +89,23 @@ function HeistsTab.new(deps)
     local boardQuery = deps.BoardQuery.new(deps.identity)
     return setmetatable({ id = "heists", deps = deps,
         catalog = catalog, recovery = deps.SequenceRecovery,
-        boardQuery = boardQuery, closed = false }, Methods)
+        boardQuery = boardQuery, protocol = deps.heistProtocol, ownedProofs = {"heistProtocolProof"}, closed = false }, Methods)
 end
 
 function Methods:Enrich(snapshot)
     if self.closed then return nil, "Heists tab closed" end
-    return self.catalog:Enrich(snapshot)
+    local enriched, why = self.catalog:Enrich(snapshot)
+    if not enriched then return nil, why end
+    if self.protocol then enriched = self.protocol:Enrich(enriched) end
+    return enriched, nil
+end
+
+function Methods:SupportsFeature(feature)
+    return not self.closed and blocked[feature] ~= nil and self.protocol ~= nil
+end
+
+function Methods:BindCheckpoint(checkpoint)
+    if self.protocol then self.protocol:BindCheckpoint(checkpoint) end
 end
 
 function Methods:StatusCall(record, identity)
@@ -120,8 +130,11 @@ end
 
 function Methods:ReadSources(reader)
     if self.closed or type(reader) ~= "table" or type(reader.AttachHeistBoard) ~= "function" then return {} end
-    return {{id = "heistBoard", interval = 5,
-        enabled = function(settings)
+    local confirmations = {heists = true, heistCollect = true, sabotage = true, favors = true}
+    local sources = {{id = "heistBoard", interval = 5, confirmFeatures = confirmations,
+        enabled = function(settings, active)
+            if active and confirmations[active.feature] then return true end
+            if self.protocol and self.protocol:Unresolved() then return true end
             for _, id in ipairs({"heists", "heistCollect", "sabotage", "favors"}) do
                 if type(settings[id]) == "table" and settings[id].enabled == true then return true end
             end
@@ -134,9 +147,20 @@ function Methods:ReadSources(reader)
         accept = function(snapshot, _, reply) return self:StageBoard(snapshot, reply) end,
         commit = function(staged) return not self.closed and reader:AttachHeistBoard(staged) end,
     }}
+    if self.protocol then
+        sources[#sources + 1] = {id = "heistStatus", interval = 3, statusOnly = true, confirmFeatures = confirmations,
+            enabled = function() return not self.closed and self.protocol:StatusCall() ~= nil end,
+            prepare = function() return self.protocol:StatusCall() end,
+            accept = function(_, request, reply) return {request = request, reply = reply} end,
+            commit = function(staged) return not self.closed and self.protocol:AcceptStatus(staged.request, staged.reply) end}
+    end
+    return sources
 end
 
-function Methods:Close() self.closed = true end
+function Methods:Close()
+    self.closed = true
+    if self.protocol then self.protocol:Close() end
+end
 
 function Methods:NewBoardRead(budget, executor, currentSnapshot,
     onResult)
@@ -146,7 +170,7 @@ end
 
 function Methods:Descriptors()
     local deps = self.deps
-    return {
+    local rows = {
         { id = "heists", reader = deps.HeistBoardState,
             planner = deps.HeistStart,
             evidence = deps.HeistStartEvidence },
@@ -157,6 +181,8 @@ function Methods:Descriptors()
             planner = deps.Sabotage,
             evidence = deps.SabotageEvidence },
     }
+    if self.protocol then for i, row in ipairs(rows) do rows[i] = self.protocol:Wrap(row) end end
+    return rows
 end
 
 return HeistsTab

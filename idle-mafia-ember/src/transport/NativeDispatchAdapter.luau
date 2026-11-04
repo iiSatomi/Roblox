@@ -3,7 +3,7 @@ local NativeDispatchAdapter = {}
 local Methods = {}
 Methods.__index = Methods
 
-function NativeDispatchAdapter.new(plan, executor, lane, clock, fightReceipts)
+function NativeDispatchAdapter.new(plan, executor, lane, clock, fightReceipts, heistProtocol, combatLease, requireCombatLease, prestigeLease, requirePrestigeLease)
     assert(type(plan) == "table" and type(plan.describe) == "function",
         "Missing native call plan")
     assert(type(executor) == "table"
@@ -17,7 +17,16 @@ function NativeDispatchAdapter.new(plan, executor, lane, clock, fightReceipts)
     assert(fightReceipts == nil or (lane ~= nil and type(fightReceipts) == "table"
         and type(fightReceipts.Begin) == "function" and type(fightReceipts.Bind) == "function"
         and type(fightReceipts.Release) == "function"), "Invalid fight receipt owner")
-    return setmetatable({ plan = plan, executor = executor, fightReceipts = fightReceipts,
+    assert(combatLease == nil or (lane ~= nil and type(combatLease) == "table"
+        and type(combatLease.Acquire) == "function" and type(combatLease.Owns) == "function"
+        and type(combatLease.Invoke) == "function" and type(combatLease.Release) == "function"
+        and type(combatLease.Status) == "function"), "Invalid native Combat ownership")
+    assert(prestigeLease == nil or (lane ~= nil and type(prestigeLease) == "table"
+        and type(prestigeLease.Acquire) == "function" and type(prestigeLease.Owns) == "function"
+        and type(prestigeLease.Invoke) == "function" and type(prestigeLease.Release) == "function"
+        and type(prestigeLease.Status) == "function"), "Invalid native Prestige ownership")
+    return setmetatable({ plan = plan, executor = executor, fightReceipts = fightReceipts, heistProtocol = heistProtocol, combatLease = combatLease, requireCombatLease = requireCombatLease == true,
+        prestigeLease = prestigeLease, requirePrestigeLease = requirePrestigeLease == true,
         lane = lane, clock = clock, lease = nil,
         invoking = nil }, Methods)
 end
@@ -43,6 +52,9 @@ function Methods:ReleaseExpired(proposal)
 end
 
 function Methods:ReleaseResolved(proposal, outcome)
+    if self.combatLease then pcall(self.combatLease.Release, self.combatLease, proposal) end
+    if self.prestigeLease then pcall(self.prestigeLease.Release, self.prestigeLease, proposal) end
+    if self.heistProtocol then self.heistProtocol:Release(proposal) end
     if self.lease and self.lease.proposal == proposal then
         if self.fightReceipts then self.fightReceipts:Release(self.lease.token) end
         self.lane:Release(self.lease.token, outcome or "resolved")
@@ -74,6 +86,28 @@ function Methods:Validate(proposal)
         or call.arity % 1 ~= 0 then
         return false, ok and (reason or "Invalid native call")
             or "Native call planning raised"
+    end
+    if call.remote == "Attack" or call.remote == "ScoutPlayer" then
+        if self.requireCombatLease and not self.combatLease then return false, "Native Combat initialization ownership unavailable" end
+        if self.combatLease then
+            local checked, status = pcall(self.combatLease.Status, self.combatLease)
+            if not checked or type(status) ~= "table" or status.closed or status.active or status.physical
+                or status.nativePhysical or status.quiescenceUnknown then
+                return false, "Native Combat controller or physical invocation unavailable"
+            end
+        end
+    end
+    if call.remote == "PrestigeAction" then
+        if self.requirePrestigeLease and not self.prestigeLease then return false, "Native Prestige initialization ownership unavailable" end
+        if self.prestigeLease then
+            local checked, status = pcall(self.prestigeLease.Status, self.prestigeLease)
+            if not checked or type(status) ~= "table" or status.closed or status.active or status.physical then
+                return false, "Native Prestige controller or physical invocation unavailable"
+            end
+        end
+    end
+    if call.remote == "HeistAction" and (not self.heistProtocol or not self.lane or call.arity ~= 3) then
+        return false, "Current owned Heist protocol unavailable"
     end
     if call.remote == "Attack" and (not self.fightReceipts or not self.lane or call.arity ~= 1) then
         return false, "Current owned fight receipts unavailable"
@@ -153,10 +187,29 @@ function Methods:Send(proposal, onReturn, canDispatch, preflightToken, onUnsent,
                 return
             end
         end
+        local nativeOwner = (call.remote == "Attack" or call.remote == "ScoutPlayer") and self.combatLease
+            or call.remote == "PrestigeAction" and self.prestigeLease or nil
+        local controlled = nativeOwner ~= nil
+        if controlled then
+            -- Begin/Scout and all ordinary dispatch guards run before this
+            -- opaque busy token. Repeating them under it would deny our call.
+            local acquired, accepted = pcall(nativeOwner.Acquire, nativeOwner, proposal, self.clock:Now() + 45)
+            if not acquired or accepted ~= true then
+                self:ReleaseResolved(proposal, "native_controller_refused")
+                if type(onUnsent) == "function" then onUnsent() end
+                return
+            end
+        end
         local invocation = { proposal = proposal }
         self.invoking = invocation
         local ok, reply
-        if lease then
+        local executorEntered = false
+        if controlled then
+            ok, reply = pcall(nativeOwner.Invoke, nativeOwner, proposal, function()
+                executorEntered = true
+                return self.executor:InvokeOwned(lease.token, call.remote, call.method, table.unpack(call.args, 1, call.arity))
+            end)
+        elseif lease then
             ok, reply = pcall(self.executor.InvokeOwned, self.executor, lease.token,
                 call.remote, call.method, table.unpack(call.args, 1, call.arity))
         else
@@ -165,8 +218,18 @@ function Methods:Send(proposal, onReturn, canDispatch, preflightToken, onUnsent,
         end
         if self.invoking == invocation then self.invoking = nil end
         if lease then lease.returned = true end
+        if controlled and not executorEntered then
+            self:ReleaseResolved(proposal, "native_invocation_refused")
+            if type(onUnsent) == "function" then onUnsent() end
+            return
+        end
         -- An interrupted/malformed response is ambiguous. Keep the broker's
         -- sent action pending until state proof or the 45-second deadline.
+        if call.remote == "HeistAction" then
+            if not lease or not self.lane:Owns(lease.token) then return end
+            self.heistProtocol:Returned(proposal, ok and reply or nil, onReturn)
+            return
+        end
         if ok and type(reply) == "table" and (not lease or self.lane:Owns(lease.token)) then
             if call.remote == "Attack" then pcall(self.fightReceipts.Bind, self.fightReceipts, lease.token, reply) end
             onReturn(reply)

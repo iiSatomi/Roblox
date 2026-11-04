@@ -4,6 +4,7 @@ local MAX = 9007199254740991
 local identity = {"session", "account", "place", "release"}
 local function finite(value) return type(value) == "number" and value == value and math.abs(value) <= MAX end
 local function text(value) return type(value) == "string" and #value > 0 and #value <= 1000 end
+local function plain(value) return type(value) == "table" and getmetatable(value) == nil end
 local function convert(value, decode)
     local seen, nodes, bytes = {}, 0, 0
     local function walk(child, depth)
@@ -51,6 +52,183 @@ local function convert(value, decode)
     local ok, result = pcall(walk, value, 0)
     return ok and result or nil
 end
+-- Version 2 stores a bounded acyclic table graph, with a shared typed-key
+-- dictionary. No outcome inputs are dropped; data/native aliases survive JSON.
+local function dense(value)
+    if not plain(value) or #value > 24000 then error("Invalid recovery array") end
+    local count = 0
+    for key in pairs(value) do
+        if not finite(key) or key % 1 ~= 0 or key < 1 or key > #value then error("Invalid recovery array key") end
+        count = count + 1
+    end
+    if count ~= #value then error("Sparse recovery array") end
+    return count
+end
+local function restoreKey(key)
+    if type(key) ~= "string" or #key > 1002 then error("Invalid encoded recovery key") end
+    local prefix, raw = key:sub(1, 2), key:sub(3)
+    if prefix == "s:" then return raw end
+    local result = prefix == "n:" and tonumber(raw) or nil
+    if not finite(result) or result % 1 ~= 0 or tostring(result) ~= raw then error("Invalid numeric recovery key") end
+    return result
+end
+local function storeKey(key)
+    if type(key) == "string" and #key <= 1000 then return "s:" .. key end
+    if finite(key) and key % 1 == 0 then return "n:" .. tostring(key) end
+    error("Recovery key invalid")
+end
+local function stringBytes(value)
+    if type(value) ~= "string" then error("Recovery string invalid") end
+    local bytes = #value + 2 -- JSON quotes, plus worst-case escaping below.
+    for index = 1, #value do
+        local byte = value:byte(index)
+        if byte < 32 or byte >= 128 then bytes = bytes + 5
+        elseif byte == 34 or byte == 47 or byte == 92 then bytes = bytes + 1 end
+    end
+    return bytes
+end
+local function primitiveBytes(value)
+    local kind = type(value)
+    if kind == "string" and #value <= 16384 then return stringBytes(value) end
+    if kind == "boolean" then return value and 4 or 5 end
+    if finite(value) then
+        -- Integers have an exact bounded decimal form. Round-trip precision plus two punctuation bytes covers a finite
+        -- fractional double's JSON decimal/scientific representation.
+        if value % 1 == 0 then return #string.format("%.0f", value) end
+        return math.max(#tostring(value), #string.format("%.17g", value)) + 2
+    end
+    error("Recovery value invalid")
+end
+local function compact(value, decode)
+    local function convertGraph()
+        local keys, tables, keyIds, cache, used = {}, {}, {}, {}, {}
+        local bytes, edges = #'{"version":2,"payload":{"keys":[],"tables":[]}}', 0
+        local function charge(amount)
+            bytes = bytes + amount
+            if bytes > 262144 then error("Recovery data exceeds byte limit") end
+        end
+        if decode then
+            if not plain(value) then error("Invalid recovery graph") end
+            for key in pairs(value) do if key ~= "keys" and key ~= "tables" then error("Unknown recovery graph field") end end
+            local keyCount = dense(value.keys)
+            if dense(value.tables) < 1 then error("Missing recovery root") end
+            tables = value.tables
+            for index = 1, keyCount do
+                local encoded = value.keys[index]
+                local restored = restoreKey(encoded)
+                if keyIds[encoded] then error("Duplicate recovery key") end
+                keyIds[encoded], keys[index] = index, restored
+                charge(stringBytes(encoded) + 1)
+            end
+        end
+        local function walk(child, depth)
+            if depth > 12 then error("Recovery data exceeds depth limit") end
+            local source, index, existing
+            if decode then
+                index, source, existing = child, tables[child], cache[child]
+            else
+                if not plain(child) then error("Recovery table invalid") end
+                existing = cache[child]
+                if not existing then
+                    index = #tables + 1
+                    if index > 24000 then error("Recovery data exceeds node limit") end
+                    tables[index] = {}
+                else index = existing.index end
+                source = child
+            end
+            if existing then
+                if existing.active or depth + existing.height > 12 then error("Cyclic or deep recovery graph") end
+                return existing
+            end
+            if not plain(source) then error("Invalid recovery entries") end
+            local result = {index = index, active = true, nodes = 1, height = 0, value = {}}
+            cache[decode and index or child] = result
+            charge(3) -- Table braces and a conservative array separator.
+            local order = {}
+            for key in pairs(source) do
+                order[#order + 1] = key
+                if #order >= 24000 then error("Recovery data exceeds node limit") end
+            end
+            if not decode then
+                -- Stable IDs keep Copy and reply updates within the same byte
+                -- accounting regardless of input insertion order or JSON reload.
+                table.sort(order, function(a, b) return storeKey(a) < storeKey(b) end)
+            end
+            for _, key in ipairs(order) do
+                local entry = source[key]
+                edges = edges + 1
+                if edges >= 24000 then error("Recovery data exceeds node limit") end
+                local keyIndex, storedKey, restored
+                if decode then
+                    keyIndex = type(key) == "string" and tonumber(key) or nil
+                    if not finite(keyIndex) or keyIndex % 1 ~= 0 or keyIndex < 1
+                        or keyIndex > #keys or tostring(keyIndex) ~= key then error("Invalid recovery key reference") end
+                    restored, used[keyIndex] = keys[keyIndex], true
+                    storedKey = key
+                else
+                    local encoded = storeKey(key)
+                    keyIndex = keyIds[encoded]
+                    if not keyIndex then
+                        keyIndex = #keys + 1
+                        keys[keyIndex], keyIds[encoded] = encoded, keyIndex
+                        charge(stringBytes(encoded) + 1)
+                    end
+                    storedKey = tostring(keyIndex)
+                end
+                charge(#storedKey + 4) -- Quoted dictionary index, colon, comma.
+                local encoded, restoredValue, nodes, height = entry, entry, 1, 0
+                if type(entry) == "table" then
+                    local reference = entry
+                    if decode then
+                        if not plain(entry) then error("Invalid recovery reference") end
+                        for field in pairs(entry) do if field ~= 1 then error("Unknown recovery reference field") end end
+                        reference = entry[1]
+                        if not finite(reference) or reference % 1 ~= 0 or reference < 1
+                            or reference > #tables then error("Invalid recovery table reference") end
+                    end
+                    local nested = walk(reference, depth + 1)
+                    encoded, restoredValue = {nested.index}, nested.value
+                    nodes, height = nested.nodes, nested.height
+                    charge(#tostring(nested.index) + 2)
+                else charge(primitiveBytes(entry)) end
+                result.nodes, result.height = result.nodes + nodes, math.max(result.height, height + 1)
+                if result.nodes > 24000 or depth + result.height > 12 then error("Recovery data exceeds node/depth limit") end
+                if decode then result.value[restored] = restoredValue
+                else tables[index][storedKey] = encoded end
+            end
+            result.active = false
+            return result
+        end
+        local root = walk(decode and 1 or value, 0)
+        if decode then
+            for index = 1, #keys do if not used[index] then error("Unused recovery key") end end
+            for index = 1, #tables do if not cache[index] then error("Unused recovery table") end end
+            return root.value
+        end
+        return {keys = keys, tables = tables}
+    end
+    local ok, result = pcall(convertGraph)
+    return ok and result or nil
+end
+-- Some legacy scalar arrays are smaller in v1 than in the key dictionary.
+-- Only fresh, logically bounded v1 conversions can use this fallback, and
+-- their actual JSON punctuation/escaping still must fit the same byte cap.
+local function legacyFits(encoded)
+    local bytes = #'{"version":1,"payload":}'
+    local function walk(value)
+        if type(value) == "table" then
+            bytes = bytes + #'{"entries":{}}'
+            for key, child in pairs(value.entries) do
+                bytes = bytes + stringBytes(key) + 2 -- Colon and comma.
+                if bytes > 262144 then error("Recovery data exceeds byte limit") end
+                walk(child)
+            end
+        else bytes = bytes + primitiveBytes(value) end
+        if bytes > 262144 then error("Recovery data exceeds byte limit") end
+    end
+    local ok = pcall(walk, encoded)
+    return ok
+end
 local function valid(data, record)
     if type(data) ~= "table" or type(data.proposal) ~= "table" or type(data.before) ~= "table"
         or type(data.baseline) ~= "table" then return false end
@@ -83,9 +261,99 @@ local function valid(data, record)
     end
     return true
 end
+-- A Heist recovery needs its original outcome inputs, not every unrelated
+-- catalog/native history in the live planning snapshot. Keep the existing
+-- serializer limits and preserve all fields actually read by the four evidences.
+local heistKinds = {heists = "heistStart", favors = "favorHelp",
+    sabotage = "heistSabotage", heistCollect = "heistCollect"}
+local function selectedFields(source, fields)
+    local result = {}
+    for _, field in ipairs(fields) do result[field] = source[field] end
+    return result
+end
+local function heistBefore(proposal, before)
+    if not plain(before) or not plain(before.native) or not plain(before.heistBoardProof)
+        or not plain(before.heistBoardProof.board) then return nil end
+    local native, proof = before.native, before.heistBoardProof
+    local board, kind = proof.board, proposal.intent.kind
+    if not plain(board.rows) then return nil end
+    local selected, count = nil, 0
+    local needsRow = kind == "favorHelp" or kind == "heistSabotage"
+    for index, row in ipairs(board.rows) do
+        if index > 256 or not plain(row) then return nil end
+        count = index
+        -- Lua equality deliberately distinguishes numeric IDs from text IDs.
+        if needsRow and row.id == proposal.intent.rowId then
+            if selected ~= nil then return nil end
+            selected = row
+        end
+    end
+    for index in pairs(board.rows) do
+        if not finite(index) or index % 1 ~= 0 or index < 1 or index > count then return nil end
+    end
+    if needsRow and (selected == nil or not (text(proposal.intent.rowId)
+        or finite(proposal.intent.rowId) and proposal.intent.rowId >= 1 and proposal.intent.rowId % 1 == 0)) then return nil end
+    local savedNative = selectedFields(native, {"fullSync", "serverNow"})
+    if kind == "heistStart" then
+        if not plain(native.pools) then return nil end
+        savedNative.level, savedNative.cash = native.level, native.cash
+        savedNative.pools = selectedFields(native.pools, {"energy"})
+    elseif kind == "heistCollect" then
+        for _, field in ipairs({"cash", "xp", "level", "maxLevel", "prestige", "inventory", "inventoryBound"}) do
+            savedNative[field] = native[field]
+        end
+    else
+        -- These exact scalars/maps comprise Favor/Sabotage knownResources.
+        for _, field in ipairs({"cash", "xp", "level", "banked", "respect", "skillPoints",
+            "paidMedals", "prestige", "maxLevel", "xpBoostEnd", "pools", "stats",
+            "inventory", "inventoryBound", "collection", "collectionBound"}) do
+            savedNative[field] = native[field]
+        end
+    end
+    local savedProof, savedBoard = {}, {}
+    for field, value in pairs(proof) do savedProof[field] = value end
+    for field, value in pairs(board) do if field ~= "rows" then savedBoard[field] = value end end
+    -- Board metadata/result/provenance remain complete. Unselected rows are
+    -- selection inputs; no reward/result fields or unknown values are defaulted.
+    savedBoard.rows = selected and {selected} or {}
+    savedProof.board = savedBoard
+    local saved = selectedFields(before, {"session", "account", "place", "release", "revision", "capturedAt",
+        "heistProtocolProof", "heistCatalog", "catalogKey", "favorUsageProof", "sabotageUsageProof", "localUserIdProof"})
+    saved.native, saved.heistBoardProof = savedNative, savedProof
+    return saved
+end
+
+-- Recall's independently durable baseline owns the exact roster/deployment.
+-- Preserve the original raw inputs too so Runtime.Capture/ReadState can recapture
+-- that same baseline; unrelated player catalogs/history do not enter this file.
+local function recallBefore(before)
+    if not plain(before) or not plain(before.native) or not plain(before.native.family)
+        or not plain(before.native.crew) or #before.native.crew < 2 or #before.native.crew > 46 then return nil end
+    local native, crew, count = before.native, {}, 0
+    for index, row in ipairs(native.crew) do
+        if not plain(row) then return nil end
+        count = index
+        crew[index] = selectedFields(row, {"name", "rarity", "healId", "train", "duty", "dutyToken", "dutyAt",
+            "injuredUntil", "recalledUntil", "training", "rolling", "dutyPending", "dutyRemapPending",
+            "weapon", "armor", "vehicle"})
+    end
+    for index in pairs(native.crew) do
+        if not finite(index) or index % 1 ~= 0 or index < 1 or index > count then return nil end
+    end
+    local saved = selectedFields(before, {"session", "account", "place", "release", "revision", "capturedAt",
+        "territoryDistrict", "recallOwnerProof", "stationReservationProof"})
+    saved.native = selectedFields(native, {"fullSync", "serverNow", "userId"})
+    saved.native.family, saved.native.crew = selectedFields(native.family, {"id"}), crew
+    return saved
+end
+
 -- Target catalogs are selection data, not durable outcome evidence. Keep only
 -- this action's high-only membership; current full history stays in the live owner.
 local function recoveryBefore(proposal, before)
+    if proposal.feature == "station" and type(proposal.intent) == "table"
+        and proposal.intent.kind == "territoryRecall" then return recallBefore(before) end
+    if heistKinds[proposal.feature] ~= nil and type(proposal.intent) == "table"
+        and proposal.intent.kind == heistKinds[proposal.feature] then return heistBefore(proposal, before) end
     local ledger = type(before) == "table" and before.playerFightHistoryProof
     if type(ledger) ~= "table" or ledger.highValue == nil or getmetatable(before) ~= nil or getmetatable(ledger) ~= nil then return before end
     local saved, history = {}, {}
@@ -111,14 +379,18 @@ function PendingAction.Capture(proposal, before, baseline, reply)
     end
     local data = {proposal = request, before = recoveryBefore(request, before), baseline = baseline, reply = reply}
     if not valid(data) then return nil, "Complete recovery intent and baseline required" end
-    local encoded = convert(data, false)
-    if not encoded then return nil, "Recovery data invalid or exceeds bounded storage" end
+    local encoded = compact(data, false)
+    if encoded then return {version = 2, payload = encoded}, nil end
+    encoded = convert(data, false)
+    if not encoded or not legacyFits(encoded) then return nil, "Recovery data invalid or exceeds bounded storage" end
     return {version = 1, payload = encoded}, nil
 end
 function PendingAction.Decode(raw, record)
-    if type(raw) ~= "table" or raw.version ~= 1 then return nil end
+    if not plain(raw) or raw.version ~= 1 and raw.version ~= 2 then return nil end
     for key in pairs(raw) do if key ~= "version" and key ~= "payload" then return nil end end
-    local data = convert(raw.payload, true)
+    local data
+    if raw.version == 1 then data = convert(raw.payload, true)
+    else data = compact(raw.payload, true) end
     if not data or not valid(data, record) then return nil end
     return data
 end

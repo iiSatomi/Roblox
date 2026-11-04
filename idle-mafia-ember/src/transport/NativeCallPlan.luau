@@ -44,6 +44,17 @@ function NativeCallPlan.describe(proposal)
     if type(intent) ~= "table" then
         return nil, "Missing native call intent"
     end
+    local heistKinds = {heists = "heistStart", heistCollect = "heistCollect", favors = "favorHelp", sabotage = "heistSabotage"}
+    if heistKinds[proposal.feature] == intent.kind and intent.needsSequence == true
+        and integer(intent.sequence, 1, 9007199254740991) and key(intent.nativeJob) and key(intent.nativeEpoch)
+        and type(intent.nativeSourceKey) == "string" and #intent.nativeSourceKey == 64 then
+        local commands = {heistStart = "start", heistCollect = "collect", favorHelp = "help", heistSabotage = "sabotage"}
+        local arg = intent.kind == "heistStart" and intent.heistId or intent.kind ~= "heistCollect" and intent.rowId or nil
+        if intent.kind == "heistCollect" or key(arg) or integer(arg, 1, 9007199254740991) then
+            return {remote = "HeistAction", method = "InvokeServer", arity = 3,
+                args = {commands[intent.kind], arg, intent.sequence}, source = "Reviewed source-owned Heist sequence"}, nil
+        end
+    end
     if proposal.feature == "jobs" and intent.kind == "job" then
         if not id(intent.targetId) then
             return nil, "Invalid Job ID"
@@ -305,7 +316,7 @@ function NativeCallPlan.withCombat(basePlan, combatPlan)
         and type(combatPlan) == "table"
         and type(combatPlan.describe) == "function",
         "Missing Combat call plan")
-    local combat = { combat = true, bosses = true, globalBossAttack = true,
+    local combat = { combat = true, warCombat = true, bosses = true, globalBossAttack = true,
         globalBossClaim = true, familyBossAttacks = true,
         familyBossClaims = true, bossShop = true }
     return { describe = function(proposal)

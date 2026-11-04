@@ -6,7 +6,7 @@ Methods.__index = Methods
 local known = { territoryWatch = true, station = true,
     residency = true }
 local limitations = {
-    station = "Station one selected member using current ownership, home reserves and limits. Recall is unavailable until native request ownership is connected.",
+    station = "Station or recall one selected member using current ownership, member custody, reserves and attempt limits.",
     residency = "Selected admission requires current terms and explicit limits. Replacement ends the prior lease; effective bonus optimization remains unavailable.",
 }
 
@@ -82,24 +82,45 @@ function TerritoryTab.new(deps)
     end
     local readOwner
     if type(deps.TerritoryReadSources) == "table" then readOwner = deps.TerritoryReadSources.new(deps) end
-    return setmetatable({ id = "territory", ownedProofs = {"stationCatalogProof"}, deps = deps, station = station,
-        season = season, readOwner = readOwner }, Methods)
+    if deps.nativeRecallRuntime == nil and type(deps.nativeRecallLease) == "table"
+        and type(deps.RecallRuntime) == "table" and type(deps.RecallRuntime.new) == "function"
+        and type(deps.RecallTransactions) == "table" and type(deps.storage) == "table"
+        and type(deps.clock) == "table" and type(deps.identity) == "table"
+        and type(deps.config) == "table" and type(deps.config.TERRITORY) == "table" then
+        local made,owner=pcall(deps.RecallRuntime.new,{lease=deps.nativeRecallLease,transactions=deps.RecallTransactions,
+            storage=deps.storage,clock=deps.clock,identity=deps.identity,cooldownSeconds=deps.config.TERRITORY.recallCooldownSeconds})
+        if made and type(owner)=="table" then deps.nativeRecallRuntime=owner end
+    end
+    return setmetatable({ id = "territory", ownedProofs = {"stationCatalogProof","recallOwnerProof"}, deps = deps, station = station,
+        season = season, readOwner = readOwner, recall = deps.nativeRecallRuntime }, Methods)
 end
 
+function Methods:BindCheckpoint(checkpoint,currentSnapshot)
+    if self.recall then self.recall:BindCheckpoint(checkpoint,currentSnapshot) end
+end
+function Methods:ReservationSources()
+    if not self.recall then return {} end
+    local owner=self.recall
+    return {{id="territoryRecall",read=function() return owner:Reservations() end}}
+end
 function Methods:ReadSources(reader)
-    return self.readOwner and self.readOwner:Sources(reader) or {}
+    local sources=self.readOwner and self.readOwner:Sources(reader) or {}
+    if self.recall then for _,source in ipairs(self.recall:ReadSources()) do sources[#sources+1]=source end end
+    return sources
 end
 
 function Methods:Close()
     self.closed, self.latestSnapshot = true, nil
     if self.readOwner then self.readOwner:Close() end
     if self.season then self.season:Close() end
+    if self.recall then self.recall:Close() end
 end
 
 function Methods:Enrich(snapshot)
     local result = snapshot
     if self.station then result = self.station:Enrich(result) or result end
     if self.season then result = self.season:Enrich(result) or result end
+    if self.recall then result=self.recall:Enrich(result) end
     self.latestSnapshot = result
     return result, nil
 end
@@ -144,7 +165,7 @@ function Methods:NewRecallTransactions(storage, scope)
         return nil, "Reviewed recall transaction capabilities unavailable"
     end
     return source.new(storage, scope, { release = self.deps.release,
-        recallCooldownSeconds = config.TERRITORY.recallCooldownSeconds })
+        recallCooldownSeconds = config.TERRITORY.recallCooldownSeconds }, self.deps.nativeRecallLease)
 end
 
 function Methods:PreviewResidency(snapshot, context, settings)
@@ -245,6 +266,14 @@ function Methods:Descriptors()
         end }
         or { id = "station", reader = d.TerritoryState,
             planner = d.TerritoryBlocked, evidence = d.TerritoryBlocked }
+    if self.recall then
+        local function ordinaryCall(p)
+            local i=type(p)=="table" and p.intent
+            if type(i)~="table" or i.kind~="territoryStation" then return nil end
+            return {remote="TerritoryAction",method="InvokeServer",arity=4,args={"station",i.districtId,i.memberSlot}}
+        end
+        station=self.recall:Wrap(station,ordinaryCall)
+    end
     local residency = type(d.Residency) == "table"
         and { id = "residency", reader = d.Residency, planner = d.Residency, evidence = d.Residency,
             recoverSaved = d.Residency.recoverSaved,

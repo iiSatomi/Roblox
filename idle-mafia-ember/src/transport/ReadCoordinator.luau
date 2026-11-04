@@ -1,9 +1,9 @@
 -- Fair bounded reads use the same lease as writes. No independent remote loop.
 local ReadCoordinator = {}
 local fields = {"session", "account", "place", "release", "revision", "capturedAt"}
-local arities = {HeistAction = {board = 1}, FamilyAction = {info = 1, browse = 2},
+local arities = {HeistAction = {board = 1, status = 3}, FamilyAction = {info = 1, browse = 2},
     FamilyBossAction = {state = 2}, TerritoryView = {map = 2, district = 4},
-    TerritoryAction = {fortview = 2}, ResidencyAction = {view = 3},
+    TerritoryAction = {fortview = 2}, TerritoryStatus = {recallstatus = 3}, ResidencyAction = {view = 3},
     MarketAction = {browse = 4, prices = 4, rap = 4}}
 local function finite(value)
     return type(value) == "number" and value == value and value >= 0 and value < math.huge
@@ -45,10 +45,18 @@ local function callCopy(call)
     local expected = (call.remote == "GetHitList" or call.remote == "SearchTarget" or call.remote == "PlayerProfile") and 1
         or arities[call.remote] and arities[call.remote][call.args[1]]
     if not expected or call.arity ~= expected then return nil end
+    if call.remote == "HeistAction" and call.args[1] == "status" and (call.kind ~= "statusOnly"
+        or not finite(call.args[3]) or call.args[3] < 1 or call.args[3] % 1 ~= 0
+        or call.args[3] > 9007199254740991 or call.args[2] ~= nil and not (type(call.args[2]) == "string"
+            and #call.args[2] > 0 and #call.args[2] <= 120 or finite(call.args[2]) and call.args[2] >= 1
+            and call.args[2] % 1 == 0 and call.args[2] <= 9007199254740991)) then return nil end
+    if call.remote == "TerritoryStatus" and (call.kind ~= "statusOnly" or not finite(call.args[2])
+        or call.args[2] < 1 or call.args[2] % 1 ~= 0 or call.args[2] > 9007199254740991
+        or call.args[3] ~= nil) then return nil end
     if call.remote == "PlayerProfile" and (not finite(call.args[1]) or call.args[1] < 1
         or call.args[1] % 1 ~= 0 or call.args[1] > 9007199254740991) then return nil end
     if call.remote == "FamilyAction" and call.args[1] == "browse"
-        and (type(call.args[2]) ~= "string" or #call.args[2] > 64 or call.args[2]:find("[%c]")) then return nil end
+        and (type(call.args[2]) ~= "string" or #tostring(call.args[2]) > 64 or tostring(call.args[2]):find("[%c]")) then return nil end
     local args = {}
     for key, value in pairs(call.args) do
         if not finite(key) or key % 1 ~= 0 or key < 1 or key > expected then return nil end
@@ -90,7 +98,7 @@ function ReadCoordinator.new(deps)
             assert(count <= 8, "Too many confirmation features")
         end
         sources[spec.id] = {id = spec.id, prepare = spec.prepare, accept = spec.accept,
-            commit = spec.commit, confirmFeatures = confirmFeatures}
+            commit = spec.commit, confirmFeatures = confirmFeatures, statusOnly = spec.statusOnly == true}
     end
     local closed, active, enabled, reasons = false, nil, {}, {}
     local lane, budget, clock, executor = deps.lane, deps.budget, deps.clock, deps.executor
@@ -158,6 +166,8 @@ function ReadCoordinator.new(deps)
             budget:Finish(budgetToken, false)
             return "blocked"
         end
+        if call and call.remote == "HeistAction" and call.args[1] == "status" and source.statusOnly ~= true then call = nil end
+        if call and call.remote == "TerritoryStatus" and source.statusOnly ~= true then call = nil end
         if not call then
             budget:Finish(budgetToken, false)
             reasons[id] = prepared and (reason or "Unsupported read call") or "Read preparation raised"
@@ -175,8 +185,10 @@ function ReadCoordinator.new(deps)
                 table.unpack(call.args, 1, call.arity))
             raw = current(job)
             if not raw then finish(job, false, "Read result owner changed"); return end
-            if not ok or type(reply) ~= "table" or reply.ok ~= true or reply.pending == true
-                or reply.code == "rate_limited" or reply.code == "busy" then
+            local statusRead = source.statusOnly and (call.remote == "HeistAction" and call.args[1] == "status"
+                or call.remote == "TerritoryStatus" and call.args[1] == "recallstatus")
+            if not ok or type(reply) ~= "table" or not statusRead and (reply.ok ~= true or reply.pending == true
+                or reply.code == "rate_limited" or reply.code == "busy") then
                 finish(job, false, "Read reply unavailable"); return
             end
             local staged, value = pcall(source.accept, raw, request, reply)

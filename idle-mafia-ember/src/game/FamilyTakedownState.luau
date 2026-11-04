@@ -37,16 +37,9 @@ function FamilyTakedownState.read(raw, context)
         or proof.capturedAt ~= context.capturedAt
         or type(state) ~= "table"
         or not integer(state.week, 1)
-        or not familyId(state.famId)
+        or (not familyId(state.famId) and not (state.famId == nil
+            and state.inFamily == false and native.family == nil))
         or type(state.inFamily) ~= "boolean"
-        or not integer(state.stage, 1) or state.stage > 6
-        or not timestamp(state.resetAt, native.serverNow + 1)
-        or not integer(state.freeMax, 0) or state.freeMax > 100
-        or not integer(state.freeUsed, 0)
-        or state.freeUsed > state.freeMax
-        or not integer(state.freeRegen, 1)
-        or not integer(state.tickets, 0)
-        or not integer(state.myDmg, 0)
         or (state.claims ~= nil and type(state.claims) ~= "table")
         or (state.claimedStages ~= nil
             and type(state.claimedStages) ~= "table")
@@ -54,9 +47,27 @@ function FamilyTakedownState.read(raw, context)
             and not timestamp(state.nextFreeAt, 0)) then
         return nil, "Current weekly Family Takedown state required"
     end
-    local free = math.max(0, state.freeMax - state.freeUsed)
-    local nextFreeAt = free < state.freeMax
-        and state.nextFreeAt or nil
+    -- Native historical claim buttons do not use membership or combat resources.
+    -- A Family-less reply can therefore be a claim-only view; unknown attack
+    -- fields stay absent, and no former Family ID or synthetic run key is used.
+    local historicalOnly = state.famId == nil
+    if historicalOnly then
+        if type(state.claims) ~= "table" then
+            return nil, "Explicit historical Family claim list required"
+        end
+    elseif not integer(state.stage, 1) or state.stage > 6
+        or not timestamp(state.resetAt, native.serverNow + 1)
+        or not integer(state.freeMax, 0) or state.freeMax > 100
+        or not integer(state.freeUsed, 0) or state.freeUsed > state.freeMax
+        or not integer(state.freeRegen, 1)
+        or not integer(state.tickets, 0) or not integer(state.myDmg, 0) then
+        return nil, "Current weekly Family Takedown combat state required"
+    end
+    local free, nextFreeAt
+    if not historicalOnly then
+        free = math.max(0, state.freeMax - state.freeUsed)
+        nextFreeAt = free < state.freeMax and state.nextFreeAt or nil
+    end
     if nextFreeAt and nextFreeAt <= native.serverNow then
         local gained = math.floor(
             (native.serverNow - nextFreeAt) / state.freeRegen) + 1
@@ -99,7 +110,8 @@ function FamilyTakedownState.read(raw, context)
             end
         end
     end
-    local claimedStages, claimedSeen = {}, {}
+    local claimedStages = (not historicalOnly or state.claimedStages ~= nil) and {} or nil
+    local claimedSeen = {}
     if state.claimedStages then
         if #state.claimedStages > 5 then
             return nil, "Too many claimed Family stages"
@@ -123,8 +135,8 @@ function FamilyTakedownState.read(raw, context)
         release = context.release, revision = context.revision,
         capturedAt = context.capturedAt,
         serverNow = native.serverNow, week = state.week,
-        famId = state.famId, runKey = tostring(state.week)
-            .. ":" .. tostring(state.famId),
+        famId = state.famId, runKey = not historicalOnly and (tostring(state.week)
+            .. ":" .. tostring(state.famId)) or nil,
         inFamily = state.inFamily, stage = state.stage,
         resetAt = state.resetAt, free = free,
         freeMax = state.freeMax, nextFreeAt = nextFreeAt,

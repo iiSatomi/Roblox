@@ -21,8 +21,8 @@ local function header(raw, release)
     if type(raw) ~= "table" or raw.release ~= release or type(native) ~= "table"
         or native.fullSync ~= true or not number(native.serverNow, 0)
         or not integer(raw.revision, 0) or not number(raw.capturedAt, 0)
-        or type(family) ~= "table" or not familyId(family.id) then return nil end
-    local result = {familyId = family.id, serverNow = native.serverNow}
+        or (family ~= nil and (type(family) ~= "table" or not familyId(family.id))) then return nil end
+    local result = {familyId = family and family.id, serverNow = native.serverNow}
     for _, field in ipairs(fields) do result[field] = raw[field] end
     for _, field in ipairs({"session", "account", "place", "release"}) do
         if type(result[field]) ~= "string" or #result[field] == 0 or #result[field] > 200 then return nil end
@@ -48,13 +48,16 @@ local function state(reply)
     for _, field in ipairs(stateFields) do
         local value = reply[field]
         if field == "famId" then
-            if not familyId(value) then return nil end
+            if not familyId(value) and not (value == nil and reply.inFamily == false) then return nil end
         elseif value ~= nil and type(value) ~= "number" and type(value) ~= "boolean" then return nil end
         result[field] = value
     end
-    result.claims, result.claimedStages = {}, {}
-    if not dense(reply.claims or {}, 32) or not dense(reply.claimedStages or {}, 5) then return nil end
-    for index, row in ipairs(reply.claims or {}) do
+    -- Missing claims cannot prove that a pending exact row was consumed.
+    result.claims = {}
+    if not dense(reply.claims, 32)
+        or (reply.claimedStages ~= nil and not dense(reply.claimedStages, 5)) then return nil end
+    if reply.claimedStages ~= nil then result.claimedStages = {} end
+    for index, row in ipairs(reply.claims) do
         if type(row) ~= "table" then return nil end
         local claim = {}
         for _, field in ipairs(claimFields) do
@@ -78,7 +81,7 @@ function FamilyBossQuery.new(stateReader, fingerprint, release)
     function result:Prepare(snapshot)
         if closed then return nil, "Family Boss reader closed" end
         local bound = header(snapshot, release)
-        if not bound then return nil, "Current full Family Boss Sync and membership required" end
+        if not bound then return nil, "Current full Family Boss Sync and exact membership state required" end
         local request = {remote = "FamilyBossAction", method = "InvokeServer", arity = 2,
             args = {"state"}, kind = "readOnly"}
         current = {request = request, header = bound}
@@ -90,7 +93,9 @@ function FamilyBossQuery.new(stateReader, fingerprint, release)
         local bound = current.header
         if type(reply) ~= "table" or reply.ok ~= true or reply.pending == true
             or reply.code == "rate_limited" or reply.code == "busy" or reply.code == "presence"
-            or reply.famId ~= bound.familyId or not number(reply.serverNow, bound.serverNow)
+            or reply.famId ~= bound.familyId
+            or (bound.familyId == nil and reply.inFamily ~= false)
+            or not number(reply.serverNow, bound.serverNow)
             or reply.serverNow > bound.serverNow + 2 then return nil, "Family Boss state is unavailable or stale" end
         local copied = state(reply)
         if not copied then return nil, "Invalid Family Boss state projection" end

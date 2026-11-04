@@ -759,6 +759,10 @@ function App.start(dependencies)
         allowancePreview = function(feature) return self:PreviewAllowance(feature) end,
         allowanceConfirm = function(feature) return self:ConfirmAllowance(feature) end,
         allowanceCancel = function() return self:CancelAllowancePreview() end,
+        featureAvailable = function(feature)
+            return (type(allowedFeatures) ~= "table" or allowedFeatures[feature] == true)
+                and runtime ~= nil and type(runtime.SupportsFeature) == "function" and runtime:SupportsFeature(feature)
+        end,
         featureRecoveryAvailable = function(feature)
             return runtime ~= nil and type(runtime.SupportsFeatureRecovery) == "function" and runtime:SupportsFeatureRecovery(feature)
         end,
