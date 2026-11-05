@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "409aadca3e9e81974f0cc94cb56c3773ead2f1de",
+  "releaseCommit": "f3322e9814fdb6617f9fe3a3168a1b68301167ec",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -119,7 +119,7 @@
     {
       "id": "BankDepositsEvidence",
       "path": "src/features/BankDepositsEvidence.luau",
-      "sha256": "510b199533d07df4dc9048bd383a61dfd2c3c0f43bbdae86423ba388c8cb0856",
+      "sha256": "d8ff759d43bf98a7a4dd07c673ff96eded4ab6e0c33621279f12734965383e50",
       "deps": []
     },
     {
@@ -425,7 +425,7 @@
     {
       "id": "PurposeWithdrawalsEvidence",
       "path": "src/features/PurposeWithdrawalsEvidence.luau",
-      "sha256": "029cdcb0c1ce2c353ae1540bf5486b1334d1e5d8c17332d4d0d119ebd90faebb",
+      "sha256": "cf1cb43df7a972fed3f64af1b0153387340f80898b79fa10e53b27817a7ea31a",
       "deps": []
     },
     {
@@ -1439,7 +1439,7 @@
     {
       "id": "MoneyTab",
       "path": "src/tabs/money/Module.luau",
-      "sha256": "8231277a33800df5620756457f4ae4d43ca54315925eddda91f1ec9e97247eb9",
+      "sha256": "4e4222b9dbfbb320dd72b96c0c557f1748a7b914b26262f3d9290411465e552b",
       "deps": []
     },
     {
