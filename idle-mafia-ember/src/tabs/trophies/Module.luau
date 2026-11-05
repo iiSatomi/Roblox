@@ -88,7 +88,7 @@ function Methods:Descriptors()
     return {
         { id = "trophies", reader = d.EarnedTrophiesState,
             planner = d.EarnedTrophies,
-            evidence = d.EarnedTrophiesEvidence },
+            evidence = d.EarnedTrophiesEvidence, recoverSaved = d.EarnedTrophiesEvidence.recoverSaved },
         { id = "trophyFocus", reader = d.TrophyFocusState,
             planner = d.TrophyFocusBlocked,
             evidence = d.TrophyFocusBlocked, goals = d.TrophyGoalRequests },

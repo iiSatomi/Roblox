@@ -35,11 +35,16 @@ local function state(raw, id)
         or type(native.inventoryBound) ~= "table"
         or type(native.collection) ~= "table"
         or type(native.collectionBound) ~= "table" then return nil end
-    local ready = false
-    for _, value in ipairs(derived.trophyReady) do
-        if type(value) ~= "string" then return nil end
+    local ready, seen, entries = false, {}, 0
+    local size = #derived.trophyReady
+    if size > 256 then return nil end
+    for key, value in pairs(derived.trophyReady) do
+        if type(key) ~= "number" or key % 1 ~= 0 or key < 1 or key > size
+            or type(value) ~= "string" or #value == 0 or seen[value] then return nil end
+        seen[value], entries = true, entries + 1
         if value == id then ready = true end
     end
+    if entries ~= size then return nil end
     local owned = 0
     for _, field in ipairs({ "inventory", "inventoryBound",
         "collection", "collectionBound" }) do
@@ -96,6 +101,77 @@ function EarnedTrophiesEvidence.evaluate(proposal, beforeHeader, after,
     if reply.ok == false then return advanced and "pending" or "rejected" end
     if reply.ok == true and advanced then return "confirmed" end
     return "pending"
+end
+
+local function equal(a, b)
+    if type(a) ~= type(b) then return false end
+    if type(a) ~= "table" then return a == b end
+    for key, value in pairs(a) do if not equal(value, b[key]) then return false end end
+    for key in pairs(b) do if a[key] == nil then return false end end
+    return true
+end
+local function number(value)
+    return type(value) == "number" and value == value and value >= 0
+        and value <= 9007199254740991
+end
+local function custody(before, after, target)
+    local gain = 0
+    for _, field in ipairs({"inventory", "inventoryBound", "collection", "collectionBound"}) do
+        local prior, current = before[field], after[field]
+        if type(prior) ~= "table" or type(current) ~= "table" then return false end
+        local ids = {}
+        for _, map in ipairs({prior, current}) do
+            for id, count in pairs(map) do
+                if type(id) ~= "string" or #id == 0 or not number(count)
+                    or count % 1 ~= 0 then return false end
+                ids[id] = true
+            end
+        end
+        for id in pairs(ids) do
+            local delta = (current[id] or 0) - (prior[id] or 0)
+            if id == target then
+                if delta < 0 then return false end
+                gain = gain + delta
+            elseif delta ~= 0 then return false end
+        end
+    end
+    return gain == 1
+end
+
+-- Reconstruct only the original saved positive receipt. Observation never
+-- invokes another claim or adopts an award with changed item custody.
+function EarnedTrophiesEvidence.recoverSaved(data, after)
+    if type(data) ~= "table" or type(data.reply) ~= "table"
+        or data.reply.ok ~= true or data.reply.pending == true
+        or data.reply.code == "pending" or data.reply.code == "no_pending"
+        or data.reply.code == "rate_limited" or data.reply.code == "presence"
+        or data.reply.code == "busy" or type(after) ~= "table" then return nil end
+    local baseline = EarnedTrophiesEvidence.capture(data.proposal, data.before)
+    if not baseline or not equal(baseline, data.baseline) then return nil end
+    local proposal, before = data.proposal, data.before
+    if type(proposal.resources) ~= "table"
+        or proposal.actionKey ~= "earnedTrophy:" .. #baseline.catalogKey .. ":"
+            .. baseline.catalogKey .. ":" .. baseline.targetId then return nil end
+    for _, amount in pairs(proposal.resources) do if amount ~= 0 then return nil end end
+    for _, field in ipairs({"account", "place", "release"}) do
+        if after[field] ~= proposal[field] then return nil end
+    end
+    local native, prior = after.native, before.native
+    if type(after.session) ~= "string" or #after.session == 0
+        or type(native) ~= "table" or type(prior) ~= "table"
+        or not number(prior.serverNow) or not number(native.serverNow)
+        or native.serverNow < prior.serverNow
+        or after.catalogKey ~= baseline.catalogKey
+        or not nonconsuming(after, baseline.targetId) then return nil end
+    if after.session == baseline.session then
+        if not number(after.revision) or after.revision % 1 ~= 0
+            or after.revision <= baseline.revision
+            or not number(before.capturedAt) or not number(after.capturedAt)
+            or after.capturedAt < before.capturedAt then return nil end
+    elseif native.serverNow <= prior.serverNow then return nil end
+    local ready, owned = state(after, baseline.targetId)
+    if ready ~= false or owned ~= 1 or not custody(prior, native, baseline.targetId) then return nil end
+    return "confirmed"
 end
 
 return EarnedTrophiesEvidence

@@ -12,6 +12,12 @@ local function integer(value, minimum)
         and value >= minimum and value < math.huge and value % 1 == 0
 end
 
+-- Wallet Cash can include native income fractions; reward counts stay integral.
+local function cash(value)
+    return type(value) == "number" and value == value
+        and value >= 0 and value < math.huge
+end
+
 local function timestamp(value, minimum)
     return type(value) == "number" and value == value
         and value >= minimum and value < math.huge
@@ -137,7 +143,7 @@ local function capture(proposal, before, dispatch)
         awards.items[id] = {amount = amount, loose = loose, bound = bound, boundOnly = boundOnly == true}
         return true
     end
-    if not integer(native.cash, 0) or not add("gold_bar", intent.rewardGold, true)
+    if not cash(native.cash) or not add("gold_bar", intent.rewardGold, true)
         or not add(intent.rewardCrateId, intent.rewardCrates)
         or not add(intent.rewardMedal, intent.rewardMedal and 1 or 0)
         or not add(intent.rewardBorder, intent.rewardBorder and 1 or 0)
@@ -162,7 +168,7 @@ function FamilyBossClaimsEvidence.canDispatch(proposal, raw)
 end
 
 local function awarded(native, awards, unchanged)
-    if not integer(native.cash, 0) or native.cash ~= awards.cashBefore + (unchanged and 0 or awards.cash) then return false end
+    if not cash(native.cash) or native.cash ~= awards.cashBefore + (unchanged and 0 or awards.cash) then return false end
     for id, row in pairs(awards.items) do
         local loose = type(native.inventory) == "table" and (native.inventory[id] or 0)
         local bound = type(native.inventoryBound) == "table" and (native.inventoryBound[id] or 0)
