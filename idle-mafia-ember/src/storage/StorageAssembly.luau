@@ -66,6 +66,21 @@ local function crewDiscoveryReason(key, data, identity)
     return nil
 end
 
+-- Only a genuinely empty legacy checkpoint can be acknowledged without ledger conversion.
+local function emptyCheckpoint(data)
+    if type(data) ~= "table" or data.version ~= 1
+        or type(data.records) ~= "table" or next(data.records) ~= nil then return false end
+    for field in pairs(data) do
+        if field ~= "version" and field ~= "records" and field ~= "familyClaimUsage" then return false end
+    end
+    if data.familyClaimUsage ~= nil then
+        local usage = data.familyClaimUsage
+        if type(usage) ~= "table" or type(usage.weeks) ~= "table" or next(usage.weeks) ~= nil then return false end
+        for field in pairs(usage) do if field ~= "weeks" then return false end end
+    end
+    return true
+end
+
 function StorageAssembly.new(deps)
     if type(deps) ~= "table" or type(deps.RedundantStore) ~= "table"
         or type(deps.RedundantStore.new) ~= "function"
@@ -108,6 +123,32 @@ function StorageAssembly.new(deps)
                 return nil, "Invalid storage identity"
             end
         end
+        local reviewPath = deps.directory .. "/migration-review.json"
+        local readReview, reviewBytes = pcall(deps.files.ReadFile, deps.files, reviewPath)
+        if not readReview then return nil, "Migration review unreadable" end
+        local review
+        if reviewBytes ~= nil then
+            if type(reviewBytes) ~= "string" or #reviewBytes > 1048576 then return nil, "Invalid migration review" end
+            local decoded, value = pcall(deps.codec.Decode, deps.codec, reviewBytes)
+            if not decoded or type(value) ~= "table" or value.version ~= 1
+                or value.account ~= identity.account or value.place ~= identity.place or value.release ~= identity.release
+                or value.preserveLegacyHistory ~= true or type(value.legacy) ~= "table"
+                or type(value.checkpoints) ~= "table" then return nil, "Migration review scope changed" end
+            review = value
+        end
+        local reviewedFiles, reviewedKeys = {}, {}
+        local function matches(bytes, expected)
+            if type(bytes) ~= "string" or type(expected) ~= "string" or #expected ~= 64 then return false end
+            local ok, digest = pcall(deps.sha256, bytes)
+            return ok and digest == expected
+        end
+        local function acknowledged(key, data)
+            if not review or not key:match("^idle%-mafia%-ember:checkpoint:v1:") or not emptyCheckpoint(data) then return false end
+            local ok, current = pcall(checkpoints.Current, checkpoints, key)
+            if not ok or not current or not matches(current.payload, review.checkpoints[key]) then return false end
+            reviewedKeys[key] = review.checkpoints[key]
+            return true
+        end
         -- Known Fluent files can contain uncertain actions, custody and usage.
         -- Never treat a new Ember directory as proof these records disappeared.
         local legacyRoot = "IdleMafiaFluent/" .. identity.place .. "/" .. identity.account .. "/"
@@ -120,7 +161,12 @@ function StorageAssembly.new(deps)
         for _, file in ipairs(legacyFiles) do
             local read, data = pcall(deps.files.ReadFile, deps.files, file.path)
             if not read then return nil, "Legacy state discovery failed" end
-            if data ~= nil then return nil, "Legacy " .. file.label .. " state requires explicit migration review" end
+            if data ~= nil then
+                if not review or not matches(data, review.legacy[file.path]) then
+                    return nil, "Legacy " .. file.label .. " state requires explicit migration review"
+                end
+                reviewedFiles[file.path] = data
+            end
         end
         local key = "idle-mafia-ember:release-owner:v1:"
             .. #identity.account .. ":" .. identity.account
@@ -159,10 +205,25 @@ function StorageAssembly.new(deps)
                     or #rest > length and rest:sub(length + 1, length + 1) ~= ":" then
                     return nil, "Unindexed checkpoint scope requires migration review"
                 end
-                if rest:sub(1, length) ~= identity.release then return nil, "Unindexed checkpoint release requires explicit migration" end
+                if rest:sub(1, length) ~= identity.release and not (#rest == length and acknowledged(savedKey, data)) then return nil, "Unindexed checkpoint release requires explicit migration" end
             end
             if type(data) == "table" and data.account == identity.account and data.place == identity.place
                 and data.release ~= identity.release then return nil, "Saved receipt scope requires explicit migration" end
+        end
+        -- Verify the reviewed sources again before creating any release ownership record.
+        if review then
+            local ok, current = pcall(deps.files.ReadFile, deps.files, reviewPath)
+            if not ok or current ~= reviewBytes then return nil, "Migration review changed" end
+            for path, bytes in pairs(reviewedFiles) do
+                local read, latest = pcall(deps.files.ReadFile, deps.files, path)
+                if not read or latest ~= bytes then return nil, "Legacy source changed during migration review" end
+            end
+            for key, expected in pairs(reviewedKeys) do
+                local read, latest = pcall(checkpoints.Current, checkpoints, key)
+                if not read or not latest or not matches(latest.payload, expected) or not emptyCheckpoint(latest.value) then
+                    return nil, "Old checkpoint changed during migration review"
+                end
+            end
         end
         if previous == nil then
             local saved, accepted = pcall(checkpoints.Write, checkpoints, key,
