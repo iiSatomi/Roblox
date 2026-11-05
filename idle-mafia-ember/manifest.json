@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "74c40ccb06f064a20506fa236b88ff600f018ba0",
+  "releaseCommit": "6ca721a28f00e5185804d47e4d3051e4970a96c9",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -1031,7 +1031,7 @@
     {
       "id": "NativeCombatLease",
       "path": "src/tabs/combat/NativeCombatLease.luau",
-      "sha256": "d4720c07b14c5b5cebc17b567da62fc056ad961df1d81121d621ee6c550b24dd",
+      "sha256": "f13d58303da42fc0e2f31c5b784defcb6cc1c38269ec96aceb794f89b7856bb7",
       "deps": []
     },
     {
