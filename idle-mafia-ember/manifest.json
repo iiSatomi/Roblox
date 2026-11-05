@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "2b0cfcb3ea3eaa5900f7598b08a0e0a3f8e3f307",
+  "releaseCommit": "594128c48a9160e461fc9a844ce6325915e2ecd8",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -743,7 +743,7 @@
     {
       "id": "StorageAssembly",
       "path": "src/storage/StorageAssembly.luau",
-      "sha256": "b7e6fd0d5a0a06fa159decd82bdc7b9cb06318199d79a7778190d8096201ff40",
+      "sha256": "37869ce75e25e6472a066d3ffadd6591561708efa08432e34a04431e311741d8",
       "deps": []
     },
     {
@@ -1355,7 +1355,7 @@
     {
       "id": "NativeHeistLease",
       "path": "src/tabs/heists/NativeHeistLease.luau",
-      "sha256": "b707b683169988eeb3e3b7d54cec4ea96deee8c8f9a2aaad32bc8ab2eda47ed5",
+      "sha256": "9717f83bc8cc1137c46db771bc41b6e0c3514fc60c5f8ac655875c0532515ea0",
       "deps": []
     },
     {
@@ -1601,7 +1601,7 @@
     {
       "id": "NativeRecallLease",
       "path": "src/tabs/territory/NativeRecallLease.luau",
-      "sha256": "082bbe30fd47fa4f97a57c730191e01ebfa2cf3f442b613544c27bc34de61623",
+      "sha256": "72554fd81b0a47c8a654523104a22b64ad86df641cb7021bcbd2d7bd6335354f",
       "deps": []
     },
     {
@@ -1739,7 +1739,7 @@
     {
       "id": "NativeClientBindings",
       "path": "src/transport/NativeClientBindings.luau",
-      "sha256": "dd154d16ce1b0ee4a8a59bea30928648f4325a606e0e8d7bcbcf4a2e90fb709d",
+      "sha256": "6ab4b3a983e5a67d55344a5969897c475d86081cc378c43ee0ac7e49a6a02f1c",
       "deps": []
     },
     {
