@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "594128c48a9160e461fc9a844ce6325915e2ecd8",
+  "releaseCommit": "3a309d2521594cc6f6175fe1163c444c8e3411bd",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -743,7 +743,7 @@
     {
       "id": "StorageAssembly",
       "path": "src/storage/StorageAssembly.luau",
-      "sha256": "37869ce75e25e6472a066d3ffadd6591561708efa08432e34a04431e311741d8",
+      "sha256": "4d446cf3fd41a983f22f735221bcafd6e9709657f19c10771f5362756ef14848",
       "deps": []
     },
     {
@@ -1739,7 +1739,7 @@
     {
       "id": "NativeClientBindings",
       "path": "src/transport/NativeClientBindings.luau",
-      "sha256": "6ab4b3a983e5a67d55344a5969897c475d86081cc378c43ee0ac7e49a6a02f1c",
+      "sha256": "9d1b42267dc5f53d1ba8780b9a019bd37e387ebbd22f3a2aaab6c67984b7984f",
       "deps": []
     },
     {
