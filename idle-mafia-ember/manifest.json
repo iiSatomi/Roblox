@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "21f824460ef7159aeb1f9e68e1e1b8adf40eaf4b",
+  "releaseCommit": "246d5399fc63f7a97f7ca1a7bc48e304bacdddc0",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -713,7 +713,7 @@
     {
       "id": "PendingAction",
       "path": "src/storage/PendingAction.luau",
-      "sha256": "f05faf922648eb0c288d51733845a10406ee459703787f9dd9e2dad50195202c",
+      "sha256": "10dc45bd6dd3eca004d3ba0e286623d051353995d43bdf428409dc26b96e153e",
       "deps": []
     },
     {
@@ -1613,7 +1613,7 @@
     {
       "id": "RecallRuntime",
       "path": "src/tabs/territory/RecallRuntime.luau",
-      "sha256": "c1afdd07add8d28ca96acb5373b577365e5560ef5aa913a7b29d5bb9791f18fd",
+      "sha256": "2baa7f550bf314023977f2ce4d63b53942c807090402e9937524bd327d4626cd",
       "deps": []
     },
     {
@@ -1637,7 +1637,7 @@
     {
       "id": "Stationing",
       "path": "src/tabs/territory/Stationing.luau",
-      "sha256": "0619fafcd70f7ad40b26a3f9a536d316295b3122e91513472699cb3cf9ac0f18",
+      "sha256": "40b140598dfbf7af2249d44e619f0338b8ca57882ddbdf521aa5b53a9dbbf49e",
       "deps": []
     },
     {
