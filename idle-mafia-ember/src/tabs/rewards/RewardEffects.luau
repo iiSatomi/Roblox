@@ -66,7 +66,7 @@ end
 
 local function effect(spec, before, after, reply)
     if spec.kind == "item" then return acquired(before, after, spec.amount, spec.bound) end
-    if spec.kind == "cash" then return after - before == spec.amount end
+    if spec.kind == "cash" then return after == before + spec.amount end
     if spec.kind == "refill" then return after.capacity == before.capacity and after.current == before.capacity end
     if spec.kind == "xpboost" then
         return after.ending > before.ending and after.now >= before.now
