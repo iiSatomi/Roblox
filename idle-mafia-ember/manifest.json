@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "0326bf989d009c9ba237b6b58368810db7784d63",
+  "releaseCommit": "794c011afd2c9686307efdda8a786e5db44a7055",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -707,7 +707,7 @@
     {
       "id": "LegacySettings",
       "path": "src/storage/LegacySettings.luau",
-      "sha256": "477113410add7e9f28bdb544b6383092b28f92d0801bd282daaaf1607715bba6",
+      "sha256": "31ed16844bff97be158b1e7da9f86e42dbe57013cb9b268b21af968529faaffa",
       "deps": []
     },
     {
@@ -1817,7 +1817,7 @@
     {
       "id": "App",
       "path": "src/App.luau",
-      "sha256": "debfb0f4c008e6d840e1d0c0c1198fdab051db31fd2cd7b647f3c2135f5fcd25",
+      "sha256": "7f33f964993fee1ace855389521163c80ee03959587caa312e1e9e1221c012aa",
       "deps": []
     }
   ]
