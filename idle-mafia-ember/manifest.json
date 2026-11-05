@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "ee3b059b734c57e33cbb8ba40c82d6a8b790adbd",
+  "releaseCommit": "6b31ea56d93c6ceacbc340d5e3603af416c90d0d",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -1019,7 +1019,7 @@
     {
       "id": "CombatTab",
       "path": "src/tabs/combat/Module.luau",
-      "sha256": "ae9db8f4ac06e4b9b0a6eacfd8ff4b5e8c964e8a263a3552e9d655cd317fdf6d",
+      "sha256": "f89168f79e9fed2641a741d677f093b825b291f6d1f3f730b848c8d35a4b1b66",
       "deps": []
     },
     {
@@ -1043,7 +1043,7 @@
     {
       "id": "PlayerFightEvidence",
       "path": "src/tabs/combat/PlayerFightEvidence.luau",
-      "sha256": "959cff1dfb87127a375276b21ff4d4a8b0857148532ec5c8d6e582b845843d79",
+      "sha256": "c410c5336e5257e38f1eb5fa18113cb3edae73a0ca68f43427dd9ea3f53ba45a",
       "deps": []
     },
     {
@@ -1079,7 +1079,7 @@
     {
       "id": "PlayerTargetState",
       "path": "src/tabs/combat/PlayerTargetState.luau",
-      "sha256": "186d6baf3042420694037b1bd969aa82aeea078501172d8ae8a505535c88d575",
+      "sha256": "66f32627923a0e1a9d6ac54e1c7ce25a4b85b9ef90e5374cc392589afde75499",
       "deps": []
     },
     {
