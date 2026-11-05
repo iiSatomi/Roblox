@@ -51,7 +51,8 @@ end
 function FamilyContributionState.parseFamily(family, actorId)
     if type(family) ~= "table" or not id(family.id)
         or not integer(actorId, 1, 9007199254740991)
-        or type(family.members) ~= "table" or #family.members < 1 or #family.members > 50 then
+        -- Structural payload bound, not the game's configurable Family capacity.
+        or type(family.members) ~= "table" or #family.members < 1 or #family.members > 256 then
         return nil
     end
     local perks = map(family.perks, 25)
