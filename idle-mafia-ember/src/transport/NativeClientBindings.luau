@@ -10,7 +10,7 @@ local function child(parent, name, class)
 end
 
 local function resolve(game, requireModule, readUpvalues)
-    -- Reviewed Combat/Prestige/Player-info contracts: 648, 653 and matching 654 captures.
+    -- Reviewed Combat/Prestige/Player-info contracts: 648, 653 and matching 654/655 captures.
     -- Capture before State or any other require can yield; never adopt a later build.
     local placeVersion = game.PlaceVersion
     local verifiedControllerBuild = placeVersion == 648 or placeVersion == 653 or placeVersion == 654 or placeVersion == 655

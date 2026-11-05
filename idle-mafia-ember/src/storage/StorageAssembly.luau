@@ -67,11 +67,21 @@ local function crewDiscoveryReason(key, data, identity)
 end
 
 -- Only a genuinely empty legacy checkpoint can be acknowledged without ledger conversion.
-local function emptyCheckpoint(data)
+local function emptyCheckpoint(data, familyUsage)
     if type(data) ~= "table" or data.version ~= 1
         or type(data.records) ~= "table" or next(data.records) ~= nil then return false end
     for field in pairs(data) do
-        if field ~= "version" and field ~= "records" and field ~= "familyClaimUsage" and field ~= "requestHighwater" then return false end
+        if field ~= "version" and field ~= "records" and field ~= "familyClaimUsage" and field ~= "requestHighwater" and field ~= "stationAttempts" and field ~= "prestigeAttempts"
+            and field ~= "residencyAttempts" and field ~= "familyContributionUsage" then return false end
+    end
+    for _, field in ipairs({"stationAttempts", "prestigeAttempts", "residencyAttempts"}) do
+        if data[field] ~= nil and data[field] ~= 0 then return false end
+    end
+    if data.familyContributionUsage ~= nil then
+        if type(familyUsage) ~= "table" or type(familyUsage.copy) ~= "function" then return false end
+        local copied = familyUsage.copy(data.familyContributionUsage)
+        if not copied then return false end
+        for _, lane in pairs(copied.lanes) do if lane.attempted ~= 0 or lane.spent ~= 0 then return false end end
     end
     if data.requestHighwater ~= nil and (type(data.requestHighwater) ~= "number"
         or data.requestHighwater < 0 or data.requestHighwater > 9007199254740991
@@ -146,7 +156,7 @@ function StorageAssembly.new(deps)
             return ok and digest == expected
         end
         local function acknowledged(key, data)
-            if not review or not key:match("^idle%-mafia%-ember:checkpoint:v1:") or not emptyCheckpoint(data) then return false end
+            if not review or not key:match("^idle%-mafia%-ember:checkpoint:v1:") or not emptyCheckpoint(data, deps.FamilyContributionUsage) then return false end
             local ok, current = pcall(checkpoints.Current, checkpoints, key)
             if not ok or not current or not matches(current.payload, review.checkpoints[key]) then return false end
             reviewedKeys[key] = review.checkpoints[key]
@@ -234,7 +244,7 @@ function StorageAssembly.new(deps)
             end
             for key, expected in pairs(reviewedKeys) do
                 local read, latest = pcall(checkpoints.Current, checkpoints, key)
-                if not read or not latest or not matches(latest.payload, expected) or not emptyCheckpoint(latest.value) then
+                if not read or not latest or not matches(latest.payload, expected) or not emptyCheckpoint(latest.value, deps.FamilyContributionUsage) then
                     return nil, "Old checkpoint changed during migration review"
                 end
             end
@@ -242,11 +252,15 @@ function StorageAssembly.new(deps)
         if review and (previous == nil or changingOwner) and next(reviewedKeys) ~= nil then
             local targetKey = "idle-mafia-ember:checkpoint:v1:" .. tag .. #identity.release .. ":" .. identity.release
             local target = checkpoints:Read(targetKey)
-            if target ~= nil and not emptyCheckpoint(target) then return nil, "Destination checkpoint requires migration review" end
+            if target ~= nil and not emptyCheckpoint(target, deps.FamilyContributionUsage) then return nil, "Destination checkpoint requires migration review" end
             local merged = {version=1, records={}}
             local function retain(value)
                 if value.requestHighwater ~= nil then merged.requestHighwater = math.max(merged.requestHighwater or 0, value.requestHighwater) end
                 if value.familyClaimUsage ~= nil then merged.familyClaimUsage = {weeks={}} end
+                for _, field in ipairs({"stationAttempts", "prestigeAttempts", "residencyAttempts"}) do
+                    if value[field] ~= nil then merged[field] = value[field] end
+                end
+                if value.familyContributionUsage ~= nil then merged.familyContributionUsage = deps.FamilyContributionUsage.copy(value.familyContributionUsage) end
             end
             if target then retain(target) end
             for sourceKey in pairs(reviewedKeys) do retain(checkpoints:Read(sourceKey)) end
