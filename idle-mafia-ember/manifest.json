@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "e0d66b80c61bcfebbc3784ac531d9c3b3a25888b",
+  "releaseCommit": "dbf30185b0c71ee0266c8913c83ae99328d58889",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -1673,7 +1673,7 @@
     {
       "id": "TerritoryReadSources",
       "path": "src/tabs/territory/TerritoryReadSources.luau",
-      "sha256": "109d176592a540dccaa6d755d307808c159e68185dfa46aaf63aaf759b63ef44",
+      "sha256": "af08bb9c76d75cf9434b95a07ad46a0c7a4582cf60f96f824c08457e97cef47f",
       "deps": []
     },
     {
