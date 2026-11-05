@@ -64,7 +64,10 @@ function TerritoryReadSources.new(deps)
                         local selected = not state.closed and target(field, raw) or nil
                         if state.selected[field] ~= selected then reader:ClearTerritoryRead(field) end
                         state.selected[field] = selected
-                        return selected ~= nil
+                        -- Missing map proof is a prerequisite wait, not a failed
+                        -- remote request that should consume exponential backoff.
+                        return selected ~= nil and ((field ~= "territoryDistrict" and field ~= "fortificationView")
+                            or type(raw) == "table" and mapped(raw, selected))
                     end,
                     prepare = function(raw)
                         local selected = target(field, raw)
