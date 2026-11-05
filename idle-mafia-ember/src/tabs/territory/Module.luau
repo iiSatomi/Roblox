@@ -71,7 +71,7 @@ function TerritoryTab.new(deps)
     if type(deps.Stationing) == "table" and type(deps.config) == "table"
         and type(deps.config.TERRITORY) == "table" and type(deps.gameData) == "table"
         and type(deps.gameData.DISTRICTS_BY_ID) == "table" then
-        station = deps.Stationing.new(deps.config, deps.gameData, deps.fingerprint, deps.release)
+        station = deps.Stationing.new(deps.config, deps.gameData, deps.fingerprint, deps.release, deps.territoryCitySource)
     end
     local season = deps.territorySeasonSource
     if season ~= nil then
@@ -262,7 +262,8 @@ function Methods:Descriptors()
     local station = self.station and { id = "station", reader = self.station,
         planner = d.Stationing, evidence = d.Stationing, recoverSaved = d.Stationing.recoverSaved,
         canDispatch = function(proposal)
-            return not self.closed and d.Stationing.canDispatch(proposal, self.latestSnapshot)
+            return not self.closed and self.station:Current()
+                and d.Stationing.canDispatch(proposal, self.latestSnapshot)
         end }
         or { id = "station", reader = d.TerritoryState,
             planner = d.TerritoryBlocked, evidence = d.TerritoryBlocked }

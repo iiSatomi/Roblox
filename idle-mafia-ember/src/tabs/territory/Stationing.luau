@@ -70,7 +70,7 @@ local function eligible(member, now)
         and member.injured <= now and member.recalled <= now
 end
 
-function Stationing.new(config, gameData, fingerprint, release)
+function Stationing.new(config, gameData, fingerprint, release, citySource)
     local source = type(config) == "table" and config.TERRITORY
     local districts = type(gameData) == "table" and gameData.DISTRICTS_BY_ID
     assert(type(source) == "table" and integer(source.garrisonCap, 1, 1000000)
@@ -97,17 +97,47 @@ function Stationing.new(config, gameData, fingerprint, release)
         assert(district.tier == nil or integer(district.tier, 1, 20), "Invalid district tier")
         districtCaps[id] = byTier and byTier[district.tier or 0] or source.garrisonCap
     end
+    assert(citySource == nil or type(citySource) == "table"
+        and type(citySource.Current) == "function" and type(citySource.Select) == "function",
+        "Invalid current stationing city source")
     return setmetatable({ cap = source.garrisonCap, cities = cities, caps = districtCaps,
+        citySource = citySource, cityCurrent = citySource and citySource.Current,
+        citySelect = citySource and citySource.Select,
         key = fingerprint:lower(), release = release }, Methods)
+end
+function Methods:Current()
+    local source = self.citySource
+    if source == nil then return true end
+    if source.Current ~= self.cityCurrent or source.Select ~= self.citySelect then return false end
+    local ok, current = pcall(self.cityCurrent, source)
+    return ok and current == true and source.Current == self.cityCurrent
+        and source.Select == self.citySelect
 end
 function Methods:Enrich(snapshot)
     if type(snapshot) ~= "table" or snapshot.release ~= self.release
         or type(snapshot.native) ~= "table" or snapshot.native.fullSync ~= true then
         return nil, "Current full stationing Sync required"
     end
+    if not self:Current() then return nil, "Current native stationing city source changed" end
+    local cities, caps, globalMap = self.cities, self.caps, false
+    if self.citySource ~= nil then
+        cities, caps = {}, {}
+        local district = type(snapshot.territoryDistrict) == "table" and snapshot.territoryDistrict.district
+        local id = type(district) == "table" and district.id
+        if self.cities[id] ~= nil then
+            local ok, selected = pcall(self.citySelect, self.citySource, nil, id, snapshot.native)
+            if not ok or type(selected) ~= "table" or not self:Current()
+                or selected.cityId ~= nil and (type(selected.cityId) ~= "string"
+                    or #selected.cityId == 0 or #selected.cityId > 120) then
+                return nil, "Current native stationing city mapping required"
+            end
+            globalMap = selected.cityId == nil
+            cities[id], caps[id] = selected.cityId or self.cities[id], self.caps[id]
+        end
+    end
     local result = copy(snapshot)
     result.stationCatalogProof = { release = self.release, key = self.key,
-        cap = self.cap, cities = copy(self.cities), caps = copy(self.caps) }
+        cap = self.cap, cities = copy(cities), caps = copy(caps), globalMap = globalMap }
     return result, nil
 end
 function Stationing.read(raw, context)
@@ -129,7 +159,9 @@ function Stationing.read(raw, context)
         or type(catalog.cities) ~= "table" or type(district.id) ~= "string"
         or type(map) ~= "table" or not same(map.header, context)
         or type(map.cityId) ~= "string" or type(catalog.cities[district.id]) ~= "string"
-        or catalog.cities[district.id] ~= map.cityId or type(map.districts) ~= "table"
+        or catalog.globalMap ~= nil and type(catalog.globalMap) ~= "boolean"
+        or catalog.globalMap ~= true and catalog.cities[district.id] ~= map.cityId
+        or type(map.districts) ~= "table"
         or not integer(district.garrisonCount, 0, 1000000)
         or not integer(district.revision, 0, 9007199254740991) then
         return nil, "Current owned district, city and stable Crew proof required"
