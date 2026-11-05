@@ -208,19 +208,31 @@ function Methods:RecordScout(data, after)
     end
     local row = self.scoutOutcome(data, after)
     if type(row) ~= "table" or row.sourceKey ~= self.sourceKey then return false, "Exact numbered Scout result required" end
-    local list = self.targets:Read(after)
-    local nextCache = {}
-    if list then
-        for _, target in ipairs(list.rows) do
-            local key = tostring(target.userId)
-            if self.scoutCache[key] then nextCache[key] = self.scoutCache[key] end
-            if row.target == target.userId and row.name == target.name and row.level == target.level
-                and row.familyId == target.familyId and row.at <= bound.serverNow and bound.serverNow - row.at <= 1800 then
-                row.cachedAt = bound.capturedAt
-                nextCache[key] = clone(row)
+    -- A confirmed result remains owned when its mutation invalidates the
+    -- current list. Read still requires a fresh matching list and profile.
+    local key = tostring(row.target)
+    local nextCache, count, oldest, oldestAt = {}, 0, nil, nil
+    for savedKey, cached in pairs(self.scoutCache) do
+        if type(cached) == "table" and cached.sourceKey == self.sourceKey
+            and number(cached.at, 0) and cached.at <= bound.serverNow and bound.serverNow - cached.at <= 1800
+            and number(cached.cachedAt, 0) and cached.cachedAt <= bound.capturedAt
+            and bound.capturedAt - cached.cachedAt <= 1800 then
+            nextCache[savedKey], count = cached, count + 1
+            if savedKey ~= key and (oldestAt == nil or cached.at < oldestAt
+                or cached.at == oldestAt and savedKey < oldest) then
+                oldest, oldestAt = savedKey, cached.at
             end
         end
     end
+    if row.at <= bound.serverNow and bound.serverNow - row.at <= 1800 then
+        local previous = nextCache[key]
+        if not previous or row.at >= previous.at then
+            row.cachedAt = bound.capturedAt
+            nextCache[key] = clone(row)
+            if not previous then count = count + 1 end
+        end
+    end
+    if count > 128 and oldest then nextCache[oldest] = nil end
     self.scoutCache = nextCache
     return true, nil
 end
