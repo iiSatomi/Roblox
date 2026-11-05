@@ -4,8 +4,8 @@ local reviewedBuilds = {
     [655] = {version="0.26.646.1", fingerprint="610c43e492f5fbb12e9dd38665031fefe3b6584b3a336de0203cea2e68b1bc08"},
 }
 local reviewed = assert(reviewedBuilds[game.PlaceVersion], "Unreviewed Idle Mafia build")
-local sourceCommit = "c9cba9d736915099be457152a15f5703c789dbf2"
-local manifestCommit = "4d7aea3110765c5d0b9e24dda7fdb7cf9e430fce"
+local sourceCommit = "21f824460ef7159aeb1f9e68e1e1b8adf40eaf4b"
+local manifestCommit = "c29c3052c6272c04aeb28fe6d10ab4ebdb045337"
 local root = "https://raw.githubusercontent.com/iiSatomi/Roblox/"
 local project = "/idle-mafia-ember/"
 local hashApi = crypt or (syn and syn.crypt)
@@ -37,7 +37,7 @@ local function pinnedModule(path, digest)
 end
 
 local manifestBytes = fetch(root .. manifestCommit .. project .. "manifest.json",
-    "6d29ad1f80f391c0dd3fe71fda8b7a8ae27fe5fedd915accdf68436bd5e85f24", "manifest")
+    "7ac8f5ec7de77b397b7cc74291164ae3aaa100c8f8a5059fad65c7b07f7ab60b", "manifest")
 local manifest = game:GetService("HttpService"):JSONDecode(manifestBytes)
 assert(manifest.releaseCommit == sourceCommit, "Manifest pin mismatch")
 
