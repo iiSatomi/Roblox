@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "c599ab528c7da8a042a6c8c21e360c5ea28ea8d3",
+  "releaseCommit": "0326bf989d009c9ba237b6b58368810db7784d63",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -1529,7 +1529,7 @@
     {
       "id": "RewardEffects",
       "path": "src/tabs/rewards/RewardEffects.luau",
-      "sha256": "785c4e97778598b7a0452803ef0ae4ba92f11a1980c87d4d96d0ffd6241eb075",
+      "sha256": "7c1f3800ad02ef1c9e877dacf6eebad41092db3665fc3c68f67372e89142eea0",
       "deps": []
     },
     {
