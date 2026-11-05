@@ -288,7 +288,7 @@ function App.start(dependencies)
         return text, nil
     end
 
-    function self:PreviewImport(text)
+    function self:PreviewImport(text, reviewedExclusions)
         if not self.alive or not transferAvailable then return false, "Settings JSON adapter unavailable" end
         if type(text) ~= "string" or #text == 0 or #text > 65536 then
             return false, "Settings JSON must contain 1–65536 bytes"
@@ -301,7 +301,9 @@ function App.start(dependencies)
             if type(migration) ~= "table" or type(migration.preview) ~= "function" then
                 return false, "Legacy settings preview unavailable"
             end
-            local converted, review, reason = migration.preview(profile, self.model)
+            local convert = reviewedExclusions ~= nil and migration.review or migration.preview
+            if type(convert) ~= "function" then return false, "Legacy review unavailable" end
+            local converted, review, reason = convert(profile, self.model, reviewedExclusions)
             self.importReview = review
             if not converted then
                 showImportReview(review)

@@ -885,4 +885,34 @@ function LegacySettings.preview(raw, model)
     -- Every sender and newly required permission starts at current reviewed defaults.
     return { schema = 1, values = prepared }, report, nil
 end
+-- Explicit preference review only. Original ledgers remain outside the profile.
+function LegacySettings.review(raw, model, choices)
+    local staged, report, reason = LegacySettings.preview(raw, model)
+    if type(choices) ~= "table" or getmetatable(choices) ~= nil or not report then
+        return nil, report, "Invalid legacy review choices"
+    end
+    local needed, count = {}, 0
+    for _, key in ipairs(report.unresolved) do needed[key] = true end
+    for key, decision in pairs(choices) do
+        count = count + 1
+        if count > 256 or not needed[key] or defaults[key] == nil
+            or decision ~= "useCurrentDefault" then
+            return nil, report, "Unknown or stale legacy review choice: " .. tostring(key)
+        end
+    end
+    if staged then return staged, report, reason end
+    for key in pairs(needed) do
+        if choices[key] ~= "useCurrentDefault" then return nil, report, reason end
+    end
+    local reviewed = copy(raw)
+    local settings = reviewed.settings or reviewed
+    for key in pairs(needed) do settings[key] = copy({value=defaults[key]}).value end
+    local converted, checked, why = LegacySettings.preview(reviewed, model)
+    if not converted then return nil, report, why end
+    checked.original = report.original
+    checked.reviewedExclusions = {}
+    checked.retainedUsageRequiresMigration = true
+    for key in pairs(needed) do checked.reviewedExclusions[key] = "useCurrentDefault" end
+    return converted, checked, nil
+end
 return LegacySettings
