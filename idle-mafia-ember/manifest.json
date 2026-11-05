@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "b5dbbd676a95f4399532d06b6d692ba23bcc674b",
+  "releaseCommit": "d500815a4a9430a48116d08e26362b67f9325f7b",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -1289,7 +1289,7 @@
     {
       "id": "FamilyContributionState",
       "path": "src/tabs/family/FamilyContributionState.luau",
-      "sha256": "7c7d5de50de8135a42183ce258edeebef37a15a3b779970a27f1ebf0af95e2a4",
+      "sha256": "41cbd6e94237be2c1925f69a8a147eec0bd9f583e494c18337dd15f61a66fe60",
       "deps": []
     },
     {
