@@ -61,12 +61,51 @@ function MoneyTab.new(deps)
         "Missing Money tab modules")
     local fee = deps.NativeBankCatalog.new(
         deps.config, deps.fingerprint, deps.release)
-    return setmetatable({ id = "money", deps = deps,
-        fee = fee }, Methods)
+    return setmetatable({ id = "money", deps = deps, fee = fee,
+        nativeState = deps.nativeState,
+        nativeLatest = type(deps.nativeState) == "table" and deps.nativeState.latest or nil,
+        closed = false }, Methods)
 end
 
 function Methods:Enrich(snapshot)
-    return self.fee:Enrich(snapshot)
+    if self.closed then return nil, "Money tab closed" end
+    local enriched, reason = self.fee:Enrich(snapshot)
+    self.latestSnapshot = enriched
+    return enriched, reason
+end
+
+function Methods:CanDispatch(proposal)
+    if self.closed or type(proposal) ~= "table" then return false end
+    -- Offline integrations supply their own observation seam. In the current
+    -- client, projected/native changes are a veto only, never effect evidence.
+    if self.nativeState == nil then return true end
+    local state, latest, expected = self.nativeState, self.nativeLatest, self.latestSnapshot
+    if self.deps.nativeState ~= state or type(latest) ~= "function" or state.latest ~= latest
+        or type(expected) ~= "table" or type(expected.native) ~= "table" then return false end
+    for _, key in ipairs({"session", "account", "place", "release", "revision"}) do
+        if proposal[key] ~= expected[key] then return false end
+    end
+    local ok, native = pcall(latest)
+    if not ok or type(native) ~= "table" or self.closed or self.latestSnapshot ~= expected
+        or self.deps.nativeState ~= state or state.latest ~= latest
+        or type(native.userId) ~= "number" or native.userId < 1 or native.userId > 9007199254740991
+        or native.userId % 1 ~= 0 or native.userId ~= expected.native.userId
+        or native.cash ~= expected.native.cash or native.banked ~= expected.native.banked
+        or type(proposal.intent) ~= "table" then return false end
+    local intent = proposal.intent
+    if proposal.feature == "bank" then
+        return type(native.derived) == "table" and native.derived.noBankFees == intent.noFee
+    end
+    return proposal.feature == "withdraw" and type(intent.requiredCash) == "number"
+        and native.cash < intent.requiredCash
+        and math.ceil(intent.requiredCash - native.cash) == intent.amount
+        and native.banked >= intent.amount
+end
+
+function Methods:Close()
+    if self.closed then return end
+    self.closed = true
+    self.latestSnapshot, self.nativeState, self.nativeLatest = nil, nil, nil
 end
 
 function Methods:Descriptors()
@@ -74,11 +113,13 @@ function Methods:Descriptors()
     return {
         { id = "bank", reader = d.BankState,
             planner = d.BankDeposits, evidence = d.BankDepositsEvidence,
-            recoverSaved = d.BankDepositsEvidence.recoverSaved },
+            recoverSaved = d.BankDepositsEvidence.recoverSaved,
+            canDispatch = function(proposal) return self:CanDispatch(proposal) end },
         { id = "withdraw", reader = d.WithdrawalState,
             planner = d.PurposeWithdrawals,
             evidence = d.PurposeWithdrawalsEvidence,
-            recoverSaved = d.PurposeWithdrawalsEvidence.recoverSaved },
+            recoverSaved = d.PurposeWithdrawalsEvidence.recoverSaved,
+            canDispatch = function(proposal) return self:CanDispatch(proposal) end },
     }
 end
 
