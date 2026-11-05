@@ -458,7 +458,21 @@ local function familyBefore(before)
     return saved
 end
 
+local function moneyBefore(before)
+    local saved = selectedFields(before, {"session", "account", "place", "release", "revision", "capturedAt",
+        "catalogKey", "bankConfig", "purchaseSavings", "fundingRequest"})
+    saved.native = selectedFields(before.native, {"fullSync", "serverNow", "userId", "cash", "banked"})
+    saved.native.derived = selectedFields(before.native.derived, {"noBankFees"})
+    return saved
+end
+
 local function recoveryBefore(proposal, before)
+    if type(proposal.intent) == "table" and plain(before) and plain(before.native)
+        and before.native.fullSync == true and plain(before.bankConfig)
+        and (proposal.feature == "bank" and proposal.intent.kind == "bankDeposit"
+            or proposal.feature == "withdraw" and proposal.intent.kind == "purposeWithdrawal") then
+        return moneyBefore(before)
+    end
     if proposal.feature == "station" and type(proposal.intent) == "table"
         and proposal.intent.kind == "territoryStation" and plain(before)
         and plain(before.stationCatalogProof) and plain(before.territoryMap) then

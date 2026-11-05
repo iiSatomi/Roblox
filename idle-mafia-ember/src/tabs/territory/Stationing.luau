@@ -38,9 +38,11 @@ local function roster(native)
             if type(row.name) ~= "string" or #row.name == 0 or #row.name > 64
                 or not integer(row.rarity, 1, 20) then return nil end
             if type(row.healId) ~= "string" or #row.healId == 0 or #row.healId > 128
-                or row.healId:find("%c") then return nil end
+                or row.healId:find("%c") then
+                return nil, nil, "Crew slot " .. tostring(slot) .. " lacks a stable member identity"
+            end
             local key = "id:" .. row.healId
-            if seen[key] then return nil end
+            if seen[key] then return nil, nil, "Crew member identities are duplicated" end
             seen[key] = true
             local injured, recalled, train = row.injuredUntil, row.recalledUntil, row.train
             if injured == nil then injured = 0 end
@@ -145,8 +147,9 @@ function Stationing.read(raw, context)
     local native, source, catalog = raw.native, raw.territoryDistrict, raw.stationCatalogProof
     local map = raw.territoryMap
     local district = type(source) == "table" and source.district
-    local members, count = roster(native)
-    if not members or type(native.family) ~= "table" or type(source) ~= "table"
+    local members, count, rosterReason = roster(native)
+    if not members then return nil, rosterReason or "Current complete Crew roster and stable custody state required" end
+    if type(native.family) ~= "table" or type(source) ~= "table"
         or not ((type(native.family.id) == "string" and #native.family.id > 0)
             or integer(native.family.id, 1, 9007199254740991))
         or not same(source.header, context)

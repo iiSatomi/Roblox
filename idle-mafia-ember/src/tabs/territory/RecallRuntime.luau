@@ -222,13 +222,19 @@ end
 function Methods:Wrap(spec,ordinaryCall)
     local owner,result=self,copy(spec)
     result.reader={read=function(raw,context)
-        local ordinary=spec.reader.read(raw,context)
+        local ordinary,ordinaryWhy=spec.reader.read(raw,context)
         local own,why=owner:Read(raw,context)
-        if not own and not ordinary then return nil,why end
-        return {ordinary=ordinary,recall=own},nil
+        if not own and not ordinary then
+            return nil,"Station: "..(ordinaryWhy or "unavailable").."; Recall: "..(why or "unavailable")
+        end
+        return {ordinary=ordinary,recall=own,ordinaryReason=ordinaryWhy,recallReason=why},nil
     end}
     result.planner={propose=function(view,settings,reservations)
-        if type(settings)=="table" and settings.mode=="Recall" then return owner:Propose(view.recall,settings) end
+        if type(settings)=="table" and settings.mode=="Recall" then
+            if not view.recall then return nil,view.recallReason or "Recall snapshot unavailable" end
+            return owner:Propose(view.recall,settings)
+        end
+        if not view.ordinary then return nil,view.ordinaryReason or "Station snapshot unavailable" end
         return spec.planner.propose(view.ordinary,settings,reservations)
     end}
     result.evidence={capture=function(p,raw) if recall(p) then return owner:Capture(p,raw) end;return spec.evidence.capture(p,raw) end,
