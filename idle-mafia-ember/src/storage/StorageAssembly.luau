@@ -71,8 +71,11 @@ local function emptyCheckpoint(data)
     if type(data) ~= "table" or data.version ~= 1
         or type(data.records) ~= "table" or next(data.records) ~= nil then return false end
     for field in pairs(data) do
-        if field ~= "version" and field ~= "records" and field ~= "familyClaimUsage" then return false end
+        if field ~= "version" and field ~= "records" and field ~= "familyClaimUsage" and field ~= "requestHighwater" then return false end
     end
+    if data.requestHighwater ~= nil and (type(data.requestHighwater) ~= "number"
+        or data.requestHighwater < 0 or data.requestHighwater > 9007199254740991
+        or data.requestHighwater % 1 ~= 0) then return false end
     if data.familyClaimUsage ~= nil then
         local usage = data.familyClaimUsage
         if type(usage) ~= "table" or type(usage.weeks) ~= "table" or next(usage.weeks) ~= nil then return false end
@@ -173,6 +176,7 @@ function StorageAssembly.new(deps)
             .. #identity.place .. ":" .. identity.place
         local read, previous = pcall(checkpoints.Read, checkpoints, key)
         if not read then return nil, "Checkpoint release ownership unreadable" end
+        local changingOwner = false
         if previous ~= nil then
             if type(previous) ~= "table" or previous.version ~= 1
                 or previous.account ~= identity.account or previous.place ~= identity.place
@@ -181,7 +185,12 @@ function StorageAssembly.new(deps)
                 return nil, "Invalid checkpoint release ownership"
             end
             if previous.release ~= identity.release then
-                return nil, "Checkpoint release changed; explicit migration required"
+                local current = checkpoints:Current(key)
+                if not review or review.fromRelease ~= previous.release or not current
+                    or not matches(current.payload, review.previousOwnerHash) then
+                    return nil, "Checkpoint release changed; explicit migration required"
+                end
+                changingOwner = true
             end
         end
         -- An earlier adoption is not proof that no older owner wrote later.
@@ -208,7 +217,12 @@ function StorageAssembly.new(deps)
                 if rest:sub(1, length) ~= identity.release and not (#rest == length and acknowledged(savedKey, data)) then return nil, "Unindexed checkpoint release requires explicit migration" end
             end
             if type(data) == "table" and data.account == identity.account and data.place == identity.place
-                and data.release ~= identity.release then return nil, "Saved receipt scope requires explicit migration" end
+                and data.release ~= identity.release and not (changingOwner and savedKey == key) then return nil, "Saved receipt scope requires explicit migration" end
+        end
+        if changingOwner then
+            local oldKey = "idle-mafia-ember:checkpoint:v1:" .. tag
+                .. #previous.release .. ":" .. previous.release
+            if not reviewedKeys[oldKey] then return nil, "Previous request counter requires migration review" end
         end
         -- Verify the reviewed sources again before creating any release ownership record.
         if review then
@@ -225,7 +239,29 @@ function StorageAssembly.new(deps)
                 end
             end
         end
-        if previous == nil then
+        if review and (previous == nil or changingOwner) and next(reviewedKeys) ~= nil then
+            local targetKey = "idle-mafia-ember:checkpoint:v1:" .. tag .. #identity.release .. ":" .. identity.release
+            local target = checkpoints:Read(targetKey)
+            if target ~= nil and not emptyCheckpoint(target) then return nil, "Destination checkpoint requires migration review" end
+            local merged = {version=1, records={}}
+            local function retain(value)
+                if value.requestHighwater ~= nil then merged.requestHighwater = math.max(merged.requestHighwater or 0, value.requestHighwater) end
+                if value.familyClaimUsage ~= nil then merged.familyClaimUsage = {weeks={}} end
+            end
+            if target then retain(target) end
+            for sourceKey in pairs(reviewedKeys) do retain(checkpoints:Read(sourceKey)) end
+            local saved, accepted = pcall(checkpoints.Write, checkpoints, targetKey, merged)
+            if not saved or accepted ~= true then return nil, "Migrated counter write was not confirmed" end
+            for sourceKey, expected in pairs(reviewedKeys) do
+                local current = checkpoints:Current(sourceKey)
+                if not current or not matches(current.payload, expected) then return nil, "Migration source changed before adoption" end
+            end
+            if changingOwner then
+                local current = checkpoints:Current(key)
+                if not current or not matches(current.payload, review.previousOwnerHash) then return nil, "Migration owner changed" end
+            end
+        end
+        if previous == nil or changingOwner then
             local saved, accepted = pcall(checkpoints.Write, checkpoints, key,
                 { version = 1, account = identity.account,
                     place = identity.place, release = identity.release })

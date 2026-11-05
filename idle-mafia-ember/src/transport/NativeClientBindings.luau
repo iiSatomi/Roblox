@@ -13,7 +13,7 @@ local function resolve(game, requireModule, readUpvalues)
     -- Reviewed Combat/Prestige/Player-info contracts: 648, 653 and matching 654 captures.
     -- Capture before State or any other require can yield; never adopt a later build.
     local placeVersion = game.PlaceVersion
-    local verifiedControllerBuild = placeVersion == 648 or placeVersion == 653 or placeVersion == 654
+    local verifiedControllerBuild = placeVersion == 648 or placeVersion == 653 or placeVersion == 654 or placeVersion == 655
     local controllerVersionRetired = false
     local function controllerVersionCurrent()
         if game.PlaceVersion ~= placeVersion then controllerVersionRetired = true end

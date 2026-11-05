@@ -194,7 +194,7 @@ function NativeHeistLease.bind(deps)
     end
     local ok, result, reason = pcall(function()
         local build, jobId = game.PlaceVersion, game.JobId
-        if game.PlaceId ~= 73897506680154 or (build ~= 648 and build ~= 653 and build ~= 654) then return nil, "Unreviewed Heist build" end
+        if game.PlaceId ~= 73897506680154 or (build ~= 648 and build ~= 653 and build ~= 654 and build ~= 655) then return nil, "Unreviewed Heist build" end
         local players, replicated = game:GetService("Players"), game:GetService("ReplicatedStorage")
         local player = players.LocalPlayer
         local scripts = child(player, "PlayerScripts", "PlayerScripts")
@@ -207,8 +207,10 @@ function NativeHeistLease.bind(deps)
         if not module or not stateModule or not remote or not player or not text(jobId) then
             return nil, "Native Heist instances unavailable"
         end
+        local sourceHash = build == 655 and "8d764deaec2a2923679c5348d7a4bedef03c881e5c1c60a873bdc98c94524e1c" or SOURCE
+        local sourceSize = build == 655 and 70081 or 69223
         local source = env.decompile(module)
-        if type(source) ~= "string" or #source ~= 69223 or env.crypt.hash(source, "sha256"):lower() ~= SOURCE then
+        if type(source) ~= "string" or #source ~= sourceSize or env.crypt.hash(source, "sha256"):lower() ~= sourceHash then
             return nil, "Native Heist source changed"
         end
         local state = deps.requireModule(stateModule)
@@ -271,7 +273,7 @@ function NativeHeistLease.bind(deps)
             rawset(deps.registry, REGISTRY, epoch)
         end
         return NativeHeistLease.new(port, deps.clock, {account = player.Name,
-            place = tostring(game.PlaceId), jobId = jobId, sourceKey = SOURCE}, epoch)
+            place = tostring(game.PlaceId), jobId = jobId, sourceKey = sourceHash}, epoch)
     end)
     if not ok then return nil, "Native Heist binding inspection failed" end
     return result, reason
