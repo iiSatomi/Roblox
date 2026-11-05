@@ -438,10 +438,12 @@ function Methods:SavedSearchTarget(snapshot, settings)
         or type(self.playerLedger.SavedTargets) ~= "function" or type(self.historyStats) ~= "function" then return nil end
     local list = self:CurrentHitList(snapshot)
     local native = type(snapshot) == "table" and snapshot.native
-    local daily = type(native) == "table" and native.attackDaily
+    local readCounts = self.targetReader.dailyCounts
+    local counts, today
+    if type(readCounts) == "function" then counts, today = readCounts(native) end
     if not list or #list.rows >= 128 or type(list.war) ~= "table" or type(list.war.active) ~= "boolean"
         or list.war.active and list.war.enemyFamilyId == nil
-        or type(daily) ~= "table" or daily.day ~= math.floor(native.serverNow / 86400) or type(daily.counts) ~= "table"
+        or type(counts) ~= "table"
         or type(settings.minSamples) ~= "number" or settings.minSamples < 0
         or type(settings.minimumPayout) ~= "number" or settings.minimumPayout < 0
         or type(settings.minWinRate) ~= "number" or settings.minWinRate < 0 or settings.minWinRate > 100 then return nil end
@@ -456,10 +458,10 @@ function Methods:SavedSearchTarget(snapshot, settings)
         local result = {}
         for _, target in ipairs(candidates or {}) do
             local stats = self.historyStats(target.history, native.serverNow)
-            local count = daily.counts[tostring(target.userId)]
+            local count = counts[tostring(target.userId)]
             local used = count ~= nil and count ~= 0
             if settings.dailyOnly == true then
-                for _, row in ipairs(target.history) do if math.floor(row.at / 86400) == daily.day then used = true end end
+                for _, row in ipairs(target.history) do if math.floor(row.at / 86400) == today then used = true end end
             end
             local enemy = list.war.active == true and type(list.war.enemyTargets) == "table" and list.war.enemyTargets[tostring(target.userId)] == true
             if not present[target.userId] and not enemy and not (excludeHigh and highIds[target.userId])
@@ -655,12 +657,13 @@ function Methods:CanDispatchPlayer(p)
         local ok, frame = pcall(self.frameReader, self.nativeReadSource, raw.native, {target})
         local facts = ok and type(frame) == "table" and type(frame.targets) == "table" and frame.targets[tostring(i.target)]
         local cap = ok and type(frame) == "table" and frame.dailyTargetCap
-        local daily = type(raw.native) == "table" and raw.native.attackDaily
-        local count = type(daily) == "table" and type(daily.counts) == "table" and daily.counts[tostring(i.target)]
+        local readCounts = self.targetReader.dailyCounts
+        local counts = type(readCounts) == "function" and readCounts(raw.native)
+        local count = type(counts) == "table" and counts[tostring(i.target)]
         if self.closed or self.nativeReadSource.CombatFrame ~= self.frameReader or not ok or type(frame) ~= "table" or frame.busy ~= false or frame.shielded ~= false
             or frame.globalCooldown ~= 0 or type(cap) ~= "number" or cap ~= cap or cap < 1 or cap % 1 ~= 0 or cap == math.huge
             or type(facts) ~= "table" or facts.remainingDaily ~= cap or facts.manualWarning ~= false or facts.sameFamily ~= false
-            or type(daily) ~= "table" or daily.day ~= math.floor(raw.native.serverNow / 86400)
+            or type(counts) ~= "table"
             or count ~= nil and count ~= 0 then return false end
     end
     if i.highValueOnly == true and (not self.playerLedger or self.playerLedger:IsHighValue(raw, i.target) ~= true) then return false end

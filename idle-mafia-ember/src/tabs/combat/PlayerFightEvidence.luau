@@ -57,6 +57,16 @@ function Evidence.new(receipts, warReader)
         and type(receipts.Settled) == "function", "Missing native fight receipt validators")
     local result = {}
     local warAttempt = type(warReader) == "table" and warReader.readWarAttempt
+    local countsReader = type(warReader) == "table" and warReader.dailyCounts
+    local strictDaily = daily
+    local function daily(native, target)
+        if type(countsReader) ~= "function" then return strictDaily(native, target) end
+        local counts = countsReader(native)
+        if type(counts) ~= "table" then return nil end
+        local count = counts[tostring(target)]
+        if count == nil then count = 0 end
+        return integer(count, 0) and count or nil
+    end
     local function pair(initial, receipt, baseline)
         local first, last = receipts.Project(initial), receipts.Project(receipt)
         if not first or not last or first.ok ~= true or type(first.won) ~= "boolean" or first.cashStage ~= 1

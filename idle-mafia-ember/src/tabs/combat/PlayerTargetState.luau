@@ -25,6 +25,18 @@ local function dense(rows)
     return count == #rows
 end
 
+-- Native FightTab treats a retained earlier UTC bucket as unused today.
+-- This is a view only: never rewrite the Sync or the durable owned ledger.
+local function dailyCounts(native)
+    local daily = type(native) == "table" and native.attackDaily
+    if type(native) ~= "table" or not finite(native.serverNow) or type(daily) ~= "table"
+        or not integer(daily.day, 0) or type(daily.counts) ~= "table" then return nil end
+    local today = math.floor(native.serverNow / 86400)
+    if daily.day > today then return nil end
+    return daily.day == today and daily.counts or {}, today
+end
+PlayerTargetState.dailyCounts = dailyCounts
+
 local function readTargets(raw, context, rules, ownedTargets)
     if type(raw) ~= "table" or type(context) ~= "table"
         or type(rules) ~= "table" then
@@ -38,16 +50,14 @@ local function readTargets(raw, context, rules, ownedTargets)
     end
     local native, proof = raw.native, ownedTargets or raw.hitListProof
     local pools = type(native) == "table" and native.pools
-    local daily = type(native) == "table" and native.attackDaily
+    local counts = dailyCounts(native)
     if type(native) ~= "table" or native.fullSync ~= true
         or not finite(native.serverNow)
         or context.serverNow ~= native.serverNow
         or type(pools) ~= "table"
         or not finite(pools.health)
         or not finite(pools.stamina)
-        or type(daily) ~= "table"
-        or daily.day ~= math.floor(native.serverNow / 86400)
-        or type(daily.counts) ~= "table"
+        or type(counts) ~= "table"
         or type(proof) ~= "table"
         or proof.account ~= context.account
         or proof.capturedAt ~= context.capturedAt
@@ -60,7 +70,7 @@ local function readTargets(raw, context, rules, ownedTargets)
     local rows, seen = {}, {}
     for index, item in ipairs(proof.rows) do
         local key = type(item) == "table" and tostring(item.userId)
-        local count = key and daily.counts[key]
+        local count = key and counts[key]
         if type(item) ~= "table" or not integer(item.userId, 1)
             or seen[item.userId] or not nonempty(item.name)
             or not integer(item.level, 1)
