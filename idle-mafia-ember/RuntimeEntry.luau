@@ -1,6 +1,6 @@
 -- Current-client runtime: all switches start off; explicit profile autoload may enable them.
-local sourceCommit = "2b0cfcb3ea3eaa5900f7598b08a0e0a3f8e3f307"
-local manifestCommit = "49f226175b5dd66282e7061df1c8bfaa6de4370e"
+local sourceCommit = "594128c48a9160e461fc9a844ce6325915e2ecd8"
+local manifestCommit = "0392e89c2584e723fe0ad8c8165f9458bb94fb88"
 local root = "https://raw.githubusercontent.com/iiSatomi/Roblox/"
 local project = "/idle-mafia-ember/"
 local hashApi = crypt or (syn and syn.crypt)
@@ -32,7 +32,7 @@ local function pinnedModule(path, digest)
 end
 
 local manifestBytes = fetch(root .. manifestCommit .. project .. "manifest.json",
-    "c8194d409558281943a19397af271c03df29f94f04644494aea92bea1723db5c", "manifest")
+    "e77ea1b8b4f7c1400728033addcb8648b9d1ef443921ea42451ed15337a166bb", "manifest")
 local manifest = game:GetService("HttpService"):JSONDecode(manifestBytes)
 assert(manifest.releaseCommit == sourceCommit, "Manifest pin mismatch")
 
@@ -60,8 +60,8 @@ local env = {
 }
 local app, reason = ExecutorEntry.start({
     commit = sourceCommit, manifest = manifest,
-    place = "73897506680154", gameVersion = "0.26.645.1",
-    fingerprint = "7032df7733506f1f80739faca9c9d66d688d6d5a38b2a506b1e8de1fd6c22c78",
+    place = "73897506680154", gameVersion = "0.26.646.1",
+    fingerprint = "610c43e492f5fbb12e9dd38665031fefe3b6584b3a336de0203cea2e68b1bc08",
     directory = "IdleMafiaEmber",
     allowedFeatures = { jobs = true, bosses = true },
 }, {
