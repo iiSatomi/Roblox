@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "246d5399fc63f7a97f7ca1a7bc48e304bacdddc0",
+  "releaseCommit": "ee3b059b734c57e33cbb8ba40c82d6a8b790adbd",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -641,7 +641,7 @@
     {
       "id": "PlaytimeState",
       "path": "src/game/PlaytimeState.luau",
-      "sha256": "228c778e1506ef8b0a821e405dbd3484a521d5f92ea547fe9fad9ed9783ef68a",
+      "sha256": "b212b13f6ddeaf367187672cbaf06d0a8a00f83583699ac6c285c8b8d9c3c06f",
       "deps": []
     },
     {
