@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "f3322e9814fdb6617f9fe3a3168a1b68301167ec",
+  "releaseCommit": "e0d66b80c61bcfebbc3784ac531d9c3b3a25888b",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -1439,7 +1439,7 @@
     {
       "id": "MoneyTab",
       "path": "src/tabs/money/Module.luau",
-      "sha256": "4e4222b9dbfbb320dd72b96c0c557f1748a7b914b26262f3d9290411465e552b",
+      "sha256": "affd9802747b17dc26dd0b3b2378bdbb9671599addf2a5f5eb6cdddcccadb8da",
       "deps": []
     },
     {
