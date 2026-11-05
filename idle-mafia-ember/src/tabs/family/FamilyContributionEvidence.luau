@@ -39,6 +39,7 @@ function FamilyContributionEvidence.new(state)
         if not same(proposal, before) or not view or type(intent) ~= "table"
             or intent.kind ~= "familyContribution" or features[proposal.feature] ~= intent.resource
             or proposal.revision ~= before.revision or intent.actorId ~= view.actorId
+            or (intent.actorAccount ~= nil and intent.actorAccount ~= before.account)
             or intent.familyId ~= view.familyId or intent.ledgerBefore ~= view.ledger[intent.resource]
             or type(intent.amount) ~= "number" or intent.amount % 1 ~= 0 or intent.amount < 1
             or intent.amount > 1000000000000000 then return nil, "Personal Family baseline changed" end
@@ -76,7 +77,7 @@ function FamilyContributionEvidence.new(state)
             amount = intent.amount, ledger = intent.ledgerBefore, perkId = intent.perkId,
             perkLevel = intent.perkLevelBefore, progress = intent.perkProgressBefore,
             cost = intent.perkCost, serverNow = before.native.serverNow,
-            sourceKey = before.familyContributionCatalog.key }
+            sourceKey = before.familyContributionCatalog.key, nativeActor = before.native.userId }
         for _, key in ipairs({ "session", "account", "place", "release" }) do baseline[key] = before[key] end
         return baseline, nil
     end
@@ -93,7 +94,10 @@ function FamilyContributionEvidence.new(state)
             or intent.perkProgressBefore ~= baseline.progress or intent.perkCost ~= baseline.cost
             or intent.familyId ~= baseline.familyId or proposal.revision ~= baseline.revision
             or before.revision ~= baseline.revision or type(reply) ~= "table"
+            or (intent.actorAccount ~= nil and intent.actorAccount ~= baseline.account)
             or type(after.native) ~= "table" or type(after.native.family) ~= "table"
+            or ((baseline.nativeActor ~= nil or after.native.userId ~= nil)
+                and after.native.userId ~= baseline.actorId)
             or after.native.family.id ~= baseline.familyId
             or type(after.revision) ~= "number" or after.revision % 1 ~= 0 or after.revision < 0
             or type(baseline.serverNow) ~= "number" or baseline.serverNow < 0 or baseline.serverNow == math.huge

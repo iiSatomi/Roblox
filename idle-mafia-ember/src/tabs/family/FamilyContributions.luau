@@ -61,7 +61,7 @@ local function assess(spec, view, settings, reservations)
         return nil, "Family resource reserve or uncertain exposure blocks contribution"
     end
     local intent = { kind = "familyContribution", resource = spec.resource,
-        familyId = view.familyId, actorId = view.actorId, amount = settings.amount,
+        familyId = view.familyId, actorId = view.actorId, actorAccount = view.account, amount = settings.amount,
         ledgerBefore = before, reserve = settings.reserve,
         runBudget = settings.runBudget, maxAttempts = settings.maxAttempts,
         spentBefore = usage.spent, attemptsBefore = usage.attempted }

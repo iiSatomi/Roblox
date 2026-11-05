@@ -52,7 +52,7 @@ local function equal(a, b)
     return true
 end
 
-function NativeSnapshotReader.new(identity, clock, sourceKey)
+function NativeSnapshotReader.new(identity, clock, sourceKey, authoritativeOnly)
     assert(type(identity) == "table" and type(clock) == "table"
         and type(clock.Now) == "function", "Missing native reader inputs")
     local bound = {}
@@ -65,6 +65,7 @@ function NativeSnapshotReader.new(identity, clock, sourceKey)
         and sourceKey:match("^[%x]+$")), "Invalid native reader source key")
     return setmetatable({ identity = bound, clock = clock,
         sourceKey = sourceKey and sourceKey:lower() or nil,
+        authoritativeOnly = authoritativeOnly == true,
         revision = 0, data = nil, capturedAt = nil,
         fullSync = false, heistBoardProof = nil, familyTakedownProof = nil, familyContributionProof = nil,
         territoryReads = {}, closed = false }, Methods)
@@ -96,6 +97,9 @@ function Methods:ObserveSync(raw)
 end
 
 function Methods:ObserveChanged(raw)
+    -- The current client folds elapsed income, timers and pools into State.
+    -- Keep observed Sync bytes and their original age for action evidence.
+    if self.authoritativeOnly then return not self.closed and type(raw) == "table" end
     if not self.data then return false end
     return record(self, raw, false)
 end
@@ -232,10 +236,14 @@ function Methods:AttachFamilyContribution(staged)
     local native = copied(self.data)
     native.fullSync = true
     if not equal(staged.native, native) then return false end
+    local actor = native.userId
+    if actor == nil then actor = tonumber(self.identity.account) end
+    if type(actor) ~= "number" or actor ~= actor or actor < 1
+        or actor > 9007199254740991 or actor % 1 ~= 0 then return false end
     local proof = copied(staged.familyContributionProof)
     if type(proof) ~= "table" or self.sourceKey == nil or proof.sourceKey ~= self.sourceKey
         or type(proof.family) ~= "table" or type(native.family) ~= "table"
-        or proof.family.familyId ~= native.family.id or proof.family.actorId ~= tonumber(self.identity.account)
+        or proof.family.familyId ~= native.family.id or proof.family.actorId ~= actor
         or proof.revision ~= self.revision or proof.capturedAt ~= self.capturedAt then return false end
     for _, key in ipairs(identityKeys) do if proof[key] ~= self.identity[key] then return false end end
     self.familyContributionProof = proof

@@ -42,7 +42,10 @@ function FamilyContributionUsage.charge(raw, proposal)
     local intent = type(proposal) == "table" and proposal.intent
     if not usage or not resources[feature] or type(intent) ~= "table"
         or intent.kind ~= "familyContribution" or intent.resource ~= resources[feature]
-        or not integer(intent.actorId, 1, 9007199254740991) or intent.actorId ~= tonumber(proposal.account)
+        or not integer(intent.actorId, 1, 9007199254740991)
+        or not (type(proposal.account) == "string" and #proposal.account > 0 and #proposal.account <= 200)
+        or (intent.actorAccount ~= nil and intent.actorAccount ~= proposal.account)
+        or (intent.actorAccount == nil and intent.actorId ~= tonumber(proposal.account))
         or not (type(intent.familyId) == "string" and #intent.familyId > 0 and #intent.familyId <= 160
             or integer(intent.familyId, 1, 9007199254740991))
         or not integer(intent.runBudget, 0, MAX_SPENT) or not integer(intent.maxAttempts, 0, 1000) then

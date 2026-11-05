@@ -489,7 +489,7 @@ function RuntimeHost.start(deps)
             end
         end
     end
-    local created, reader = pcall(deps.NativeSnapshotReader.new, deps.identity, clock, deps.fingerprint)
+    local created, reader = pcall(deps.NativeSnapshotReader.new, deps.identity, clock, deps.fingerprint, currentClient)
     if not created or type(reader) ~= "table" then
         closeSources()
         resolver:Close()
@@ -681,11 +681,8 @@ function RuntimeHost.start(deps)
             host:Destroy()
             return nil, "Current client snapshot unavailable"
         end
-        local seeded, syncAccepted = pcall(reader.ObserveSync, reader, latest)
-        if not seeded or syncAccepted ~= true then
-            host:Destroy()
-            return nil, "Current client snapshot invalid"
-        end
+        -- State.latest includes client elapsed-income/pool projections. It is
+        -- readiness data only; the subscribed Sync event establishes evidence.
     end
     if not loop:Start() then
         host:Destroy()

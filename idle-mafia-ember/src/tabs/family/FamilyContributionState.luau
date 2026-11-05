@@ -11,6 +11,13 @@ end
 local function integer(value, low, high)
     return finite(value, low, high) and value % 1 == 0
 end
+local function actorId(snapshot)
+    local native = type(snapshot) == "table" and snapshot.native
+    if type(native) ~= "table" then return nil end
+    local actor = native.userId
+    if actor == nil then actor = tonumber(snapshot.account) end
+    return integer(actor, 1, 9007199254740991) and actor or nil
+end
 local function id(value)
     return type(value) == "string" and #value > 0 and #value <= 160
         or integer(value, 1, 9007199254740991)
@@ -117,9 +124,9 @@ end
 
 function Methods:Stage(snapshot, reply)
     local native = type(snapshot) == "table" and snapshot.native
-    local actorId = type(snapshot) == "table" and tonumber(snapshot.account)
+    local actor = actorId(snapshot)
     local family = type(reply) == "table" and reply.family
-    local parsed = FamilyContributionState.parseFamily(family, actorId)
+    local parsed = FamilyContributionState.parseFamily(family, actor)
     if not same(snapshot, snapshot) or snapshot.release ~= self.release
         or type(native) ~= "table" or native.fullSync ~= true
         or type(native.family) ~= "table" or not parsed
@@ -139,7 +146,7 @@ function FamilyContributionState.read(raw, context)
     local family = type(proof) == "table" and proof.family
     if not same(proof, context) or type(family) ~= "table"
         or not integer(family.actorId, 1, 9007199254740991)
-        or family.actorId ~= tonumber(context.account)
+        or family.actorId ~= actorId(raw)
         or type(family.ledger) ~= "table"
         or type(native) ~= "table" or native.fullSync ~= true
         or type(native.family) ~= "table" or family.familyId ~= native.family.id
