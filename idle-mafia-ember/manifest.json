@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "6ca721a28f00e5185804d47e4d3051e4970a96c9",
+  "releaseCommit": "f8eccd8663f3dd6c816f262b54d7f8d4a6ee0f2b",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -179,7 +179,7 @@
     {
       "id": "EarnedTrophiesEvidence",
       "path": "src/features/EarnedTrophiesEvidence.luau",
-      "sha256": "42f56867af895eb2722059b5afa2db10bc00de077b07a687370c0c7e6e716f56",
+      "sha256": "8f41f483b9189e6a835648fd5fdb985154782728c4c62ccc4e7a6cb7910f0aca",
       "deps": []
     },
     {
@@ -209,7 +209,7 @@
     {
       "id": "FamilyBossClaimsEvidence",
       "path": "src/features/FamilyBossClaimsEvidence.luau",
-      "sha256": "4b48f1ae4474f463d2361ad3bfbb6a961639c3fccf98dc7ce82295be4a8f21b7",
+      "sha256": "dbb99cb3cb255842770e80b094313269e771adf045178bb339e0d82b4956dbbc",
       "deps": []
     },
     {
@@ -1691,7 +1691,7 @@
     {
       "id": "TrophiesTab",
       "path": "src/tabs/trophies/Module.luau",
-      "sha256": "a1ce72b9f44bfc5428dbda14222d2c302fd3a967458573d522bd43281b3cc710",
+      "sha256": "7888c3beb7caa3f20f70e4aa1cd4b93022b5b797bc3047f1a2d329b87142e2b7",
       "deps": []
     },
     {
