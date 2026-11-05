@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "6b31ea56d93c6ceacbc340d5e3603af416c90d0d",
+  "releaseCommit": "9955f60236876f1a6f08ae19a26c0da6f65b8ed9",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -1067,7 +1067,7 @@
     {
       "id": "PlayerProfileQuery",
       "path": "src/tabs/combat/PlayerProfileQuery.luau",
-      "sha256": "9be5fe8a8159f0fc72b4dc76f061f2633c75b0e58a3b48b5f9ff892e9cdbc326",
+      "sha256": "6501e4e41e7365fce10917bf05a247cdcfd2fe1a1bbedc7afe6061cdd93c3b27",
       "deps": []
     },
     {
