@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "794c011afd2c9686307efdda8a786e5db44a7055",
+  "releaseCommit": "2b0cfcb3ea3eaa5900f7598b08a0e0a3f8e3f307",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -743,7 +743,7 @@
     {
       "id": "StorageAssembly",
       "path": "src/storage/StorageAssembly.luau",
-      "sha256": "553b7da2323ca46fa862b915fbfb173a0bf62691e820d64b9a916bf0d6a4b504",
+      "sha256": "b7e6fd0d5a0a06fa159decd82bdc7b9cb06318199d79a7778190d8096201ff40",
       "deps": []
     },
     {
