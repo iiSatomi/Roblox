@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "48fe06a857bb10f30136451ee6ada3e6d450edfc",
+  "releaseCommit": "c599ab528c7da8a042a6c8c21e360c5ea28ea8d3",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -1559,7 +1559,7 @@
     {
       "id": "NativeQuoteSource",
       "path": "src/tabs/shop/NativeQuoteSource.luau",
-      "sha256": "bcd6fbfea6c47486259b9bfa87a1161118b48f813bfb7a865d67f056b5272483",
+      "sha256": "eaea054d35d49eee1e3a5606e17a8412c91d5773cf2de8142784e09df4180f31",
       "deps": []
     },
     {
@@ -1763,7 +1763,7 @@
     {
       "id": "NativeExecutorCapabilities",
       "path": "src/transport/NativeExecutorCapabilities.luau",
-      "sha256": "77a62872b5e83ce0b6e65a3d42d86eb5a9fdbeb2867a6d60d141fc239fc5609d",
+      "sha256": "8b058edd8b76d74e40b1fc209068a68e8bdb9a3e6142f3833ce43b187da79667",
       "deps": []
     },
     {
@@ -1793,7 +1793,7 @@
     {
       "id": "RuntimeHost",
       "path": "src/transport/RuntimeHost.luau",
-      "sha256": "b33a3a1c672e355c9188192c30b7f9127b598442f5960410bdb34d1d13d86ea1",
+      "sha256": "821ac5e43e869365c8324ea26e59748fa32ab66993fe95fc1dd8cc6a24dd195f",
       "deps": []
     },
     {
