@@ -361,7 +361,7 @@ local function recallBefore(before)
         if not plain(row) then return nil end
         count = index
         crew[index] = selectedFields(row, {"name", "rarity", "healId", "train", "duty", "dutyToken", "dutyAt",
-            "injuredUntil", "recalledUntil", "training", "rolling", "dutyPending", "dutyRemapPending",
+            "injuredUntil", "recalledUntil", "training", "rolling", "recalling", "stationed", "dutyPending", "dutyRemapPending",
             "weapon", "armor", "vehicle"})
     end
     for index in pairs(native.crew) do
@@ -371,6 +371,16 @@ local function recallBefore(before)
         "territoryDistrict", "recallOwnerProof", "stationReservationProof"})
     saved.native = selectedFields(native, {"fullSync", "serverNow", "userId"})
     saved.native.family, saved.native.crew = selectedFields(native.family, {"id"}), crew
+    return saved
+end
+
+-- Ordinary stationing shares exact roster custody with Recall and also
+-- rechecks its owned map, catalog and original home/defender reservations.
+local function stationBefore(before)
+    local saved = recallBefore(before)
+    if not saved then return nil end
+    saved.recallOwnerProof = nil
+    saved.territoryMap, saved.stationCatalogProof = before.territoryMap, before.stationCatalogProof
     return saved
 end
 
@@ -449,6 +459,11 @@ local function familyBefore(before)
 end
 
 local function recoveryBefore(proposal, before)
+    if proposal.feature == "station" and type(proposal.intent) == "table"
+        and proposal.intent.kind == "territoryStation" and plain(before)
+        and plain(before.stationCatalogProof) and plain(before.territoryMap) then
+        return stationBefore(before)
+    end
     if proposal.feature == "jobs" and type(proposal.intent) == "table" and proposal.intent.kind == "job"
         and plain(before) and plain(before.jobCatalog) and plain(before.masteryRules) then
         return jobBefore(proposal, before)
