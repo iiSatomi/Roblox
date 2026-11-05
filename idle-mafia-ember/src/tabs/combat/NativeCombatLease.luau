@@ -230,11 +230,16 @@ function Methods:Close()
     return complete
 end
 
--- The two full module hashes were checked on the reviewed 653 client. Its
--- Scout generation's only writer is open's increment from the initial zero;
--- both current function fragments and all identifier uses were compared.
-local FIGHT_SOURCE = "c8999f2c92e903f6901ac22c6c5752a7993b04451faed081fda22d3daac7c9af"
-local PROFILE_SOURCE = "8329c1cff26a0cbd08e6aff6ef5919dded98e8fc9b69c189c7b5e98271a0475d"
+-- Exact reviewed fingerprints, not a claim that entire builds are equivalent.
+-- The 646 FightTab retains all six reviewed request/confirmation fragments and
+-- its busy guard. ProfilePopup is unchanged; open alone increments generation.
+local FIGHT_SOURCES = {
+    ["c8999f2c92e903f6901ac22c6c5752a7993b04451faed081fda22d3daac7c9af"] = true,
+    ["ae25c1d9065a7cbca1a75cc31bbcc6cbec3fa4c7c120a9fd7682c854ed79581f"] = true,
+}
+local PROFILE_SOURCES = {
+    ["8329c1cff26a0cbd08e6aff6ef5919dded98e8fc9b69c189c7b5e98271a0475d"] = true,
+}
 local REGISTRY = "__IDLE_MAFIA_EMBER_COMBAT_OWNER_V1"
 -- Run before NativeClientBindings captures wrappers for a new chunk. This has
 -- no authority to close an active owner, invoke a remote or change a challenge.
@@ -292,9 +297,9 @@ function NativeCombatLease.bind(deps)
         if controller.readValues ~= readValues then return nil, "Native Combat primitive reader changed" end
         if type(deps.identity) ~= "table" or controller.account ~= deps.identity.account
             or controller.place ~= deps.identity.place then return nil, "Native Combat identity changed" end
-        for _, row in ipairs({{controller.fightModule, FIGHT_SOURCE}, {controller.profileModule, PROFILE_SOURCE}}) do
+        for _, row in ipairs({{controller.fightModule, FIGHT_SOURCES}, {controller.profileModule, PROFILE_SOURCES}}) do
             local bytes = env.decompile(row[1])
-            if type(bytes) ~= "string" or env.crypt.hash(bytes, "sha256"):lower() ~= row[2] then
+            if type(bytes) ~= "string" or row[2][env.crypt.hash(bytes, "sha256"):lower()] ~= true then
                 return nil, "Unreviewed native Combat source"
             end
         end
