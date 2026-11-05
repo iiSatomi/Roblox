@@ -412,7 +412,30 @@ local function shopBefore(proposal, before)
     return saved
 end
 
+-- Family evidence reads only its scoped catalog/proofs, personal Gold custody,
+-- exact balances and member identity. Other tabs' catalogs/history are not
+-- recovery inputs and can prevent the complete native reply fitting the bound.
+local function familyBefore(before)
+    local native = type(before) == "table" and before.native
+    if not plain(before) or not plain(native) or not plain(native.family)
+        or not plain(native.pools) or not plain(native.inventory)
+        or not plain(native.inventoryBound) then return nil end
+    local saved = selectedFields(before, {"session", "account", "place", "release", "revision", "capturedAt",
+        "familyContributionCatalog", "familyContributionProof", "familyUsageProof"})
+    saved.native = selectedFields(native, {"fullSync", "serverNow", "userId", "cash"})
+    saved.native.family = selectedFields(native.family, {"id"})
+    saved.native.pools = selectedFields(native.pools, {"stamina"})
+    for _, origin in ipairs({"inventory", "inventoryBound"}) do
+        saved.native[origin] = selectedFields(native[origin], {"gold_bar"})
+    end
+    return saved
+end
+
 local function recoveryBefore(proposal, before)
+    if (proposal.feature == "familyCash" or proposal.feature == "familyGold" or proposal.feature == "familyStamina")
+        and type(proposal.intent) == "table" and proposal.intent.kind == "familyContribution" then
+        return familyBefore(before)
+    end
     if proposal.feature == "shop" and type(proposal.intent) == "table"
         and proposal.intent.kind == "shopCashBuy" then return shopBefore(proposal, before) end
     if proposal.feature == "station" and type(proposal.intent) == "table"
