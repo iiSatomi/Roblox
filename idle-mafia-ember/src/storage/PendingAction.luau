@@ -412,6 +412,23 @@ local function shopBefore(proposal, before)
     return saved
 end
 
+-- Ordinary Job evidence needs its complete quote catalog and mastery rules,
+-- original Energy and selected counters, not other tabs' maps/native history.
+local function jobBefore(proposal, before)
+    local native, id = before.native, proposal.intent.targetId
+    if not plain(native) or not plain(native.pools) or not plain(native.jobs)
+        or type(id) ~= "string" then return nil end
+    local record = native.jobs[id]
+    if record ~= nil and not plain(record) then return nil end
+    local saved = selectedFields(before, {"session", "account", "place", "release", "revision", "capturedAt",
+        "catalogKey", "jobCatalog", "masteryRules"})
+    saved.native = selectedFields(native, {"fullSync", "serverNow", "userId", "autoJob", "level"})
+    saved.native.pools = selectedFields(native.pools, {"energy"})
+    saved.native.jobs = {}
+    if record then saved.native.jobs[id] = selectedFields(record, {"completions", "masteryTier", "masteryProgress"}) end
+    return saved
+end
+
 -- Family evidence reads only its scoped catalog/proofs, personal Gold custody,
 -- exact balances and member identity. Other tabs' catalogs/history are not
 -- recovery inputs and can prevent the complete native reply fitting the bound.
@@ -432,6 +449,10 @@ local function familyBefore(before)
 end
 
 local function recoveryBefore(proposal, before)
+    if proposal.feature == "jobs" and type(proposal.intent) == "table" and proposal.intent.kind == "job"
+        and plain(before) and plain(before.jobCatalog) and plain(before.masteryRules) then
+        return jobBefore(proposal, before)
+    end
     if (proposal.feature == "familyCash" or proposal.feature == "familyGold" or proposal.feature == "familyStamina")
         and type(proposal.intent) == "table" and proposal.intent.kind == "familyContribution" then
         return familyBefore(before)
