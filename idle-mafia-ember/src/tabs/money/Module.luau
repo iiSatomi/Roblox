@@ -73,10 +73,12 @@ function Methods:Descriptors()
     local d = self.deps
     return {
         { id = "bank", reader = d.BankState,
-            planner = d.BankDeposits, evidence = d.BankDepositsEvidence },
+            planner = d.BankDeposits, evidence = d.BankDepositsEvidence,
+            recoverSaved = d.BankDepositsEvidence.recoverSaved },
         { id = "withdraw", reader = d.WithdrawalState,
             planner = d.PurposeWithdrawals,
-            evidence = d.PurposeWithdrawalsEvidence },
+            evidence = d.PurposeWithdrawalsEvidence,
+            recoverSaved = d.PurposeWithdrawalsEvidence.recoverSaved },
     }
 end
 
