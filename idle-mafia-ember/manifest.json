@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "3a309d2521594cc6f6175fe1163c444c8e3411bd",
+  "releaseCommit": "b5dbbd676a95f4399532d06b6d692ba23bcc674b",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -1283,25 +1283,25 @@
     {
       "id": "FamilyContributionEvidence",
       "path": "src/tabs/family/FamilyContributionEvidence.luau",
-      "sha256": "fd7bf997196a083542ebd6a18c2e4bb3eecde61f90c24b8b7e65c2c207183643",
+      "sha256": "e58912725a432d6fa08df8245d1d976bc00df39bc4a3e4895a551ae603be3018",
       "deps": []
     },
     {
       "id": "FamilyContributionState",
       "path": "src/tabs/family/FamilyContributionState.luau",
-      "sha256": "3472478106242ac34fc601de30c7a7b6de3cdff2b85d42befe0f5846ffad8301",
+      "sha256": "7c7d5de50de8135a42183ce258edeebef37a15a3b779970a27f1ebf0af95e2a4",
       "deps": []
     },
     {
       "id": "FamilyContributionUsage",
       "path": "src/tabs/family/FamilyContributionUsage.luau",
-      "sha256": "7cb4668feb1bb83d357d7b0df1eaef24f8e14bc8ecca4a1bb618736344bf3e46",
+      "sha256": "ea98ee94ad23d56627ee7b6482cdf2aeb840188288af7ce82f50a3eb3579224e",
       "deps": []
     },
     {
       "id": "FamilyContributions",
       "path": "src/tabs/family/FamilyContributions.luau",
-      "sha256": "c84075451cafc6b964128897197e7bfcadf1bc6c19d504f07f7ffe1f6dd1cec8",
+      "sha256": "d41f70c222aba96e22fe07495472b7981a4d7a7aa221217682826965b55273db",
       "deps": []
     },
     {
@@ -1775,7 +1775,7 @@
     {
       "id": "NativeSnapshotReader",
       "path": "src/transport/NativeSnapshotReader.luau",
-      "sha256": "b4e5bbc4d27f16d7f32bf4fcf0b6359e1d6fe1ce22273967d200141e7bab351d",
+      "sha256": "3b6103b005138f398eebc057ed0cb76773a6a1b7211f8cd92ef90dac0e69e908",
       "deps": []
     },
     {
@@ -1793,7 +1793,7 @@
     {
       "id": "RuntimeHost",
       "path": "src/transport/RuntimeHost.luau",
-      "sha256": "821ac5e43e869365c8324ea26e59748fa32ab66993fe95fc1dd8cc6a24dd195f",
+      "sha256": "99fb111ed171c2606c1d1e7b7dd0b2cf7396d9b9eb9bace5d3d929c1dd92f1ee",
       "deps": []
     },
     {
