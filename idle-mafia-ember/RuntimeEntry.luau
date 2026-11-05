@@ -1,4 +1,9 @@
 -- Current-client runtime: all switches start off; explicit profile autoload may enable them.
+local reviewedBuilds = {
+    [654] = {version="0.26.645.1", fingerprint="7032df7733506f1f80739faca9c9d66d688d6d5a38b2a506b1e8de1fd6c22c78"},
+    [655] = {version="0.26.646.1", fingerprint="610c43e492f5fbb12e9dd38665031fefe3b6584b3a336de0203cea2e68b1bc08"},
+}
+local reviewed = assert(reviewedBuilds[game.PlaceVersion], "Unreviewed Idle Mafia build")
 local sourceCommit = "3a309d2521594cc6f6175fe1163c444c8e3411bd"
 local manifestCommit = "38adba026f82ad9017b90c01b9643b90fcda3500"
 local root = "https://raw.githubusercontent.com/iiSatomi/Roblox/"
@@ -60,8 +65,8 @@ local env = {
 }
 local app, reason = ExecutorEntry.start({
     commit = sourceCommit, manifest = manifest,
-    place = "73897506680154", gameVersion = "0.26.646.1",
-    fingerprint = "610c43e492f5fbb12e9dd38665031fefe3b6584b3a336de0203cea2e68b1bc08",
+    place = "73897506680154", gameVersion = reviewed.version,
+    fingerprint = reviewed.fingerprint,
     directory = "IdleMafiaEmber",
     allowedFeatures = { jobs = true, bosses = true },
 }, {
