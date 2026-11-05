@@ -19,8 +19,9 @@ local function timestamp(value)
     return type(value) == "number" and value == value and value >= 0 and value < math.huge
 end
 
-function NativeQuoteSource.new(current, release, catalogKey)
+function NativeQuoteSource.new(current, release, catalogKey, readNative)
     if type(current) ~= "table"
+        or readNative ~= nil and type(readNative) ~= "function"
         or type(release) ~= "string" or #release == 0
         or type(catalogKey) ~= "string" or #catalogKey ~= 64
         or not catalogKey:match("^[%x]+$")
@@ -62,16 +63,16 @@ function NativeQuoteSource.new(current, release, catalogKey)
     end
     if count == 0 then return nil, "No current cash Shop offers" end
     return setmetatable({ current = current, offers = offers,
-        release = release, catalogKey = catalogKey:lower() }, Methods), nil
+        release = release, catalogKey = catalogKey:lower(),
+        call = readNative or pcall }, Methods), nil
 end
 
 function Methods:Stock(serverNow)
-    if not timestamp(serverNow)
-        or not near(self.current.clock, serverNow) then
-        return nil
-    end
-    local ok, stocked, nextAt, slot = pcall(
-        self.current.util.shopStock, self.current.gameData, serverNow)
+    if not timestamp(serverNow) then return nil end
+    local ok, stocked, nextAt, slot = self.call(function()
+        if not near(self.current.clock, serverNow) then return nil end
+        return self.current.util.shopStock(self.current.gameData, serverNow)
+    end)
     if not ok or type(stocked) ~= "table"
         or slot ~= math.floor(serverNow / 300)
         or nextAt ~= (slot + 1) * 300 then
@@ -93,12 +94,11 @@ function Methods:CashQuote(itemId, slot, raw)
         or math.floor(native.serverNow / 300) ~= slot then
         return nil
     end
-    local current, now = near(self.current.clock,
-        native.serverNow)
-    if not current then return nil end
     local family = type(native.family) == "table"
         and native.family.id or nil
-    local ok, price = pcall(function()
+    local ok, price = self.call(function()
+        local current, now = near(self.current.clock, native.serverNow)
+        if not current then return nil end
         local base = self.current.util.shopPrice(offer, slot)
         local territory = self.current.territory.fromData(
             native, "shopDiscount")

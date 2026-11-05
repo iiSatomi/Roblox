@@ -40,6 +40,24 @@ function NativeExecutorCapabilities.new(env, scheduler, http)
             return scheduler.defer(callback)
         end,
     }
+    if method(scheduler, "spawn") then
+        -- Native game helpers can lower the calling thread's UI capabilities.
+        -- Engine scheduling restores the owner context; coroutine.resume does not.
+        runtime.readNative = function(callback, ...)
+            if type(callback) ~= "function" then return false, "Invalid native read" end
+            local args, result, completed = table.pack(...), nil, false
+            local started, thread = pcall(scheduler.spawn, function()
+                result = table.pack(pcall(callback, table.unpack(args, 1, args.n)))
+                completed = true
+            end)
+            if not started then return false, thread end
+            if not completed then
+                if thread ~= nil then pcall(scheduler.cancel, thread) end
+                return false, "Native calculation yielded"
+            end
+            return table.unpack(result, 1, result.n)
+        end
+    end
     local storage = {
         isfolder = env.isfolder,
         makefolder = env.makefolder,

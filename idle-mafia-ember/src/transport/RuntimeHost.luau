@@ -449,9 +449,10 @@ function RuntimeHost.start(deps)
     if type(deps.NativeQuoteSource) == "table"
         and type(deps.NativeQuoteSource.new) == "function"
         and type(currentShop) == "table"
-        and type(deps.release) == "string" then
+        and type(deps.release) == "string"
+        and (not currentClient or type(executorRuntimeApi.readNative) == "function") then
         local ok, source = pcall(deps.NativeQuoteSource.new,
-            currentShop, deps.release, deps.fingerprint)
+            currentShop, deps.release, deps.fingerprint, executorRuntimeApi.readNative)
         if ok and type(source) == "table"
             and source.release == deps.release
             and source.catalogKey == deps.fingerprint:lower() then
