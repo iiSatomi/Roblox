@@ -208,6 +208,22 @@ function Methods:RecordScout(data, after)
     end
     local row = self.scoutOutcome(data, after)
     if type(row) ~= "table" or row.sourceKey ~= self.sourceKey then return false, "Exact numbered Scout result required" end
+    -- War permission is tied to its current roster, not ordinary lookup.
+    if self.targets.warOnly then
+        local list = self.targets:Read(after)
+        local nextCache = {}
+        for _, target in ipairs(list and list.rows or {}) do
+            local key = tostring(target.userId)
+            if self.scoutCache[key] then nextCache[key] = self.scoutCache[key] end
+            if row.target == target.userId and row.name == target.name and row.level == target.level
+                and row.familyId == target.familyId and row.at <= bound.serverNow and bound.serverNow - row.at <= 1800 then
+                row.cachedAt = bound.capturedAt
+                nextCache[key] = clone(row)
+            end
+        end
+        self.scoutCache = nextCache
+        return true, nil
+    end
     -- A confirmed result remains owned when its mutation invalidates the
     -- current list. Read still requires a fresh matching list and profile.
     local key = tostring(row.target)
