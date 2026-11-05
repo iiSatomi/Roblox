@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "c9cba9d736915099be457152a15f5703c789dbf2",
+  "releaseCommit": "21f824460ef7159aeb1f9e68e1e1b8adf40eaf4b",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -1595,7 +1595,7 @@
     {
       "id": "TerritoryTab",
       "path": "src/tabs/territory/Module.luau",
-      "sha256": "8d4afcfe1a97213dfa73adf38ae67fe61189b73d69efd4be8ba3b83008a0c3d4",
+      "sha256": "9339036ebed1495099773d79c650dbaf32b29907d949647ab4a608f6c8d13b86",
       "deps": []
     },
     {
@@ -1637,7 +1637,7 @@
     {
       "id": "Stationing",
       "path": "src/tabs/territory/Stationing.luau",
-      "sha256": "10086a48f0a84102a22a02978c1f438a6fbca57af069e9c3d65c2f839682294e",
+      "sha256": "0619fafcd70f7ad40b26a3f9a536d316295b3122e91513472699cb3cf9ac0f18",
       "deps": []
     },
     {
