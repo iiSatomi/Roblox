@@ -1,0 +1,262 @@
+{
+  "schema": 1,
+  "date": "2026-11-04",
+  "placeId": "73897506680154",
+  "placeVersion": 653,
+  "gameVersion": "0.26.644",
+  "scope": "Targeted current-client reads, one separately approved Corner Store start/collection, one separately approved exact-member Recall, and read-only saved collection recovery. Previous uncertain Heist untouched.",
+  "heist": {
+    "authorization": "One additional Corner Store start capped at10000 Cash and25 Energy, and only its collection",
+    "durationSeconds": 1200,
+    "startsSent": 1,
+    "startsConfirmed": 1,
+    "collectionsSent": 1,
+    "collectionsConfirmed": 1,
+    "phase": "confirmed_from_completed_receipt",
+    "pendingCheckpointAfterStart": 0,
+    "originalRunCaptured": true,
+    "oldUncertainRecordUntouched": true,
+    "testRoot": "IdleMafiaEmberHeistAcceptance_R13_20261104",
+    "recoveryGuard": "Durable one-test marker written/read back before each native call; no start replay",
+    "harnessCorrection": "Initial polling invalidated full Sync before any mutation. Switched to actual Sync/State.onChanged subscriptions; durable unused approval resumed without a second marker or native start.",
+    "pendingCheckpointAfterCollection": 0,
+    "collectionTerminalReceipt": {
+      "ok": true,
+      "collected": true,
+      "cash": 35000,
+      "xp": 196,
+      "xpEventMultiplier": 1
+    },
+    "resultBaseXP": 150,
+    "observedXPBefore": 19974,
+    "observedXPAfter": 20170,
+    "observedCrateAward": 1,
+    "observedGoldAward": 1,
+    "localCorrection": "Original run ID accepted; exact awarded XP uses owned terminal receipt with saved thresholds. Shared runtime rechecks late source-owned proof for the same fresh Sync header. No new mutation, status request or native controller write is used for completed-receipt recovery.",
+    "verificationLimit": "New start and collection accepted through actual App; collection reconciled from the exact saved positive receipt and complete current reward custody in a later server. No old counter adoption or replay. The older r11 unknown start remains held.",
+    "focusedTests": {
+      "actualHeistProtocolApp": 20,
+      "sharedAutomationRuntime": 65,
+      "note": "Full source results are recorded in release pins; direct evidence and broader protocol tests also run there."
+    },
+    "completedReceiptRecovery": {
+      "sourceCommit": "35ae99b657a2eeb69cf89850e7f12910b638d18e",
+      "boardReads": 2,
+      "statusRequests": 0,
+      "mutationRequests": 0,
+      "nativeControllerWrites": 0,
+      "counterUnchanged": true,
+      "exactInventoryDelta": {
+        "gold_bar": 1,
+        "crate_heist": 1
+      },
+      "xpBefore": 19974,
+      "xpAfter": 20170,
+      "currentThreshold": 34362,
+      "baselineRecaptureExact": true,
+      "nativeSourceMatched": true,
+      "boardSourceMatched": true,
+      "journalGeneration": 6,
+      "durablePending": 0,
+      "appAliveAfterClose": false,
+      "closed": true
+    }
+  },
+  "readonly": {
+    "ordinaryHitlist": {
+      "rows": 8,
+      "rowsWithExplicitStaminaQuote": 8,
+      "attacksSent": 0,
+      "scoutsSent": 0,
+      "limitation": "These current rows only; not a fabricated cost for absent quotes or War targets"
+    },
+    "war": {
+      "targetRows": 0,
+      "activeRosterAvailable": false
+    },
+    "family": {
+      "inFamily": true,
+      "stage": 6,
+      "freeUsed": 0,
+      "freeMax": 10,
+      "claimRows": 0,
+      "prospectiveHitBackBoundAvailable": false
+    },
+    "residency": {
+      "currentKind": "landlord",
+      "currentShare": 0.065,
+      "currentRentPct": 0,
+      "advertisedNewRentPct": 2,
+      "advertisedMinimumLevel": 150,
+      "currentStatus": "resident",
+      "familyLandlordTotal": 0.32,
+      "derivedLandlordTotal": 0.385,
+      "propertyLandlordBonus": 0.745,
+      "basePropertyIncomePerHour": 621874811250,
+      "limitation": "Observed current composition only; no general same-district/replacement/cap formula established and no move made"
+    },
+    "crew": {
+      "count": 33,
+      "stationed": 22,
+      "deploymentDistrictCount": 2,
+      "nativeRecallSourceMatched": true,
+      "modalInitiallyBlocked": true,
+      "modalClosedByUser": true,
+      "nativePriorActivityProvenance": false,
+      "recallsSent": 1,
+      "nextCondition": "Approved Recall complete; no unused Recall permission remains. Broader Station/Recall acceptance and historical native provenance remain separate.",
+      "freshServerNativeCounter": 0,
+      "freshServerReady": true,
+      "approvedTarget": {
+        "slot": 14,
+        "name": "Rafael \"Pockets\" Chen",
+        "district": "jade_harbor_030"
+      },
+      "recallTest": "Actual App confirmed the one approved exact target after native read-contract correction; pending0, durable attempted1, home observed, App and native controller unloaded/idle.",
+      "recallsConfirmed": 1,
+      "pendingAfterRecall": 0,
+      "authorizedAttempts": 1,
+      "appAliveAfterClose": false,
+      "nativeBusyAfterClose": false,
+      "guardAttempted": true,
+      "readsDuringAcceptedRun": 3,
+      "serverChangesBeforeSend": 1,
+      "previousUnsentGuardPreserved": true,
+      "initialReplyPending": true,
+      "matchingStatusRequests": 1,
+      "matchingStatusSettled": 1,
+      "transactionBreadcrumb": "Observed Recall transaction breadcrumb retained at close; pending checkpoint is empty and member is home. A later owner may clear the observed breadcrumb through its normal Enrich path; deletion was not claimed."
+    },
+    "prestige": {
+      "level": 88,
+      "nextRequiredLevel": 200,
+      "resetSent": false
+    },
+    "rewards": {
+      "playtimeRungsClaimed": 7,
+      "playtimeRungsTotal": 7,
+      "monthlyCalendarEnabled": false,
+      "xpStacking": "Keep guarded at user request"
+    },
+    "territoryReadContract": {
+      "build": 653,
+      "nativeTabSha256": "152e9218887f073f7839e2a512856c3fa7bf959128e5f6ad9fc79c8ba3d3cc60",
+      "nativeMapViewSha256": "bdc9c4a75873ebd3645c0c2605a033553759967029bea6ee1c0efe1e9b80f07c",
+      "configCityMaps": true,
+      "districtCatalogCity": "Jade Harbor",
+      "nativeMapCityId": "jade_harbor",
+      "mappingSource": "MW.CityMaps.BY_NAME",
+      "nativeArity": 4,
+      "mapArgs": [
+        "map",
+        "jade_harbor",
+        null,
+        null
+      ],
+      "mapNameReply": {
+        "ok": false,
+        "msg": "Choose a city."
+      },
+      "mapIdReplyOK": true,
+      "mapIdReplyCity": "jade_harbor",
+      "mapCapacityPresent": true,
+      "selectedDistrictPresent": true,
+      "districtReplyOK": true,
+      "mutationCount": 0,
+      "defaultSelection": "If cityMaps is not true, native sends nil city. Otherwise start with CityMaps.CITIES[1].id, then overwrite in native GameData.CITIES order for each mapped name where (row.level or1)<=player.level.",
+      "verificationLimit": "Corrected source-owned native mapping was used by the actual App for one approved Recall; complete feature/mixed-server acceptance remains separately gated."
+    },
+    "ordinaryProfile": {
+      "publicFields": [
+        "atk",
+        "def",
+        "crew",
+        "userId",
+        "name",
+        "level",
+        "maxLevel",
+        "familyId",
+        "serverNow"
+      ],
+      "publicStatsHiddenAbsent": true,
+      "publicScoutCostAbsent": true,
+      "publicShieldLeftAbsent": true,
+      "privateStatsHiddenObserved": true,
+      "ownerFamilyComparison": "Fresh Heist board/Profile owner ID,name,level,Family matched; a much older board level had changed. No source proof inferred from stale data.",
+      "attacksSent": 0,
+      "scoutsSent": 0
+    },
+    "cashShop": {
+      "minimumCrateRarityReviewed": 3,
+      "eligibleStockedCashCrates": 0,
+      "nativeAutoBuy": false,
+      "purchasesSent": 0,
+      "limitation": "Current read-only Cash quote review only; no conclusion about every gear, Gold or later rotation offer."
+    }
+  },
+  "legacy": {
+    "savedExtraFlags": {
+      "heistsUseBank": true,
+      "operationsUseBank": true,
+      "propertiesUseBank": true,
+      "safehouseUseBank": true,
+      "shopBuyAll": true,
+      "shopSelectedCount": 0
+    },
+    "responseOnly": {
+      "heistCollect/HeistAction": 27,
+      "familyBossClaims/FamilyBossAction": 9,
+      "familyStamina/FamilyAction": 8
+    },
+    "retainedRows": 100,
+    "historicalOutcomeProof": "Unavailable: old journal stores argument digest, no exact reply/run/controller scope; native Heist ledger tracks interactions, not start/collect receipts. Current claims/totals cannot settle old rows. No history cleared."
+  },
+  "manualRequirements": [
+    "The game moves this player automatically. Leave only the specific controls idle during a newly agreed test; no continued Crew/Recall hold is needed for the completed Recall. Capture owned receipts durably and treat automatic server changes as interruptions. No additional Heist or Recall approval remains unused.",
+    "At level200, leave the native Prestige confirmation open for quote review; do not reset before an exact outcome test is prepared.",
+    "After daily reset, leave a Cash playtime reward unclaimed for a before/after capture. Active XP stacking remains guarded.",
+    "If an existing active-War roster or Family-less character with an unclaimed historical reward becomes available, connect it; do not start a war or leave Family for this test.",
+    "Historical migration requires authoritative original outcomes and consumed allowances or an existing backup containing them; current totals and the retained lossy journal cannot establish those facts."
+  ],
+  "limitations": [
+    "No broader RuntimeEntry activation",
+    "No publication",
+    "No inference of historical cancellation or restored allowances",
+    "No Family/Global damage formula inferred from outcomes"
+  ],
+  "baselineEntry": "22b2e431dee374ea795b043a509c456e5bfd50ca",
+  "acceptedSourceCommit": "35ae99b657a2eeb69cf89850e7f12910b638d18e",
+  "candidateEntry": "5dd78d5e73a5f7becdadcdd3438577c2b8672380",
+  "allOffActualHost": {
+    "date": "2026-11-04",
+    "sourceCommit": "35ae99b657a2eeb69cf89850e7f12910b638d18e",
+    "modules": 303,
+    "startup": true,
+    "allSwitchesOff": true,
+    "inMemoryProfile": true,
+    "inMemoryAutoload": true,
+    "reload": true,
+    "destroy": true,
+    "rpcAttempts": 0,
+    "accountDiskWrites": 0,
+    "memoryFiles": 3,
+    "realFilePersistenceRetested": false,
+    "guiParent": "Native Ember PlayerGui fallback",
+    "scope": "Fresh client context, all controls disabled; this does not accept gameplay or production legacy migration.",
+    "existingGuiLimitation": {
+      "observed": "Earlier context failed before UI construction in Ember.Configure -> SetTheme while reading an existing registered GUI Parent: missing Plugin capability. A later fresh context completed using native PlayerGui fallback.",
+      "emberSha256": "0aebb331911619d0c791de1d0d3e9b2e51ead3fb4472cd038807155ad8bcf412",
+      "libraryChanged": false,
+      "capabilitiesEscalated": false,
+      "unrelatedWindowsRemoved": false,
+      "nextCondition": "Close an inaccessible existing Ember window using its own controls, or use one fresh stable client context."
+    },
+    "registeredWindowsAfterClose": 0
+  },
+  "serverTransitions": {
+    "source": "User clarification on 2026-11-04",
+    "cause": "The game moves the player automatically; user did not report an auto-rejoin/server-hopping script.",
+    "verificationLimit": "Reason reported by the user, not independently attributed to a particular native mechanism.",
+    "handling": "Treat changed server/controller identity as an interruption, preserve unresolved custody, and use only exact retained receipts for recovery. Do not require the user to disable an unreported script or replay consumed Heist/Recall approvals."
+  }
+}

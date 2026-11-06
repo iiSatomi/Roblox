@@ -15,7 +15,9 @@ function FamilyCallPlan.describe(proposal)
     if type(intent) ~= "table" or intent.kind ~= "familyContribution"
         or not integer(intent.actorId, 1, 9007199254740991)
         or not integer(intent.ledgerBefore, 0, 9007199254740991)
-        or not integer(intent.amount, 1, 1000000000000000) then
+        or not integer(intent.amount, 1, 1000000000000000)
+        or intent.allowNativeGoldPool ~= nil and (proposal.feature ~= "familyGold"
+            or type(intent.allowNativeGoldPool) ~= "boolean") then
         return nil, "Invalid personal Family contribution"
     end
     local args

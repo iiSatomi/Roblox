@@ -291,9 +291,9 @@ function CrewReplacement.new(config, fingerprint, release)
         for slot, row in ipairs(prior.roster) do
             if slot ~= intent.slot and not same(row, current.roster[slot]) then return "pending" end
         end
-        if reply.pending == true then return "pending" end
+        if reply.pending == true or reply.code == "rate_limited" then return "pending" end
         if reply.ok == false then return current.rosterSignature == prior.rosterSignature and current.cash == prior.cash and "rejected" or "pending" end
-        if reply.ok ~= true or reply.pending == true or reply.code == "rate_limited" then return "pending" end
+        if reply.ok ~= true then return "pending" end
         if intent.kind == "crewReplacementDismiss" then
             return next(target) == nil and current.cash == prior.cash and "confirmed" or "pending"
         end

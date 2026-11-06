@@ -1,0 +1,9 @@
+# Shared checkpoint stale-owner and receipt protection
+
+Every loaded checkpoint now keeps an independent bounded primitive copy of the full original stored envelope. Under the existing per-scope writer lock, Commit reads current storage and compares that envelope before any write. Successful changes replace the expected copy; stale owners fault rather than overwrite another owner's pending data, usage or request highwater. Copying rejects cycles, capabilities/metatables and oversized/deep values. Strict file-store limits still apply independently.
+
+A rejected stale comparison returns no attempted request ID. Only a call that actually reaches storage Write may expose that attempt ID, including an ambiguous committed failure. RecordUnsent still independently verifies the durable numbered main record before appending its side fact. This prevents a stale owner from minting an unsent fact for another owner's already-invoked attempt with matching intent/baseline. The added regression failed before the fix and passes after it.
+
+Full verification exposed a test double claiming successful writes while Read always returned nil. Updated that double to persist its data; all three Family outcome/refund assertions remain. Independent Luna read-only review found no additional same-loaded-owner yield/failure/ID-alias issue. The reviewer ran no tests or live actions.
+
+Parent full **1292 run, 1291 passed, one external official-analyzer skip**, 33.677 seconds; 277 unique modules/catalog matched. See m38 for Market custody and prepared-review changes included in the same final run. No live client/MCP/Stamina/spending/Git write/publication. Read/compare/write is not an OS-level atomic transaction across fresh loaded modules or processes; execution ownership and release migration remain required before final release acceptance.

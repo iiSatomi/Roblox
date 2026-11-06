@@ -517,12 +517,12 @@ function App.start(dependencies)
         if runtime then runtime:Stop() end
         return self:Refresh("Stopped; choices cleared")
     end
-    function self:Step(raw)
+    function self:Step(raw, observationOnly)
         if not self.alive then return false, "Prototype is closed" end
         if not runtime then return false, "Automation runtime unavailable" end
         local ready, reason = self:Refresh()
         if not ready then return false, reason end
-        local enabled = not self.model.paused and not self.model.stopped
+        local enabled = observationOnly ~= true and not self.model.paused and not self.model.stopped
         local settings
         if self.automationRuntime then
             settings = {
@@ -775,6 +775,7 @@ function App.start(dependencies)
                 nextReason and ("Unavailable: " .. nextReason) or nextLoad
         end or nil,
         runtimeConnected = runtime ~= nil,
+        uiParent = dependencies.uiParent,
         prestigeResetAvailable = (type(allowedFeatures) ~= "table" or allowedFeatures.prestige == true)
             and runtime ~= nil and type(runtime.SupportsPrestigeReset) == "function" and runtime:SupportsPrestigeReset(),
         allowanceAvailable = runtime ~= nil and type(runtime.SupportsAllowanceReset) == "function" and runtime:SupportsAllowanceReset(),

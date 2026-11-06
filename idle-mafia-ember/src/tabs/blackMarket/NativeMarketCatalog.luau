@@ -22,6 +22,7 @@ function NativeMarketCatalog.new(config, fingerprint, release)
         and type(release) == "string" and #release > 0
         and #release <= 200
         and integer(source.minLevel, 1, 1000000)
+        and integer(source.maxPages, 1, 5)
         and integer(source.slots, 1, 20)
         and integer(source.maxSlots, source.slots, 20)
         and integer(source.rentPerPeriod, 1, 1000)
@@ -44,7 +45,7 @@ function NativeMarketCatalog.new(config, fingerprint, release)
         floors[rarity] = value
     end
     return setmetatable({ release = release,
-        key = fingerprint:lower(), minLevel = source.minLevel,
+        key = fingerprint:lower(), minLevel = source.minLevel, maxPages = source.maxPages,
         slots = source.slots, maxSlots = source.maxSlots,
         rentPerPeriod = source.rentPerPeriod,
         rentPeriodHours = source.rentPeriodHours,

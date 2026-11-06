@@ -556,7 +556,7 @@ function Methods:Load(account, place, release)
         or not familyId(familyAttack.famId)
         or not integer(familyAttack.hits, 0)
         or familyAttack.hits > 25
-        or not integer(familyAttack.lastServerNow, 0)) then
+        or not timestamp(familyAttack.lastServerNow)) then
         self.fault = "Corrupt checkpoint"
         return nil, self.fault
     end
@@ -767,7 +767,7 @@ function Methods:Commit(records, favorUsage, bossUsage,
     end)
     if writers[writeKey] == self then writers[writeKey] = nil end
     self.writing = nil
-    if not ok or result == false then
+    if not ok or result ~= true then
         self.fault = "Checkpoint write failed"
         if requestHighwater and attempted then return false, self.fault, requestHighwater end
         return false, self.fault
@@ -1225,11 +1225,16 @@ function Methods:Save(raw, before, baseline)
             or not integer(week, 1)
             or not familyId(famId)
             or not integer(intent.stage, 1)
-            or intent.stage > 5
+            or intent.stage > 6
             or not integer(hits, 0)
-            or not integer(last, 0)
-            or not integer(now, 0)
+            or not timestamp(last)
+            or not timestamp(now)
             or not integer(intent.expectedStaminaCost, 1)
+            or (intent.uncalculatedHitBack ~= nil and intent.uncalculatedHitBack ~= true)
+            or (intent.uncalculatedHitBack == true and (intent.allowUncalculatedHitBack ~= true
+                or hits ~= 0 or intent.expectedHitBackMax ~= nil or type(intent.attackSourceKey) ~= "string"
+                or #intent.attackSourceKey ~= 64 or not intent.attackSourceKey:match("^[%x]+$")))
+            or (intent.uncalculatedHitBack ~= true and intent.allowUncalculatedHitBack ~= nil)
             or (familyAttackUsage
                 and (week < familyAttackUsage.week
                     or (week == familyAttackUsage.week
@@ -1263,6 +1268,7 @@ function Methods:Resolve(actionKey, outcome)
     local bossUsage = self.bossUsage
     local bossShopUsage = self.bossShopUsage
     local familyClaimUsage = self.familyClaimUsage
+    local familyAttackUsage = self.familyAttackUsage
     local globalAttackUsage = self.globalAttackUsage
     local globalClaimUsage = self.globalClaimUsage
     local familyContributionUsage = self.familyContributionUsage
@@ -1278,6 +1284,18 @@ function Methods:Resolve(actionKey, outcome)
     for _, record in ipairs(self.records) do
         if record.actionKey == actionKey then
             found = true
+            if outcome == "schedule_failed" and record.feature == "familyBossAttacks" then
+                local data = record.recovery and self.pendingModule and self.pendingModule.Decode(record.recovery, record)
+                local intent = data and data.proposal.intent
+                if not intent or intent.kind ~= "familyBossAttack" or data.reply ~= nil
+                    or not integer(intent.hitsBefore, 0) or not timestamp(intent.lastServerNowBefore)
+                    or not familyAttackUsage or familyAttackUsage.week ~= intent.week or familyAttackUsage.famId ~= intent.famId
+                    or familyAttackUsage.hits ~= intent.hitsBefore + 1 or familyAttackUsage.lastServerNow ~= intent.serverNow then
+                    return false, "Family unsent attack proof changed"
+                end
+                familyAttackUsage = {week = intent.week, famId = intent.famId,
+                    hits = intent.hitsBefore, lastServerNow = intent.lastServerNowBefore}
+            end
             if outcome == "schedule_failed" and record.feature == "globalBossClaim" and record.recovery then
                 local data = self.pendingModule and self.pendingModule.Decode(record.recovery, record)
                 local intent = data and data.proposal.intent
@@ -1383,6 +1401,11 @@ function Methods:Resolve(actionKey, outcome)
                     return false, "Unknown Station unsent action"
                 end -- Recall's separate transaction owner refunds only its own unsent attempt.
             end
+            if outcome == "schedule_failed" and (record.familyCharge or record.eventCharge or record.hireCharge
+                or record.rentCharge or record.chestCharge or record.shopCharge) then
+                local data = record.recovery and self.pendingModule and self.pendingModule.Decode(record.recovery, record)
+                if not data or data.reply ~= nil then return false, "Unsent allowance recovery proof changed" end
+            end
             if outcome == "schedule_failed" and record.familyCharge then
                 familyContributionUsage = self.familyUsageModule.rollback(familyContributionUsage, record.familyCharge)
                 if not familyContributionUsage then return false, "Family unsent charge changed" end
@@ -1424,7 +1447,7 @@ function Methods:Resolve(actionKey, outcome)
     return self:Commit(records, self.favorUsage,
         bossUsage, self.sabotageUsage,
         globalClaimUsage, globalAttackUsage,
-        familyClaimUsage, self.familyAttackUsage,
+        familyClaimUsage, familyAttackUsage,
         bossShopUsage, familyContributionUsage, eventShopUsage, nil, marketRentUsage,crewHireUsage,stationAttempts,residencyAttempts,playerFightUsage,prestigeAttempts,chestUsage,shopUsage)
 end
 

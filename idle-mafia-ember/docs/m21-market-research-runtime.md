@@ -1,0 +1,13 @@
+# Market research runtime — October 28
+
+Black Market now owns `MarketResearchController` when the actual clock, scoped identity and reviewed Config/GameData are present. Its three sources use the shared ReadCoordinator/ReadBudget/RequestLane: `MarketAction("browse", "all", nil, page)`, `MarketAction("rap", ids, nil, nil)` and `MarketAction("prices", id, nil, nil)`, each with arity four. No buy, list, cancel, withdraw or rent route is enabled.
+
+Existing parsers/page merger enforce five pages/500 rows, complete pagination, a ten-second page sequence, fifteen-second completed browse freshness, 120-second price/RAP caches and twenty-item RAP batches. Changed native snapshots cannot commit queued replies. Valid already-accepted read-only research may span later Syncs within those explicit cache ages; current scope/header is checked before display. Cached coverage is exposed: these are estimates, not mutation proof or guaranteed execution prices.
+
+Current selection/exclusions and thresholds feed existing settings, margin and fee/rental-term helpers. Tradability comes from reviewed GameData, preserving explicit overrides. Research examines at most 100 rows/items and labels truncation. The App report shows listing/candidate totals, price-data coverage and the leading estimated margin. Current private owned listings and demand caches supply aging suggestions only; no cancel/relist is emitted. Invalid preferences show their actual reason and make no read.
+
+Actual tab descriptors and RuntimeAssembly are connected. Eight new controller/App tests cover shared browse/RAP/history → filters/source terms → report, complete pagination, exclusions, all-off, mutation contention, stale queued native state, wrong scope, expired browse, close and owned-listing aging. Watch's obsolete static scheduler UI blocker is removed; trade blockers remain.
+
+Verification: **1171 run, 1170 passed, one external official-analyzer skip**, 26.156 seconds. Catalog matches JSON; **269 unique modules**; scoped tracked and new-file whitespace checks pass. All verification is offline/fake-client. No MCP, gameplay action, Stamina use, spending, commit or publication. Published entry remains `9da6d31`; all current-release L remains pending.
+
+Watch C/T is locally complete for this bounded research scope. Whole Market remains incomplete on durable usage/full intent recovery, actual pre-send/direct-emission/reconcile hooks, continuation ownership for old records without action keys, earned-payout allowance tracking and full trade acceptance. Next: Task 24 durable ownership/lifecycle, explicit allowance reset/release migration and goals. Preserve Territory/Combat/Heist/reward gaps.

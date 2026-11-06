@@ -1,0 +1,262 @@
+{
+  "schema": 1,
+  "date": "2026-11-04",
+  "placeId": "73897506680154",
+  "placeVersion": 654,
+  "gameVersion": "0.26.645.1",
+  "source": "User-authorized Potassium read-only native contract hashes and project-owned all-off RuntimeHost acceptance.",
+  "clientFingerprint": "7032df7733506f1f80739faca9c9d66d688d6d5a38b2a506b1e8de1fd6c22c78",
+  "serverMoveCause": {
+    "reportedByUser": "Game automatically moves the player between servers.",
+    "independentlyAttributed": false
+  },
+  "implementation": {
+    "nativeOnTeleportBound": true,
+    "shutdownStates": [
+      "RequestedFromServer",
+      "Started",
+      "WaitingForServer",
+      "InProgress"
+    ],
+    "failedWithoutDepartureIgnored": true,
+    "closedHostNeverAutoResumes": true,
+    "queuedDispatchFenced": true,
+    "physicalInvocationNotCancelled": true,
+    "exactKnownUnsentRecoveryAcrossServers": true,
+    "unknownSentActionsKeepCustody": true,
+    "noNativeCounterAdoption": true,
+    "noTeleportTriggered": true,
+    "noAutoRelaunchAdded": true
+  },
+  "localVerification": {
+    "actualAppRegressionAgainstR13": "Corrected fresh-clock cross-server unsent test fails with original r13 HeistProtocol; current focused suite passes.",
+    "scenarios": [
+      "queued Heist shutdown and exact durable unsent receipt",
+      "new-server unsent resolution without counter adoption or send",
+      "sent unknown with explicit re-enable remains held",
+      "physically in-flight Heist completion after shutdown cannot replay or mint unsent",
+      "queued Recall never emits",
+      "sent Recall new-server restart retains member custody and attempted allowance",
+      "all departure states, Failed/invalid events, duplicate/stale callbacks",
+      "subscription rejection and synchronous transfer during subscription",
+      "native current-player signal wins over caller injection; missing feed refuses startup"
+    ],
+    "focusedRuns": {
+      "heistProtocolAndApp": 34,
+      "runtimeHost": 42,
+      "nativeClientBindings": 22,
+      "recallApp": 31,
+      "recallBinding": 10
+    },
+    "full": {
+      "run": 3401,
+      "passed": 3401,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 137.706
+    }
+  },
+  "contracts": {
+    "heists": {
+      "bytes": 69223,
+      "sha256": "11e1d4138dcf5db66aa9b1f4f69d0298bd3b66f8173e13ee4b81dba8f104ec8a",
+      "matchesReviewed653": true
+    },
+    "recall": {
+      "bytes": 8904,
+      "sha256": "654dd04795595b750cfaae17169f846fc9975b08f54112f3051b07f75db781e1",
+      "matchesReviewed653": true
+    },
+    "prestigeModal": {
+      "bytes": 4497,
+      "sha256": "e08a7b50420068cea8889de24070d5b6a104cc41e1401eb25c80ac871c92ad82",
+      "matchesReviewed653": true
+    },
+    "prestigeRules": {
+      "bytes": 4554,
+      "sha256": "78551eecdbefec52d3ca92aa067e86532649fce1afde21de8ae82685122e3d11",
+      "matchesPriorHash": true,
+      "entireSourceReviewed": false
+    },
+    "combatAndConfirmationSlices": {
+      "doAttack": {
+        "sha256": "1c7a877fcf3843fa47f7529ed00cd00b60448c3c0ebcf276b98063cedffae0ed",
+        "length": 1573
+      },
+      "confirmButton": {
+        "sha256": "cf32f984ab79d702251ccda20670ac09e1e66f81807744d737afccfb2fda7664",
+        "length": 852
+      },
+      "onScout": {
+        "sha256": "fec8e8dedf629c77563783a985c6e89600c8fa2ce23b6f0dec59a3afeb0387bc",
+        "length": 1719
+      },
+      "closeModal": {
+        "sha256": "bab91dde58aa5d4fb4ae80da124e4e683fb651470aadfcddfd25e29cf6202c85",
+        "length": 1053
+      },
+      "openConfirm": {
+        "sha256": "217243e4c93d0e9f1f059e0d68e9479bf1ea0af5931fb93dc931b3ea627503a5",
+        "length": 654
+      },
+      "performAttack": {
+        "sha256": "7ecd01045ed8b0ef14683ebf0621ccf09078e8f94cf542a1ede3f05793dc47f7",
+        "length": 4538
+      }
+    },
+    "fightTab": {
+      "bytes": 109581,
+      "sha256": "c8999f2c92e903f6901ac22c6c5752a7993b04451faed081fda22d3daac7c9af",
+      "wholeModuleMatches653": false,
+      "reviewLimit": "Six used Combat/Scout/confirmation slices match prior exact hashes; no whole-module equivalence claim."
+    },
+    "playerDisplay": {
+      "bytes": 90509,
+      "display": {
+        "derived": true,
+        "raidDebuff": true,
+        "winStreak": true,
+        "income": true,
+        "moneyProduct": true
+      },
+      "moduleFound": true,
+      "sha256": "544d60e8f949d0b9a107bd9fe71c344bb0d22e7e076e1002e2df2046682b197b",
+      "build": 654
+    },
+    "familyBoss": {
+      "bytes": 130863,
+      "sha256": "cc6f96283b554f44394cc3a5a4a0194f09c28d89c61e66dc72a0a7eb9a5fd668",
+      "matchesReviewed653": true,
+      "prospectiveHitbackStillMissing": true
+    }
+  },
+  "liveHost": {
+    "destroy": true,
+    "accountDiskWrites": 0,
+    "startup": true,
+    "inMemoryAutoload": true,
+    "fingerprint": "7032df7733506f1f80739faca9c9d66d688d6d5a38b2a506b1e8de1fd6c22c78",
+    "inMemoryProfile": true,
+    "allSwitchesOff": true,
+    "configuredSources": {
+      "heistCollect": true,
+      "sabotage": true,
+      "heists": true,
+      "warCombat": true,
+      "favors": true
+    },
+    "rpcAttempts": 0,
+    "gameVersion": "0.26.645.1",
+    "reload": true,
+    "prestigeResetSent": false,
+    "memoryFiles": 3,
+    "build": 654,
+    "candidate": "r16",
+    "sourceCommit": "c599ab528c7da8a042a6c8c21e360c5ea28ea8d3",
+    "uiErrorObserved": false,
+    "uiParentFallbackObserved": true,
+    "limits": "In-memory profile/autoload/reload/unload only; no production account-file persistence. Native Ember reported PlayerGui fallback during startup; no UI operation error or RPC attempt observed."
+  },
+  "naturalTransfer": {
+    "observerStarted": true,
+    "maximumSeconds": 300,
+    "outcome": "No native transfer occurred during the300second r16 all-off Host observation. Observer and Host closed cleanly; zero RPC attempts or account-file writes. Sent-action transfer gameplay acceptance remains unconfirmed.",
+    "nativeTransferObserved": false,
+    "hostClosed": true,
+    "appClosed": true,
+    "rpcAttempts": 0,
+    "accountDiskWrites": 0,
+    "gameplayAcceptance": false,
+    "observerClosed": true,
+    "candidate": "r16"
+  },
+  "setupLimits": {
+    "allSevenPlaytimeRungsStillClaimed": false,
+    "activeXPStacking": "User chose guarded; no item consumed.",
+    "activeWar": "On user-requested hold after the2026-11-05 steering.",
+    "familylessHistory": "On user-requested hold after the2026-11-05 steering.",
+    "prestige": "On user-requested hold; no quote/reset test until user resumes.",
+    "productionDiskMigration": "The44 response-only entries were reclassified as read-only queries; older-release custody, historical usage and explicit real-file migration remain separate gates.",
+    "playtimeUpdate": "Daily reset provided new unclaimed rewards; one tier4 Cash rung claimed in the2026-11-05 fact check. Exact server formula/rounding remains unproved; see native-cash-reward-2026-11-05.json."
+  },
+  "privacy": "Only hashes, contract shapes and sanitized acceptance outcomes. No native-source captures, account/client IDs, credentials, runtime balances or paths to private account files.",
+  "nextRequirements": [
+    "Review older-release custody and consumed allowances for scoped migration; do not treat the44 read-only query receipts as unresolved mutations.",
+    "Family/Global prospective damage and residency/property income composition require authoritative evidence, not inferred formulas.",
+    "New Cash ladder observation and current user holds are in docs/native-cash-reward-2026-11-05.json; do not repeat the consumed claim."
+  ],
+  "candidateSource": "c599ab528c7da8a042a6c8c21e360c5ea28ea8d3",
+  "candidateEntry": "670a1680839d8dbf9c8862b8e0e6b2e94be15f90",
+  "favorAcceptance": {
+    "authorization": "User approved exactly one Friend/Family Favor help capped at 1 Favor and 8 Energy, followed only by result reads. No Cash, Stamina, items, start, collection or replay.",
+    "prepared": true,
+    "allSwitchesOffAtPreparation": true,
+    "preparedHarnessSha256": "882659f92a9572f347ce38ad1c05a40270e1ca192fda5f4897746053afea90d1",
+    "initialBoardRead": {
+      "eligibleRelatedRows": 5,
+      "helpFavorCost": 1,
+      "helpEnergyCost": 8,
+      "hasFavorCapacity": true,
+      "readCalls": 1,
+      "mutationCalls": 0
+    },
+    "phase": "confirmed",
+    "authorizationConsumed": true,
+    "result": {
+      "nativePending": false,
+      "outcome": "confirmed",
+      "favorCap": 1,
+      "appClosed": true,
+      "helps": 1,
+      "nativeRunning": false,
+      "pending": 0,
+      "purchaseCalls": 0,
+      "closed": true,
+      "energyCap": 8,
+      "release": "native-favor-r14-20261104",
+      "nativeCounter": 1,
+      "phase": "confirmed",
+      "guardConsumed": true,
+      "oldHeistRecordUntouched": true,
+      "staminaCalls": 0,
+      "reads": 2
+    },
+    "durableReadback": {
+      "appClosed": true,
+      "oneUseMarkerRetained": true,
+      "generation": 3,
+      "realFileReadback": true,
+      "pending": 0,
+      "attempts": 1
+    },
+    "limits": "One exact positive live case; rejection, level-up bonuses and mixed runs remain unverified. Older Heist uncertainty and production migration files were not modified."
+  },
+  "remainingSetupCheck": {
+    "source": "Fresh current-client reads on 2026-11-04; actual Sync used for Shop quote after a stale snapshot was rejected.",
+    "build": 654,
+    "gameVersion": "0.26.645.1",
+    "level": 88,
+    "claimedPlaytimeRungs": 7,
+    "unfinishedContractRows": 0,
+    "activeWarStateExposed": false,
+    "inFamily": true,
+    "monthlyCalendarEnabled": false,
+    "favorMarkerConsumed": true,
+    "favorStillSameServer": true,
+    "cashCrateQuote": {
+      "id": "crate_rare",
+      "name": "Capo's Strongbox",
+      "rarity": 3,
+      "price": 75000000,
+      "affordable": true
+    }
+  },
+  "shopAcceptance": {
+    "evidence": "docs/native-shop-acceptance-2026-11-04.json",
+    "authorizationConsumed": false,
+    "phase": "not_sent_out_of_stock",
+    "purchases": 0,
+    "isolatedAppTransferClosedWithNoSend": true
+  }
+}

@@ -39,7 +39,9 @@ local function acquire(release, registry, account, legacyRegistry)
             if rawget(registry,ownerKey)~=previous then return nil,"Execution ownership changed during replacement check" end
             if previous.writes>0 then return nil,"Existing runtime is writing; wait before replacing it" end
             previous.phase="closing"
+            previous.closingThread=coroutine.running()
             local closed=pcall(handle.Destroy,handle)
+            previous.closingThread=nil
             if not closed or handle.alive~=false then previous.phase="fault";return nil,"Existing runtime did not confirm shutdown" end
             previous.phase="closed"
         elseif previous.phase~="closed" then return nil,"Existing runtime ownership needs review"
@@ -55,7 +57,8 @@ local function guardedEnvironment(env, registry, record)
     for key,value in pairs(env) do result[key]=value end
     if type(env.writefile)=="function" then
         result.writefile=function(...)
-            if rawget(registry,ownerKey)~=record or (record.phase~="starting" and record.phase~="active") then
+            if rawget(registry,ownerKey)~=record or (record.phase~="starting" and record.phase~="active"
+                and not (record.phase=="closing" and record.closingThread==coroutine.running())) then
                 error("Execution owner changed; file write refused",0)
             end
             record.writes=record.writes+1

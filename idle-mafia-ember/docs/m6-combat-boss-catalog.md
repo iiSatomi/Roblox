@@ -1,0 +1,9 @@
+# Task 16 Combat checkpoint — city Boss and Boss Shop
+
+The current client binds `ReplicatedStorage.MW.BossStages` and `Config.BOSS` after the existing client compatibility check. The Combat tab's `NativeBossCatalog` derives stage level, HP, maximum retaliation, Stamina cost, Shop price and crate unlock from those native modules and one complete Sync. Proofs carry the Sync account and capture time. Stage work is limited to the next stage plus at most 128 earlier stages, so a high saved best stage cannot cause an unbounded scan. An unavailable city catalog leaves Global/Family Boss state independent and gives the city controls no usable proof.
+
+`CombatCallPlan` owns the six saved Boss, Global Boss and Family Boss signatures. It emits no player-target call. The existing Boss planners and send-time evidence still decide whether any call is eligible; describing a remote does not confirm server acceptance.
+
+Local evidence: synthetic current-source proof reaches the existing `BossStageState` and `BossShopState` readers; full-Sync/release failures leave no proof; bounded stage generation and Combat tab enrichment pass focused tests. The App/broker tests for Boss hits and claims remain synthetic. Full suite on October 26: **866 passed, one skipped**. Catalog check matches JSON, and manifest preflight scans **239 unique modules**. No MCP, gameplay calls, Stamina use or live verification.
+
+Remaining Task 16 work: attach bounded current Global Boss and Family Takedown board reads through Task 24's shared read owner; source those boards' account/run/week identities and exact reply confirmation. Then implement conservative target selection and separate player/war fight controllers only after an explicit opt-in and a reviewed current target/outcome contract. Do not use live Stamina while the Territory-war restriction stands.

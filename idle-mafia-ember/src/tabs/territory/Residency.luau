@@ -15,6 +15,55 @@ end
 local function text(value)
     return type(value) == "string" and #value > 0 and #value <= 120
 end
+-- Reviewed TerritoryBonusRules caps. Compare resident contributions and rent;
+-- do not manufacture the server's combined holder/resident bonus formula.
+local caps = {recruitmentLuck = 0.25, crateLuck = 0.25, shopDiscount = 0.25,
+    crewTraining = 0.5, buildDiscount = 0.25, upgradeOdds = 0.1,
+    crateLuckTotal = 1.25, recruitmentLuckTotal = 1.25}
+local function compare(raw, view, rent)
+    local result = {verified = false, bonusImproves = false, rentImproves = false,
+        previousKind = "", previousShare = 0, previousRent = 0}
+    local derived = type(raw.native) == "table" and raw.native.derived
+    local totals = type(derived) == "table" and derived.territoryBonuses
+    local cap = caps[view.kind] or 10
+    local total = type(totals) == "table" and (totals[view.kind] or 0)
+    if not number(total, 0, cap) then result.reason = "Current effective bonus is unverified"; return result end
+    result.total, result.cap = total, cap
+    local previous = derived.residency
+    if previous ~= nil and (type(previous) ~= "table" or not text(previous.d)
+        or type(previous.active) ~= "boolean" or not number(previous.rent, 0, 10)) then
+        result.reason = "Current residence terms are unverified"; return result
+    end
+    if view.elsewhere and previous == nil then result.reason = "Current residence identity is unverified"; return result end
+    if previous and previous.active then
+        if not text(previous.kind) or not number(previous.share, 0, 1) then
+            result.reason = "Current resident contribution is unverified"; return result
+        end
+        result.previousKind, result.previousShare, result.previousRent = previous.kind, previous.share, previous.rent
+        if previous.kind ~= view.kind then result.reason = "Different bonus kinds cannot be valued by this comparison"; return result end
+        if total + 1e-9 < math.min(previous.share, cap) then
+            result.reason = "Current resident contribution is not explained by the effective bonus"; return result
+        end
+        if view.share + 1e-9 < previous.share or rent > previous.rent then
+            if view.share <= previous.share + 1e-9 and rent >= previous.rent then
+                result.verified = true
+                result.reason = "Selected residence does not improve current bonus and rent"
+            else result.reason = "Bonus and rent tradeoff is unverified" end
+            return result
+        end
+        result.rentImproves = rent < previous.rent
+        result.bonusImproves = view.share > previous.share + 1e-9 and total < cap - 1e-9
+    else
+        -- A first admission still needs the explicit share/rent limits below.
+        result.bonusImproves = view.share > 0 and total < cap - 1e-9
+    end
+    result.verified = true
+    if not result.bonusImproves and not result.rentImproves then
+        result.reason = total >= cap - 1e-9 and "Selected bonus already reaches its native cap"
+            or "Selected residence has no verified improvement"
+    end
+    return result
+end
 function Residency.preview(raw, context, settings)
     local view = type(raw) == "table" and raw.residencyView
     if type(view) ~= "table" or type(view.header) ~= "table"
@@ -48,6 +97,7 @@ function Residency.preview(raw, context, settings)
     if (view.status == "resident" or view.status == "pending") and view.myRent ~= nil then
         rent = view.myRent
     end
+    local comparison = compare(raw, view, rent)
     local reason
     if view.owned ~= true then reason = "Current district ownership required"
     elseif view.status == "resident" then reason = "Already resident"
@@ -59,13 +109,19 @@ function Residency.preview(raw, context, settings)
     elseif rent > settings.maxRentPct then reason = "Rent exceeds configured property-income percentage"
     elseif view.share * 100 < settings.minSharePct then reason = "Resident bonus is below configured minimum"
     elseif view.elsewhere and not settings.allowReplace then reason = "Replacing the previous lease is disabled"
-    elseif view.admission == "request" and not settings.allowRequests then reason = "Owner-approved requests disabled" end
+    elseif view.admission == "request" and not settings.allowRequests then reason = "Owner-approved requests disabled"
+    elseif comparison.reason then reason = comparison.reason end
     return { readOnly = true, districtId = view.districtId, kind = view.kind,
         status = view.status, eligible = reason == nil, reason = reason,
         rentPct = rent, rentBasis = "property income", sharePct = view.share * 100,
         previousLeaseEnds = view.elsewhere ~= nil, previousResidence = view.elsewhere,
         requiresApproval = view.admission == "request", rollbackAvailable = false,
-        effectiveGainVerified = false,
+        effectiveGainVerified = comparison.verified and comparison.bonusImproves,
+        comparisonVerified = comparison.verified, rentImprovementVerified = comparison.verified and comparison.rentImproves,
+        previousKind = comparison.previousKind, previousSharePct = comparison.previousShare * 100,
+        previousRentPct = comparison.previousRent,
+        currentEffectivePct = comparison.total and comparison.total * 100 or nil,
+        bonusCapPct = comparison.cap and comparison.cap * 100 or nil,
         effect = view.elsewhere and "Previous residency and bonus end when the move is accepted"
             or "Resident bonus starts when admission succeeds" }, nil
 end
@@ -80,8 +136,9 @@ local function leaseFrom(native)
     local lease = type(native) == "table" and type(native.derived) == "table" and native.derived.residency
     if lease == nil then return false end
     if type(lease) ~= "table" or not text(lease.d) or not number(lease.rent, 0, 10)
-        or type(lease.active) ~= "boolean" then return nil end
-    return {d = lease.d, rent = lease.rent, active = lease.active}
+        or type(lease.active) ~= "boolean" or lease.active
+            and (not text(lease.kind) or not number(lease.share, 0, 1)) then return nil end
+    return {d = lease.d, rent = lease.rent, active = lease.active, kind = lease.kind, share = lease.share}
 end
 local headers = { "session", "account", "place", "release", "revision", "capturedAt" }
 local function same(a, b)
@@ -135,6 +192,10 @@ function Residency.propose(view, settings)
             selectedKind = preview.kind, maxRentPct = settings.maxRentPct,
             minSharePct = settings.minSharePct, allowReplace = settings.allowReplace,
             allowRequests = settings.allowRequests, policy = settings.policy or "Selected bonus",
+            candidateSharePct = preview.sharePct, previousKind = preview.previousKind,
+            previousSharePct = preview.previousSharePct, previousRentPct = preview.previousRentPct,
+            currentEffectivePct = preview.currentEffectivePct, bonusCapPct = preview.bonusCapPct,
+            bonusImproves = preview.effectiveGainVerified, rentImproves = preview.rentImprovementVerified,
             maxAttempts = settings.maxAttempts, attemptedBefore = view.attempted } }, nil
 end
 function Residency.capture(proposal, before)
@@ -171,7 +232,7 @@ local function reconcile(proposal, before, after, reply, baseline, restart)
         or not integer(after.revision, 0, 9007199254740991)
         or not (after.session == baseline.session and after.revision > baseline.revision
             or restart and after.session ~= baseline.session and after.native.serverNow > baseline.serverNow)
-        or reply.code == "rate_limited" or reply.code == "presence" then return "pending" end
+        or reply.pending == true and reply.ok ~= true or reply.code == "rate_limited" or reply.code == "presence" then return "pending" end
     for _, field in ipairs({"session", "account", "place", "release"}) do
         if proposal[field] ~= baseline[field] or before[field] ~= baseline[field]
             or (field ~= "session" or not restart) and after[field] ~= baseline[field] then return "pending" end
@@ -183,7 +244,9 @@ local function reconcile(proposal, before, after, reply, baseline, restart)
     end
     local intent, quote = baseline.intent, after.residencyView
     if reply.ok ~= true or lease == false or lease.d ~= intent.districtId or lease.rent ~= intent.rent
-        or lease.active ~= true then return "pending" end
+        or lease.active ~= true or lease.kind ~= intent.selectedKind
+        or not number(intent.candidateSharePct, 0, 100)
+        or not number(lease.share * 100, intent.candidateSharePct - 1e-9, 100) then return "pending" end
     if quote ~= nil then
         if not same(quote.header, after) or quote.districtId ~= intent.districtId or quote.owned ~= true
             or quote.status ~= "resident" or quote.kind ~= intent.selectedKind

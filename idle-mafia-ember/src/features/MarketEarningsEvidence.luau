@@ -79,12 +79,12 @@ local function reconcile(proposal, beforeHeader, after, reply, baseline, restart
         newer = integer(after.revision, 0) and timestamp(baseline.serverNow)
             and timestamp(after.native and after.native.serverNow) and after.native.serverNow > baseline.serverNow
     end
-    if earnings == nil or not newer or reply.pending == true then return "pending" end
+    if earnings == nil or not newer or reply.pending == true or reply.code == "rate_limited"
+        or reply.code == "presence" or reply.code == "busy" then return "pending" end
     local advanced = earnings == 0 and gold == baseline.gold + baseline.earnings
     if reply.ok == false then
         return earnings == baseline.earnings and gold == baseline.gold and "rejected" or "pending"
     end
-    if reply.code == "rate_limited" then return "pending" end
     if reply.ok == true and advanced then return "confirmed" end
     return "pending"
 end

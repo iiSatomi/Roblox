@@ -32,14 +32,14 @@ local function state(raw)
         or type(native.inventoryBound) ~= "table"
         or not finite(native.serverNow, 0, 9007199254740991)
         or not integer(market.shopUntil, 0, 9007199254740991)
-        or not integer(native.inventory.gold_bar, 0, 1000000000)
-        or not integer(native.inventoryBound.gold_bar, 0, 1000000000) then
+        or (native.inventory.gold_bar ~= nil and not integer(native.inventory.gold_bar, 0, 1000000000))
+        or (native.inventoryBound.gold_bar ~= nil and not integer(native.inventoryBound.gold_bar, 0, 1000000000)) then
         return nil
     end
     return { serverNow = native.serverNow,
         shopUntil = market.shopUntil,
-        loose = native.inventory.gold_bar,
-        bound = native.inventoryBound.gold_bar }
+        loose = native.inventory.gold_bar or 0,
+        bound = native.inventoryBound.gold_bar or 0 }
 end
 
 function MarketRentEvidence.capture(proposal, before)
@@ -56,8 +56,8 @@ function MarketRentEvidence.capture(proposal, before)
         return nil, "Market rental baseline mismatch"
     end
     local saved = state(before)
-    if not saved or saved.loose < intent.cost then
-        return nil, "Loose Gold unavailable for rental"
+    if not saved or saved.loose + saved.bound < intent.cost then
+        return nil, "Total Gold unavailable for rental"
     end
     return { session = proposal.session, account = proposal.account,
         place = proposal.place, release = proposal.release,
@@ -87,7 +87,8 @@ local function reconcile(proposal, beforeHeader, after, reply, baseline, restart
     if restart and type(after) == "table" and after.session ~= baseline.session then
         newer = integer(after.revision, 0, 9007199254740991) and current and current.serverNow > baseline.serverNow
     end
-    if not current or not newer or current.serverNow < baseline.serverNow or reply.pending == true then return "pending" end
+    if not current or not newer or current.serverNow < baseline.serverNow or reply.pending == true
+        or reply.code == "rate_limited" or reply.code == "presence" or reply.code == "busy" then return "pending" end
     -- Source quote extends max(now, existing expiry). Bound the unknown server
     -- processing instant by the two observed clocks; allow integer rounding.
     local earliest = math.floor(math.max(baseline.serverNow, baseline.shopUntil)) + baseline.durationSeconds
@@ -96,8 +97,8 @@ local function reconcile(proposal, beforeHeader, after, reply, baseline, restart
         and current.shopUntil > baseline.shopUntil
         and current.shopUntil >= earliest and current.shopUntil <= latest
         and current.shopUntil > current.serverNow
-        and current.loose == baseline.loose - baseline.cost
-        and current.bound == baseline.bound
+        and current.loose <= baseline.loose and current.bound <= baseline.bound
+        and baseline.loose + baseline.bound - current.loose - current.bound == baseline.cost
     if reply.ok == false then
         return current.shopUntil == baseline.shopUntil and current.loose == baseline.loose
             and current.bound == baseline.bound and "rejected" or "pending"

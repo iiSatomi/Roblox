@@ -30,18 +30,32 @@ local function roster(native)
     if type(native) ~= "table" or native.fullSync ~= true
         or not number(native.serverNow, 0, 9007199254740991)
         or type(native.crew) ~= "table" or #native.crew < 2 or #native.crew > 46 then return nil end
-    local members, seen, count = {}, {}, 0
+    local members, seen, deploymentTokens, count = {}, {}, {}, 0
     for slot, row in pairs(native.crew) do
         if not integer(slot, 1, #native.crew) or type(row) ~= "table" then return nil end
         count = count + 1
         if slot > 1 then
             if type(row.name) ~= "string" or #row.name == 0 or #row.name > 64
                 or not integer(row.rarity, 1, 20) then return nil end
-            if type(row.healId) ~= "string" or #row.healId == 0 or #row.healId > 128
-                or row.healId:find("%c") then
+            local key
+            if row.healId ~= nil then
+                if type(row.healId) ~= "string" or #row.healId == 0 or #row.healId > 128
+                    or row.healId:find("%c") then return nil end
+                key = "id:" .. row.healId
+            end
+            if row.dutyToken ~= nil then
+                if not (type(row.dutyToken) == "string" and #row.dutyToken > 0 and #row.dutyToken <= 160
+                    or integer(row.dutyToken, 1, 9007199254740991)) then return nil end
+                local token = tostring(row.dutyToken)
+                if deploymentTokens[token] then return nil end
+                deploymentTokens[token] = true
+                if not key and type(row.duty) == "string" and #row.duty > 0 and #row.duty <= 120 then
+                    key = "deployment:" .. token
+                end
+            end
+            if not key then
                 return nil, nil, "Crew slot " .. tostring(slot) .. " lacks a stable member identity"
             end
-            local key = "id:" .. row.healId
             if seen[key] then return nil, nil, "Crew member identities are duplicated" end
             seen[key] = true
             local injured, recalled, train = row.injuredUntil, row.recalledUntil, row.train

@@ -1,0 +1,13 @@
+# Event Shop durable usage — October 28
+
+Tab-owned `EventShopUsage` now charges one quoted earned-medal exposure/attempt atomically with Checkpoint's pending action, custody and full recovery data. Runtime discards caller-supplied totals and builds its six-header usage proof from storage. Bound earned medals receive an explicit `B:event_medal` claim instead of undifferentiated total inventory exposure. Actual native offer/paid-origin checks remain in the buyer/source; no paid-medal route is added.
+
+Limits persist in the same account/place/release scope after reload and normal confirmation. Rejected or uncertain invoked attempts retain conservative quoted exposure; only an exact known-unsent scheduling/cancellation resolution refunds the charge. Loading charged records without the owner, missing saved totals or corrupt scope fails closed. Merely enabling/disabling/changing profiles never resets allowance. Usage state is stored lazily, so unrelated old checkpoints gain no artificial Event Shop ledger before an attempt exists.
+
+Actual App → buyer → broker/checkpoint → fake native adapter → exact newer medal debit/item acquisition now uses the durable owner. Follow-up fake caller totals of zero cannot renew the cap. Additional tests reload the allowance and prove disabling a queued purchase refunds only its unsent charge and sends no call. Five tab-owned usage tests cover caps, extra currency, scope/copy isolation, reload/downgrade/corruption and confirmation/rejection semantics.
+
+The obsolete static UI label claiming usage was disconnected is removed. UI now shows actual runtime availability; the missing-source reader/planner still refuses to quote/send. Offer selection and attempt/spend defaults remain off/zero. Free Briefcases retain their separate controls and free-pick status.
+
+Full **1188 run, 1187 passed, one external official-analyzer skip**, 29.239 seconds. After the label correction and impossible partial-counter validation, usage/Events/UI/actual composition **81 run, 80 passed, same analyzer skip**. Preflight **271 unique modules**; catalog matches JSON; scoped/new usage-file whitespace checks pass. No Roblox/Potassium MCP, live action, Stamina use, medal spending, commit or publication; published entry remains `9da6d31`.
+
+Whole Event Shop C/T/L remains open on actual host attribute/source binding, feature-specific restart reconciliation, allowance reset/release migration and complete current-client acceptance. Mixed paid/earned origin order stays blocked. Continue Task 24 Crew/Market/recall durable lifecycle and generic restart/goal work; no saved purchase is replayed.

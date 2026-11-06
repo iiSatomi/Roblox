@@ -9,7 +9,7 @@ local function child(parent, name, class)
     return value
 end
 
-local function resolve(game, requireModule, readUpvalues)
+local function resolve(game, requireModule, readUpvalues, familyBossControllerModule)
     -- Reviewed Combat/Prestige/Player-info contracts: 648, 653 and matching 654/655 captures.
     -- Capture before State or any other require can yield; never adopt a later build.
     local placeVersion = game.PlaceVersion
@@ -206,6 +206,39 @@ local function resolve(game, requireModule, readUpvalues)
                 serverNow = serverNow}
         end}
     end
+    local currentBriefcases
+    local briefcaseRules = optionalModule("BriefcaseRules")
+    local briefcaseModule = child(mw, "BriefcaseRules", "ModuleScript")
+    local clockModule = child(mw, "ServerClock", "ModuleScript")
+    if placeVersion == 654 and game.PlaceVersion == placeVersion and briefcaseRules and briefcaseModule
+        and serverClock and clockModule and type(serverClock.now) == "function"
+        and type(mw.GetAttribute) == "function" then
+        local readLatest, readNow = state.latest, serverClock.now
+        local retired = false
+        local function currentCases()
+            if retired then return false end
+            local ok, valid = pcall(function()
+                return game.PlaceVersion == placeVersion and players.LocalPlayer == player
+                and child(scripts, "MWClient", "LocalScript") == client
+                and child(client, "State", "ModuleScript") == stateModule and state.latest == readLatest
+                and child(replicated, "MW", "Folder") == mw
+                and child(mw, "BriefcaseRules", "ModuleScript") == briefcaseModule
+                    and child(mw, "ServerClock", "ModuleScript") == clockModule and serverClock.now == readNow
+            end)
+            if not ok or valid ~= true then retired = true end
+            return not retired
+        end
+        currentBriefcases = {definition = briefcaseRules, readCurrent = function()
+            if not currentCases() then error("Native Briefcase source changed") end
+            local data, now = readLatest(), readNow()
+            if type(data) ~= "table" or not currentCases() then error("Native Briefcase state unavailable") end
+            local result = {GlobalCaseEnd = mw:GetAttribute("GlobalCaseEnd"),
+                GlobalCaseSeason = mw:GetAttribute("GlobalCaseSeason"), serverNow = now,
+                briefcase = data.briefcase}
+            if not currentCases() then error("Native Briefcase source changed during capture") end
+            return result
+        end}
+    end
     local currentGlobalBoss
     if globalBossRules and type(globalBossRules.decode) == "function"
         and type(globalBossRules.canAccess) == "function"
@@ -222,8 +255,24 @@ local function resolve(game, requireModule, readUpvalues)
     end
     local currentShop
     local currentCrateLuck
-    if territory and type(territory.crateLuck) == "function" then
-        currentCrateLuck = territory
+    if territory and type(territory.fromData) == "function"
+        and globalBuff and type(globalBuff.luck) == "function"
+        and serverClock and type(serverClock.now) == "function" then
+        local territoryModule = child(mw, "TerritoryBonusRules", "ModuleScript")
+        local buffModule = child(mw, "GlobalBuffKinds", "ModuleScript")
+        local clockModule = child(mw, "ServerClock", "ModuleScript")
+        local fromData, globalLuck, now = territory.fromData, globalBuff.luck, serverClock.now
+        currentCrateLuck = {crateLuck = function(native)
+            if players.LocalPlayer ~= player or child(replicated, "MW", "Folder") ~= mw
+                or child(mw, "TerritoryBonusRules", "ModuleScript") ~= territoryModule
+                or child(mw, "GlobalBuffKinds", "ModuleScript") ~= buffModule
+                or child(mw, "ServerClock", "ModuleScript") ~= clockModule
+                or territory.fromData ~= fromData or globalBuff.luck ~= globalLuck
+                or serverClock.now ~= now then error("Native crate luck source changed") end
+            -- Same native crateLuck expression, using already bound modules:
+            -- its nested require is unavailable from the executor's context.
+            return fromData(native, "crateLuck") + globalLuck(mw, now())
+        end}
     end
     if type(gameData.SHOP) == "table"
         and type(gameData.ITEMS_BY_ID) == "table"
@@ -791,6 +840,10 @@ local function resolve(game, requireModule, readUpvalues)
         end)
         if ok then currentPrestigeController = source end
     end
+    local currentFamilyBossController
+    if type(familyBossControllerModule) == "table" and type(familyBossControllerModule.bind) == "function" then
+        currentFamilyBossController = familyBossControllerModule.bind(game, requireModule, readUpvalues)
+    end
     local groupLookup
     if type(player.IsInGroup) == "function" then
         groupLookup = function(groupId)
@@ -799,6 +852,7 @@ local function resolve(game, requireModule, readUpvalues)
     end
     return { moduleFolder = mw, remotesFolder = remotes,
         nativeState = state, stateModule = stateModule, teleportSignal = player.OnTeleport,
+        uiParent = child(player, "PlayerGui", "PlayerGui"),
         currentDailyBuffRules = dailyBuffRules,
         config = config, gameData = gameData,
         gearSets = gearSets, combatRules = config.COMBAT,
@@ -808,16 +862,17 @@ local function resolve(game, requireModule, readUpvalues)
         currentGlobalBoss = currentGlobalBoss,
         currentFightNotifications = currentFightNotifications, currentPrestigeController = currentPrestigeController,
         nativeRemoteLink = nativeRemoteLink, currentPlayerInfo = currentPlayerInfo,
-        currentEventShop = currentEventShop,
+        currentFamilyBossController = currentFamilyBossController,
+        currentEventShop = currentEventShop, currentBriefcases = currentBriefcases,
         currentTerritorySeason = currentTerritorySeason, currentTerritoryCities = currentTerritoryCities,
         currentCrateLuck = currentCrateLuck }
 end
 
-function NativeClientBindings.read(game, requireModule, readUpvalues)
+function NativeClientBindings.read(game, requireModule, readUpvalues, familyBossControllerModule)
     if game == nil or type(requireModule) ~= "function" then
         return nil, "Missing current-client bindings"
     end
-    local ok, result = pcall(resolve, game, requireModule, readUpvalues)
+    local ok, result = pcall(resolve, game, requireModule, readUpvalues, familyBossControllerModule)
     if not ok or result == nil then
         return nil, "Current MWClient State or Remotes unavailable"
     end

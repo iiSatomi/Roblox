@@ -1,0 +1,9 @@
+# Explicit run allowance reset — October 28
+
+Settings now offers a separate review/confirm flow for the persistent Event Shop, Family Cash, Family Gold and Family Stamina run counters. It requires a paused current session, a current full scoped snapshot, no active/pending request, no storage fault and no durable item/member/funding hold. Preview expires after 30 seconds; scope/count changes, resume, close, invalid clock and reuse invalidate confirmation. Nothing in profile loading, startup or ordinary settings reapplication resets counters.
+
+Checkpoint compares the reviewed scope and totals before saving only the selected lane's counters. Other usage and configured limits remain unchanged. A yielding save blocks Resume. Success clears only that feature's completed action keys so the new allowance can be used, preserving request spacing and server retry cooldowns. No gameplay call or server-side reset is performed. Cross-release migration and feature-specific restart reconciliation remain open.
+
+New tests cover preview/confirmation, pending/held/running refusal, changed scope/totals, expired or forged tickets, one-use behavior, invalid clocks, independent counters and actual App/Settings flow. Actual Event Shop fake-client cases prove that reset enables a new allowance only after explicit Resume, a yielding save cannot resume midway and a server retry cooldown survives reset. Full **1201 run, 1200 passed, one external official-analyzer skip**, 30.026 seconds. Catalog matches JSON; **272 unique modules**, below the 512 cap.
+
+Ember control APIs were checked against the workspace reference and official [Button](https://rbx.lol/docs/ember/controls/button) and [Dropdown](https://rbx.lol/docs/ember/controls/dropdown) docs after Context7 returned no matching Roblox Ember index. No current-client UI acceptance, live action, Stamina use, spending, commit or publication. Published entry remains `9da6d31`.

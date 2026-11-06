@@ -1,0 +1,17 @@
+# Recovered-source Event Shop acquisition
+
+October 27, offline only. `EventShop-dd4873a000cf.lua` defines six rows; `EventShopTab-5c8d001aae45.lua` sends exactly `EventShopAction("buy", offer.key, 1)`. Offer keys/prices in medals: `crate_event` 15, `crate_surpriseparty` 500, `gold` 3, `consumables` 6, `insurance` 15 and `skillreset` 20. This acquires the configured inventory item/crate. Crate opening, Gold spending, insurance use and skill resets are separate actions and are not performed.
+
+`NativeEventShopSource.new(definition, readAttributes, fingerprint, release)` copies bounded current rows and owns generation/header-bound `Enrich`, `Read` and `Close`. The callback supplies native `GlobalEventShop`, `GlobalEventShopEnd` and `MWPaidRandomRestricted`. Malformed attributes, reentrant capture/header changes, stale generations and closed source cannot provide current proof. Factory/optional attachment live in Events; unavailable shop attributes do not block free Briefcases. Task 24 owns actual callback binding and source identity/compatibility review.
+
+`EventShopBuyer.new(source)` provides read/planner/capture/evidence; its static call description constructs only the saved purchase. Controls select one native offer, medal reserve, max spend and max attempts. The feature defaults off; attempt/spend caps default zero. Proposal requires snapshot-matched durable usage `{attempted, spent}` from the future shared owner; no local zero counter is manufactured.
+
+Only `paidMedals == 0` is supported. Native medals are in `inventoryBound.event_medal`; an absent paid marker uses the native zero default. Mixed/paid custody remains blocked because server debit ordering is absent. Earned-only balances fit the native restricted-crate spendable balance without changing policy or entitlement.
+
+Capture replans quote, source generation, custody, usage and caps, keeping a copied baseline. Confirmation requires positive nonpending/non-rate-limited reply, newer full Sync, exact bound-medal debit with loose medals unchanged, and exactly the configured acquisition count across loose/bound reward custody. No destination bucket is invented. Other inventory changes leave attribution unconfirmed. Rejected replies with changed custody stay pending. Source/offer drift, uncertainty and late callbacks cannot become successful replay.
+
+Event Shop suite: **15 passed**. Combined Events/host/UI/composition: **93 run, 92 passed, one analyzer skip**. Parent combined native-plan/Crew/Events: **131 run, 130 passed, one skip**. The App → shared broker → fake native adapter scenario requires actual configured item and medal movement; reply alone does not confirm. Final full regression is recorded in the master plan/handoff.
+
+The package now has 258 modules. A whole-bundle failure exposed the old 256 cap, so this capacity-only prerequisite moved forward: loader and builder consistently permit 512, with 512-accepted/513-refused tests and zero fetch/compile for an oversized manifest. Loader/builder/full-inert-bundle suite: **22 passed**; preflight scans **258 unique modules**. Gameplay coordination remains in Task 24.
+
+Whole Event Shop C/T/L remains open until actual attribute/source binding, durable sent usage including unknown attempts, full-intent/baseline recovery and reservations are connected. Runtime without the injected source retains the blocked fallback. No MCP, live purchase, medal use, real-money purchase, reward consumption, commit or publication occurred.

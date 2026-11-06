@@ -1,0 +1,427 @@
+{
+  "schema": 1,
+  "date": "2026-11-03",
+  "placeId": "73897506680154",
+  "placeVersion": 653,
+  "gameVersion": "0.26.644",
+  "scope": "Read-only contract hashes/shape checks, native Family browse and isolated actual Ember UI. No gameplay mutation, Stamina use, boost, reset, native callback/flag modification or challenge handling.",
+  "clientFingerprint": "e763ddd36b6ee5dfc754512b3106d207f13d01d1ce23d8a2a2ae42cf7eed8edb",
+  "ember": {
+    "url": "https://rbx.lol/ember.lua",
+    "bytes": 299145,
+    "sha256": "0aebb331911619d0c791de1d0d3e9b2e51ead3fb4472cd038807155ad8bcf412",
+    "review": "Only Slider editable numeric readout differs from previous reviewed source. Hub defines no Sliders. Independent review found bytes outside Slider unchanged.",
+    "continuationSourceHashUnchanged": true
+  },
+  "ui": {
+    "actualApp": true,
+    "actualEmber": true,
+    "runtimeActive": false,
+    "fileStorageActive": false,
+    "allGameSwitchesOff": true,
+    "allianceSubPages": true,
+    "directoryRows": 152,
+    "stableIdsSet": true,
+    "enemyModeSet": true,
+    "stopPreservesLists": true,
+    "inMemoryProfileRoundtrip": true,
+    "playerTabExists": true,
+    "destroyConfirmed": true,
+    "durableProfilesVerified": false,
+    "autoloadVerified": false,
+    "gameplayVerified": false
+  },
+  "contracts": {
+    "matchedPriorCombatAndConfirmationHashes": [
+      {
+        "name": "performAttack",
+        "module": "FightTab",
+        "prefix": "local function performAttack(u188) -- Line: 853",
+        "length": 4538,
+        "sha256": "7ecd01045ed8b0ef14683ebf0621ccf09078e8f94cf542a1ede3f05793dc47f7"
+      },
+      {
+        "name": "doAttack",
+        "module": "FightTab",
+        "prefix": "local function doAttack(u196) -- Line: 946",
+        "length": 1573,
+        "sha256": "1c7a877fcf3843fa47f7529ed00cd00b60448c3c0ebcf276b98063cedffae0ed"
+      },
+      {
+        "name": "onScout",
+        "module": "ProfilePopup",
+        "prefix": "local function onScout() -- Line: 767",
+        "length": 1719,
+        "sha256": "fec8e8dedf629c77563783a985c6e89600c8fa2ce23b6f0dec59a3afeb0387bc"
+      },
+      {
+        "name": "local function openConfirm",
+        "module": "FightTab",
+        "prefix": " end;",
+        "length": 654,
+        "sha256": "217243e4c93d0e9f1f059e0d68e9479bf1ea0af5931fb93dc931b3ea627503a5"
+      },
+      {
+        "name": "ConfirmModal.ConfirmButton.Activated",
+        "module": "FightTab",
+        "prefix": "39();",
+        "length": 852,
+        "sha256": "cf32f984ab79d702251ccda20670ac09e1e66f81807744d737afccfb2fda7664"
+      },
+      {
+        "name": "local function closeModal",
+        "module": "FightTab",
+        "prefix": "sible = true;",
+        "length": 1053,
+        "sha256": "bab91dde58aa5d4fb4ae80da124e4e683fb651470aadfcddfd25e29cf6202c85"
+      }
+    ],
+    "prestigeModal": {
+      "bytes": 4497,
+      "sha256": "e08a7b50420068cea8889de24070d5b6a104cc41e1401eb25c80ac871c92ad82",
+      "matches648": true
+    },
+    "fightTab": {
+      "bytes": 109581,
+      "sha256": "ae25c1d9065a7cbca1a75cc31bbcc6cbec3fa4c7c120a9fd7682c854ed79581f"
+    },
+    "prestigeRules": {
+      "bytes": 4554,
+      "sha256": "78551eecdbefec52d3ca92aa067e86532649fce1afde21de8ae82685122e3d11",
+      "entireSourceReviewed": false
+    },
+    "combatUpvalueTypesAndContextsMatch": true,
+    "scoutUpvalueTypesAndStateMatch": true,
+    "playerInfo": {
+      "propertyDisplayPathMatches648": true,
+      "attackDefenseIncomeNumbers": true,
+      "propertiesAndLotsTables": true,
+      "catalogRows": 36,
+      "newBindingLiveVerified": true,
+      "trustScoreNewlyEstablished": false
+    },
+    "newCombatPrestigeBindingLiveVerified": true
+  },
+  "remainingContracts": {
+    "heists": {
+      "bytes": 69223,
+      "sha256": "11e1d4138dcf5db66aa9b1f4f69d0298bd3b66f8173e13ee4b81dba8f104ec8a",
+      "exports": [
+        "init",
+        "onShow"
+      ],
+      "native120SecondLoopAndNoPendingReplayStillPresent": true,
+      "missing": "Exclusive native/hub allocator and bounded lifecycle, stable correlated run/result/status."
+    },
+    "recall": {
+      "bytes": 8904,
+      "sha256": "654dd04795595b750cfaae17169f846fc9975b08f54112f3051b07f75db781e1",
+      "exports": [
+        "onChanged",
+        "busy",
+        "isPending",
+        "targets",
+        "start",
+        "confirm",
+        "init"
+      ],
+      "publicLeaseOrAbortObserved": false,
+      "missing": "Exclusive allocator/controller with bounded disable/unload/retry lifecycle."
+    },
+    "familyBossView": {
+      "bytes": 130863,
+      "sha256": "cc6f96283b554f44394cc3a5a4a0194f09c28d89c61e66dc72a0a7eb9a5fd668",
+      "hashOnly": true,
+      "prospectiveHitbackBoundStillMissing": true
+    },
+    "rewards": {
+      "monthlyEnabled": false,
+      "allSevenCurrentLadderRungsClaimed": true,
+      "cashDefinitionStillMinutesOrFlat": true,
+      "exactIncomeBaseAndRoundingEstablished": false,
+      "activeXpStacking": "User chose guarded; no item consumed."
+    },
+    "setups": {
+      "activeWarAvailable": false,
+      "familylessHistoricalRewardAvailable": false,
+      "notRecreated": true
+    },
+    "release": "Historical action/custody/allowance reconciliation and mixed-feature executable acceptance remain. UI-only test is not a migration bypass or functional release acceptance."
+  },
+  "approvalReview": {
+    "fullNativeSourceExportRejected": true,
+    "sourceFragmentTransferRejected": true,
+    "hashComparisonAllowedAndCompleted": true,
+    "projectNativeClientBindingsTransferRejected": true,
+    "specificReadOnlyModuleCheckApprovalRequested": false,
+    "specificReadOnlyModuleCheckApproved": true,
+    "heistExcerpt73LinesRejected": true,
+    "oneNativeHeistStartRejected": true,
+    "requestedHeistTest": {
+      "id": "heist_cornerstore",
+      "cash": 10000,
+      "energy": 25,
+      "approvalPending": false,
+      "approved": true
+    },
+    "projectNativeClientBindingsRejectionResolved": true
+  },
+  "privacy": "No client IDs, account identifiers, private config, runtime balances, credentials or native full source retained in this acquisition record.",
+  "latestApprovedBindingCheck": {
+    "placeVersion": 653,
+    "combatCanAttackGuard": true,
+    "attackSent": false,
+    "prestigeRead": true,
+    "prestigeCloseFenced": true,
+    "resetSent": false,
+    "playerInfoCurrent": true,
+    "propertyMultiplierAndCatalogPresent": true
+  },
+  "heistContinuation": {
+    "build": 653,
+    "boardIdle": true,
+    "noMineOrResult": true,
+    "nativeAllocationObserved": {
+      "action": "ledger",
+      "argument": null,
+      "sequenceIncrement": 1,
+      "nativeControllerUsed": true,
+      "privateFlagsModified": false
+    },
+    "ledgerUiRows": 200,
+    "rawTerminalReplyCaptured": false,
+    "startSent": false,
+    "cashSpent": 0,
+    "energySpent": 0,
+    "nativeTestModalsClosed": true,
+    "remaining": "Native mutation run/result identity,exclusive bounded lifecycle and restart semantics remain unverified; no sequence allocator was invented.",
+    "latestApprovedTestPreflight": {
+      "build": 653,
+      "nativeControllerCount": 1,
+      "nativePending": false,
+      "nativeBusy": false,
+      "startsLeft": 0,
+      "minePresent": false,
+      "resultPresent": false,
+      "quote": {
+        "id": "heist_cornerstore",
+        "stake": 10000,
+        "energy": 25,
+        "duration": 1200
+      },
+      "testSent": false,
+      "cashSpent": 0,
+      "energySpent": 0,
+      "blocker": "Current board reports no remaining starts; approved test deferred until allowance is available.",
+      "continuationRecheck": {
+        "placeVersion": 653,
+        "ok": true,
+        "startsLeft": 0,
+        "minePresent": false,
+        "resultPresent": false,
+        "bustWait": 0,
+        "testSent": false,
+        "cashSpent": 0,
+        "energySpent": 0
+      }
+    },
+    "quoteProviderReadCheck": {
+      "build": 653,
+      "nativeRows": 7,
+      "helpQuoteRows": 7,
+      "completeSelectionQuoteRows": 7,
+      "publicFieldsOnly": true,
+      "projectProviderSourceSha256": "379eceb5d6edebfa75e37a79607fbb0ea80a38978bd0069e55c6c2cc3d192fa3",
+      "syntheticScopeRead": true,
+      "nativeGameCalls": 0,
+      "sourceModuleExecuted": true,
+      "noFileWrites": true,
+      "sourceHashForm": "UTF-8 text with LF newlines, as transferred"
+    }
+  },
+  "latestFractionalReserveCheck": {
+    "placeVersion": 653,
+    "sourceSha256": "5c92e8b11621b8a994d5a43436452bac6545adbcb827301167144de53180bdf6",
+    "scope": "Actual current project NativeClientBindings, CanAttack read-only; synthetic target1; no attack/Scout dispatch",
+    "fractionalReserve": 0.5,
+    "guardAccepted": true,
+    "overMaximumReserveRejected": true,
+    "gameplaySent": false
+  },
+  "readinessContinuation": {
+    "build": 653,
+    "bossQuotes": {
+      "source": "Native BossStages.get and GameData.ITEMS_BY_ID public tables",
+      "fields": [
+        "stage",
+        "level",
+        "hp",
+        "hitBackMax",
+        "cash",
+        "xp",
+        "crate",
+        "firstClearCrate",
+        "mostWanted"
+      ],
+      "maxStage": 100000,
+      "samples": [
+        {
+          "stage": 1,
+          "level": 7,
+          "hp": 40,
+          "hitBackMax": 4,
+          "cash": 4000,
+          "xp": 120,
+          "crate": "crate_loot",
+          "mostWanted": false
+        },
+        {
+          "stage": 2,
+          "level": 13,
+          "hp": 90,
+          "hitBackMax": 6,
+          "cash": 10000,
+          "xp": 220,
+          "crate": "crate_loot",
+          "mostWanted": false
+        },
+        {
+          "stage": 10,
+          "level": 60,
+          "hp": 15400,
+          "hitBackMax": 19,
+          "cash": 700000,
+          "xp": 3400,
+          "crate": "crate_smuggler",
+          "mostWanted": false
+        }
+      ],
+      "formulaEquivalenceVerified": false,
+      "currentSourceBytes": 8405,
+      "currentSourceSha256": "c9574628935989eb47c4b26b21b70801db632fabc4b373b32bd1a2f3dd6e53b7",
+      "savedSourceSha256": "cc2be392538ddfc86d437b7127e6240f2b43714d7ef17dba35ab6d6e8ddefdba",
+      "commentAndBlankLineNormalizedHashesAlsoDiffer": true,
+      "specificGetSourceInspectionApprovalPending": false,
+      "automaticReviewRejectedReason": "Export of up to4200 characters of proprietary decompiled game code; broad inspection approval insufficient.",
+      "specificGetSourceInspectionApproved": true,
+      "getSourceInspected": true,
+      "getSourcePath": "docs/native-source/2026-11-03/BossStages-get.luau",
+      "publicConstants": {
+        "CITY_STAGES": 32,
+        "CITY_XP_MULT": 1,
+        "MAX_STAGE": 100000,
+        "MW_TIER_XP_STEP": 0.07,
+        "MOST_WANTED": {
+          "DON_CRATE": "crate_boss",
+          "DON_HP_MULT": 12,
+          "HP_MULT": 8,
+          "LINEAR_GROWTH": 0.02,
+          "DEF_GROWTH": 1.04
+        },
+        "MW_BASE": {
+          "hitBackMin": 32,
+          "hitBackMax": 47,
+          "xp": 66177.8125
+        }
+      },
+      "finalCatalogCheck": {
+        "sourceCommit": "6d506b085a68ae07b1071ab30d409d5c993b11c2",
+        "sourceSha256": "78499e781b72a41a921481103788acb3b6f8f6e09e5630c5254ad603c4c50a70",
+        "actualFullSyncObserved": true,
+        "modes": 6,
+        "maximumNativeWinnerQuotes": 1,
+        "observerDisconnected": true,
+        "gameplaySent": false
+      }
+    },
+    "legacyStorage": {
+      "observed": true,
+      "settingsVersion": 17,
+      "configsVersion": 1,
+      "journalVersion": 1,
+      "journalRetainedRows": 100,
+      "journalNextId": 351932,
+      "journalIsCompleteHistory": false,
+      "marketMemoryPresent": true,
+      "highValueTargets": 354,
+      "combatEvidencePresent": true,
+      "marketFlipFilePresent": false,
+      "marketSellFilePresent": false,
+      "propertyReviewFilePresent": false,
+      "gearPlanFilePresent": false,
+      "fluentGlobalRegistryObserved": false,
+      "emberGlobalRegistryObserved": false,
+      "absenceIsRetirementOrCustodyProof": false,
+      "privateValuesExported": false,
+      "retainedJournalStates": {
+        "confirmed": 56,
+        "response_received": 44
+      },
+      "responseReceivedIsConfirmation": false,
+      "retainedJournalFeatures": {
+        "shop": 14,
+        "heistCollect": 22,
+        "chests": 1,
+        "familyBossAttacks": 6,
+        "bank": 35,
+        "familyBossClaims": 8,
+        "familyStamina": 9,
+        "collectionDonate": 5
+      }
+    },
+    "gameplaySent": false,
+    "accountFilesWritten": false,
+    "savedStateReview": {
+      "build": 653,
+      "sourceSha256": "61e081bcfe00933822f8c2d9980ce7cbde14a67b3241dcef8f43daede6b4d8d5",
+      "actualAppSourceSha256": "0c90b4311e5068b22473bf88d999560155d19018d9e57117d5076df4e2c3fba3",
+      "directReaderPassed": true,
+      "actualInertEmberAppPassed": true,
+      "nativeGameplayConnected": false,
+      "startupAccountReads": 0,
+      "explicitReviewFileReads": 20,
+      "bytesRead": 1915900,
+      "rows": 14,
+      "filesWritten": 0,
+      "sequentialRecheckMatched": true,
+      "atomicSnapshotClaimed": false,
+      "activated": false,
+      "paginationProjected": true,
+      "uiDegraded": false,
+      "closed": true,
+      "closedReviewRefused": true,
+      "legacyUnsetDayRegressionFixed": true,
+      "legacyJournalRetained": 100,
+      "legacyJournalUnsettled": 44,
+      "oldEmberCheckpointObserved": true,
+      "oldEmberCustodyOrUsageResolved": false,
+      "privateValuesExported": false
+    },
+    "globalBossCooldown": {
+      "build": 653,
+      "source": "ReplicatedStorage.MW.GlobalBossRules.ATTACK_COOLDOWN",
+      "value": 1.25,
+      "nativeMutationSent": false,
+      "meaning": "Public current-client cooldown value; no attack outcome or prospective damage bound inferred.",
+      "updatedProviderLiveCheck": {
+        "realSyncObserved": true,
+        "sourceTextSha256": "3bcaa6d8ea728e0f99addbc202c4379594015cf7dae04d95c828cff0383b30bd",
+        "cooldownStatus": "known",
+        "cooldown": 1.25,
+        "eventTableDecoded": true,
+        "observerDisconnected": true,
+        "providerClosed": true,
+        "attackOrClaimSent": false
+      }
+    },
+    "setupRecheck": {
+      "build": 653,
+      "source": "Current native State.latest replicated snapshot",
+      "inFamily": true,
+      "derivedWarPresent": false,
+      "activeWarObserved": false,
+      "familylessHistoricalSetupAvailable": false,
+      "remoteMutationSent": false
+    }
+  }
+}

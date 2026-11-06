@@ -1,0 +1,99 @@
+{
+  "dateUtc": "2026-11-05",
+  "build": 654,
+  "gameVersion": "0.26.645.1",
+  "scope": "One free Cash ladder rung after the user reported daily reset/readiness; no other claims or spending.",
+  "source": "Current native ClaimLadder wrapper via owned RequestLane/NativeRemoteResolver, with actual native Sync observations and a durable one-use marker.",
+  "preparedHarnessSha256": "9bd113852b6ac8a55dcb73ddc7a4b0c287abe3d2f8a23fab43fd9f6e9d6e1f7a",
+  "nativeSourceHashes": {
+    "DailyRewards": "0695223d5895bef76f7d299a397f2d111204db3d63ac3edc5ca91eeb651ab691",
+    "SafehouseTab": "c191a0fedba6cc94e188d32b1ce2195a7dddcc0b7004c10a79877a7d54ca6fc4"
+  },
+  "selection": {
+    "index": 1,
+    "tier": 4,
+    "minutes": 60,
+    "currentLevel": 88,
+    "highestLevel": 217,
+    "thresholds": [
+      1,
+      10,
+      30,
+      102
+    ],
+    "initialClaimed": false,
+    "ready": true
+  },
+  "result": {
+    "sends": 1,
+    "reply": {
+      "ok": true,
+      "robux": false
+    },
+    "claimedTier": 4,
+    "observedCashDelta": 1243749622499.9998,
+    "derivedIncomePerHour": 621874811250,
+    "doublePropertyIncomePass": true,
+    "configDoubleIncomeMultiplier": 2,
+    "phase": "claim_observed",
+    "closed": true,
+    "bankWithdrawals": 0,
+    "otherClaims": 0,
+    "staminaSpent": 0
+  },
+  "durableReadback": {
+    "markerConsumed": true,
+    "beforeSaved": true,
+    "afterSaved": true,
+    "replySaved": true,
+    "testRoot": "IdleMafiaEmberCashRewardAcceptance_R17_20261105",
+    "noReplay": true,
+    "testOwnerRemoved": true
+  },
+  "verificationLimits": [
+    "Reply has no exact Cash award field; observed amount is consistent with60minutes of the derived hourly income doubled for the owned income pass, up to wallet floating-point representation. This single observation does not establish the server formula or general rounding.",
+    "Income-based automatic Cash claims remain guarded; active XP stacking remains user-guarded.",
+    "This was a native fact-acquisition claim, not current-source App acceptance of income-based Cash."
+  ],
+  "localCorrection": {
+    "file": "src/tabs/rewards/RewardEffects.luau",
+    "behavior": "Known fixed Cash awards compare resulting wallet to baseline plus exact configured amount. Subtraction could cancel fractional precision at large balances. No tolerance or inferred income formula added.",
+    "reproducedFailures": 3,
+    "focusedPassed": 39,
+    "newRegressions": 3,
+    "includesActualAppAndSavedRecovery": true
+  },
+  "userHolds": [
+    "Prestige quote/reset acceptance until user resumes",
+    "Active-War setup/gameplay and Family-less historical-reward setup until user resumes"
+  ],
+  "historicalJournal": {
+    "responseReceived": 44,
+    "byFeature": {
+      "heistCollect": 27,
+      "familyBossClaims": 9,
+      "familyStamina": 8
+    },
+    "meaning": "Corrected by the later local/connected log review: these are27 Heist board reads,9 Family boss state reads and8 Family info reads. Owning feature labels had been mistaken for mutation verbs.",
+    "scope": "No44 missing mutation receipts are required. Incomplete historical usage and older-release Ember custody still need scoped migration review.",
+    "correctionEvidence": "docs/local-potassium-log-review-2026-11-05.json"
+  },
+  "privacy": "No full wallet balances, account identifiers, credentials, raw private native source or journal rows included.",
+  "candidateSource": "2b0cfcb3ea3eaa5900f7598b08a0e0a3f8e3f307",
+  "candidateEntry": "b083ab4fd60076957a254d8cbde677581dfd9e9d",
+  "localVerification": {
+    "source": {
+      "run": 3412,
+      "passed": 3412,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 139.176
+    },
+    "package": null,
+    "compiledFiles": 309,
+    "modules": 303,
+    "previewTests": 12,
+    "officialAnalyzer": "App/wrapper old and new solvers passed"
+  }
+}

@@ -66,6 +66,9 @@ function ContractGoalRequests.derive(view, settings)
                 and settings.borrowCollect == true then
                 route = { "operations", "collect" }
                 metric = "collectedOperations"
+            elseif row.key == "hires" and settings.borrowHires == true then
+                route = { "crewHire" }
+                metric = "completedHires"
             elseif row.key == "heiststarts" and settings.borrowHeists == true then
                 route = { "heists" }
                 metric = "startedHeists"

@@ -1,0 +1,890 @@
+{
+  "schema": 1,
+  "date": "2026-11-05",
+  "sourceCommit": "b5dbbd676a95f4399532d06b6d692ba23bcc674b",
+  "entryCommit": "37fba4c0586ab57ca0322fd9f694eea429e41e2b",
+  "nativeBuild": 654,
+  "implemented": {
+    "familyIdentity": "Separate account-name scope from native numeric userId; bind actorAccount; check receipt actor; retain numeric historical scope compatibility.",
+    "observedSync": "Current-client Host waits for actual Sync. State.onChanged projections do not overwrite authoritative bytes or extend their age. Generic integration keeps its prior conservative Changed behavior."
+  },
+  "sourceEvidence": {
+    "stateModule": {
+      "bytes": 1457,
+      "sha256": "ecf7ea6719128e64d151817e5ad61233ebb43960c99773c832d92742c43b405c"
+    },
+    "mwClient": {
+      "bytes": 35152,
+      "sha256": "3625ea29444cc461233b287ee1c418ed40ef50f8123676576c7852a6c1c4405c"
+    },
+    "limits": "Targeted local source inspection only; native source excluded from distribution. Client Income/Pools handlers mutate cached state and elapsed timers."
+  },
+  "local": {
+    "source": {
+      "run": 3425,
+      "passed": 3425,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 165.574
+    },
+    "package": null,
+    "compiledFiles": 309,
+    "modules": 303,
+    "previewTests": 12,
+    "officialAnalyzer": "App/wrapper old and new solvers passed"
+  },
+  "live": {
+    "scope": "Actual current-client full Host, isolated real-file acceptance directory; broad latest completion-test approval",
+    "ownedHeistCollectionsSent": 1,
+    "ownedHeistCollectionsConfirmed": 1,
+    "operationCollectionsSent": 3,
+    "operationCollectionsConfirmed": 3,
+    "jobsSent": 3,
+    "jobsConfirmed": 3,
+    "pendingAfter": 0,
+    "closed": true,
+    "familyCashSent": 0,
+    "familyReadRemaining": "Read source refused reply; parse actual info shape next",
+    "productionFilesUnchangedByThisRun": true
+  },
+  "earlierProductionScope": {
+    "release": "3a309d2521594cc6f6175fe1163c444c8e3411bd",
+    "heldFeature": "operations",
+    "heldRecords": 1,
+    "reservedCash": 200,
+    "positiveReply": true,
+    "missing": "Exact original authoritative post-start Cash snapshot; later passive income prevents exact debit reconciliation. Do not replay or clear."
+  },
+  "published": false,
+  "familyFollowup": {
+    "validNativeMembers": 58,
+    "priorRosterGuard": 50,
+    "newStructuralBound": 256,
+    "duplicateAndWrongActorStillRefuse": true,
+    "sourceVerificationR21": {
+      "passed": 3427,
+      "skipped": 0
+    },
+    "r21CashTest": {
+      "attempts": 1,
+      "cash": 100,
+      "nativeReplyOk": true,
+      "ownLedgerIncrease": 100,
+      "accepted": false,
+      "held": true,
+      "cause": "Complete reply did not persist: Recovery data invalid or exceeds bounded storage. Original uncertain record retained."
+    },
+    "r22Correction": "Family-only before-state now2273 JSON bytes; complete native reply retained in22306-byte recovery.59 Family+23 pending-action cases and3428 full source tests passed.",
+    "r22Live": {
+      "cashSent": 100,
+      "attempts": 1,
+      "replyOk": true,
+      "completeReplyPersisted": true,
+      "pending": 1,
+      "runBudgetSpent": 100,
+      "runBudgetAttempted": 1,
+      "accepted": false,
+      "reason": "Exact post-donation action confirmation not established; current recovery record and allowance retained. Inspect actual Sync availability and exact Cash delta before further test actions."
+    },
+    "r24Live": {
+      "build": 654,
+      "actualHost": true,
+      "attempts": 1,
+      "cash": 100,
+      "nativeReplyPositive": true,
+      "exactWalletDebit": true,
+      "personalLedgerIncrease": 100,
+      "outcome": "confirmed",
+      "pending": 0,
+      "closed": true,
+      "receipt": "IdleMafiaEmberFamilyAcceptance_R24_20261105/run.json",
+      "limits": "One new Cash case; earlier r21/r22 uncertainty, Gold/Stamina and historical allowances are unchanged."
+    }
+  },
+  "currentSourceCommit": "e0d66b80c61bcfebbc3784ac531d9c3b3a25888b",
+  "currentEntryCommit": "4eb97fca9dfbd4875cad9dedeac00398d1807ebd",
+  "currentLocalVerification": {
+    "source": {
+      "run": 3437,
+      "passed": 3437,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 167.783
+    },
+    "package": {
+      "run": 3437,
+      "passed": 3358,
+      "skipped": 79,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 168.234,
+      "skipReasons": {
+        "Private native contract capture is intentionally excluded from this package": 12,
+        "Private native Recall capture excluded from distributable archive": 67
+      },
+      "skipReason": "Private native captures excluded; corresponding source cases passed."
+    },
+    "compiledFiles": 309,
+    "modules": 303,
+    "previewTests": 12,
+    "officialAnalyzer": "App/wrapper old and new solvers passed"
+  },
+  "moneyFollowup": {
+    "r23Source": "f3322e9814fdb6617f9fe3a3168a1b68301167ec",
+    "implemented": "Exact saved Bank deposit/purpose withdrawal recovery, bound original source and native clock; pending or changed-balance negative results stay held. Paused reload never replays or purchases.",
+    "r23SourceTests": {
+      "passed": 3434,
+      "skipped": 0,
+      "seconds": 160.684
+    },
+    "nativeBankAcceptance": {
+      "build": 655,
+      "nativeStateProbeDeposit": 100,
+      "actualHostDeposit": 100,
+      "fee": 0,
+      "bothConfirmed": true,
+      "actualHostPending": 0,
+      "closed": true,
+      "withdrawals": 0,
+      "totalCashDeposited": 200
+    },
+    "r24NativeVeto": "Queued-income regression fixed with veto-only final balance/actor/reader checks.48 focused and3437 full source tests passed.",
+    "r24NativeBankUnloadReload": {
+      "build": 655,
+      "depositsSent": 2,
+      "cashPerDeposit": 100,
+      "fee": 0,
+      "nativeRepliesPositive": true,
+      "initialProbeBankedDeltaExact": true,
+      "appReplyDurableBeforeUnload": true,
+      "pendingAfterForcedUnload": 1,
+      "realFileProfileAutoloadAllOff": true,
+      "pendingAfterReload": 1,
+      "sameClientCapturedSyncAge": 1.6417068999726325,
+      "testReplayMaximumAge": 1,
+      "replayApplied": false,
+      "closed": true,
+      "reloadClosed": true,
+      "acceptedAsResolved": false,
+      "limits": "Forced unload retained its exact receipt/custody; source event exceeded this test replay bound. No current-server-recovery or server-transfer success claimed; record held, no replay."
+    },
+    "r24Source": "e0d66b80c61bcfebbc3784ac531d9c3b3a25888b",
+    "r24SourceTests": {
+      "run": 3437,
+      "passed": 3437,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 167.783
+    },
+    "r24Focused": {
+      "bankTests": 41,
+      "purposeTests": 6,
+      "moneyTabTests": 1,
+      "totalPassed": 48
+    },
+    "fundingPreflightCorrection": {
+      "bulkDeposits": 0,
+      "fundingWithdrawals": 0,
+      "operationStarts": 0,
+      "warmup100RestoredExactly": true,
+      "reason": "Test checked pre-planning snapshot for purchaseSavings; corrected to actual tab reader/planner quote before any bulk test."
+    },
+    "r24PurposeFunding": {
+      "build": 654,
+      "actualHost": true,
+      "realQuote": "Unlocked op_auction with3 open slots;6000000 Cash cost",
+      "cashKept": 5999900,
+      "maximumFunding": 100,
+      "withdrawals": 1,
+      "fundingAmount": 100,
+      "exactCashAndBankEffect": true,
+      "nativeReplyPositive": true,
+      "outcome": "confirmed",
+      "pending": 0,
+      "operationStarts": 0,
+      "confirmedTestTransfersRestored": true,
+      "originalBankBalanceRestored": true,
+      "closed": true,
+      "receipt": "IdleMafiaEmberFundingAcceptance_R24C_20261105/run.json",
+      "limits": "Single current-client positive funding acceptance; historical unknowns remain held; no purchase or whole-feature migration claim."
+    },
+    "r24EarlierPurposeFundingHeld": {
+      "build": 654,
+      "maximumFunding": 1000000,
+      "fundingAmount": 1000000,
+      "withdrawals": 1,
+      "nativeReplyPositive": true,
+      "pending": 1,
+      "accepted": false,
+      "operationStarts": 0,
+      "closed": true,
+      "confirmedBulkDepositRestoredExactly": true,
+      "restorationExcludesUncertainFunding": true,
+      "receipt": "IdleMafiaEmberFundingAcceptance_R24B_20261105/run.json",
+      "restorationReceipt": "IdleMafiaEmberFundingAcceptance_R24B_20261105/confirmed-deposit-restoration.json",
+      "missing": "Exact original post-withdrawal authoritative Cash frame. Exact later Bank debit and positive reply do not substitute for required two-balance evidence; never replay or clear."
+    },
+    "nativeIncomeTrace": {
+      "build": 654,
+      "deposits": 1,
+      "withdrawals": 1,
+      "cashPerTransfer": 100,
+      "bankRestoredExactly": true,
+      "exactImmediateWithdrawalCashDelta": true,
+      "closed": true,
+      "limits": "Bounded direct native trace only; no adoption of earlier unknown records or inferred income formula."
+    }
+  },
+  "remainingCurrentFacts": {
+    "walletAttributes": 0,
+    "walletLeaderstats": 0,
+    "nativeSyncWatch": {
+      "seconds": 8,
+      "syncEvents": 0,
+      "incomeTicks": 1,
+      "limits": "Single quiet interval only; not proof of permanent absence."
+    },
+    "refreshRequest": "No reviewed current state-refresh request found; do not invoke admin/debug setters.",
+    "favorLevelup": {
+      "currentLevel": 92,
+      "xpUntilNextLevel": 34451,
+      "smallestHelpXp": 12,
+      "setup": "Within12 XP of next level; eligible Friend/Family Corner Store help; at least1 Favor and8 Energy; leave automation idle for acceptance."
+    },
+    "monthlyEnabled": false,
+    "familyBossTargets": {
+      "bytes": 11274,
+      "sha256": "8c4a96aca44551781df8ca27f1a6f0066e098986c02916998311ff50bdde8ee6",
+      "exports": "Data tables only:goons,targets,medals,borders,trophyTradeIns; no exported prospective hit-back helper."
+    },
+    "borrowedHeistEnergy": {
+      "build": 654,
+      "maximumEnergy": 22,
+      "minimumReviewedHeistEnergyCost": 25,
+      "currentEnergy": 22,
+      "preflightRefused": true,
+      "markerCreated": false,
+      "nativeActions": 0,
+      "userDecision": "Keep this test blocked for now",
+      "requiredSetup": "A character with maximum and available Energy at least25;do not allocate points or consume items to manufacture the setup."
+    },
+    "recallMixedPreparation": {
+      "slot": 3,
+      "district": "jade_harbor_028",
+      "maxRecalls": 1,
+      "minimumRemainingDefenders": 1,
+      "jobCap": 1,
+      "approval": "Pending explicitly scoped selected-member reply",
+      "preparedFixture": ".private/recall-mixed-r24-cached.luau",
+      "compiled": true,
+      "executed": false,
+      "markerCreated": false,
+      "garrisonChanged": false
+    }
+  },
+  "currentGoalAcceptance": {
+    "build": 654,
+    "actualHost": true,
+    "jobs": 3,
+    "jobId": "j_watch",
+    "eachContractRouteObservedAtSend": true,
+    "contractId": "c_candle",
+    "contractKey": "energy",
+    "progressBefore": 48,
+    "progressAfter": 51,
+    "outcome": "confirmed",
+    "pending": 0,
+    "heistStarts": 0,
+    "bankBootstrapRestoredExactly": true,
+    "closed": true,
+    "receipt": "IdleMafiaEmberContractJobsAcceptance_R24_20261105/run.json",
+    "limits": "Current Energy Contract route/Jobs integration only; not Contract completion, Heist borrowing or all goal combinations."
+  },
+  "cleanup": {
+    "allOwnedR24HostsClosed": true,
+    "allOwnedR24AppsClosed": true,
+    "lastObservedConsoleCursor": 371,
+    "limits": "Only the named project-owned acceptance Hosts;no claim about unrelated automation."
+  },
+  "currentFollowup": {
+    "sourceCommit": "6b31ea56d93c6ceacbc340d5e3603af416c90d0d",
+    "entryCommit": "97d5ae38a0b308a330992b4c312d788697410085",
+    "local": {
+      "source": {
+        "run": 3455,
+        "passed": 3455,
+        "skipped": 0,
+        "failures": 0,
+        "errors": 0,
+        "seconds": 133.4
+      },
+      "package": null,
+      "compiledFiles": 309,
+      "modules": 303,
+      "previewTests": 12,
+      "officialAnalyzer": "App/wrapper old and new solvers passed"
+    },
+    "implemented": [
+      "Territory district/fortification eligibility waits for matching map prerequisites without spending failure backoff.",
+      "Job, ordinary Station and Money saved before-state retain exact evidence inputs rather than unrelated catalogs/histories. Complete native replies, serializer caps and live snapshots remain unchanged.",
+      "Ordinary Station binds the existing native display-name/city-ID mapper, preserves verified nil-city global maps, refuses unknown mappings and fences queued source changes.",
+      "Station/Recall wrappers report the selected mode failure; a missing stable Crew identity names the exact slot. No identity fallback or custody weakening.",
+      "Playtime readiness accepts finite fractional replicated todaySeconds without rounding or local timer advancement; invalid/nonfinite values and exact native readiness boundaries remain guarded."
+    ],
+    "actualAppRegressions": {
+      "station": 55,
+      "recall": 33,
+      "moneyFunding": 35,
+      "beforeFix": "Four city/source cases, two Bank/withdrawal subcases and one masked-identity case failed against preceding source; r25 map dependency and r26/r27 overflow cases also reproduced before correction.",
+      "playtimeFocused": 31,
+      "playtimeBeforeFix": "Current native seconds51875.51741940736 reproduced integer-only refusal. Actual App boundary and fractional paused recovery plus unit finite/boundary cases failed before the one-line correction, then passed."
+    },
+    "live": {
+      "recall": {
+        "sourceCommit": "e0d66b80c61bcfebbc3784ac531d9c3b3a25888b",
+        "root": "IdleMafiaEmberRecallMixedAcceptance_R25_20261105",
+        "member": "exact original Lin slot8 from jade_harbor_053",
+        "nativeSends": 1,
+        "confirmed": true,
+        "pending": 0,
+        "home": true,
+        "closed": true,
+        "bootstrapRestored": true,
+        "otherOwnDeploymentsUntouched": true
+      },
+      "relationsProfile": {
+        "sourceCommit": "dbf30185b0c71ee0266c8913c83ae99328d58889",
+        "root": "IdleMafiaEmberRelationsAcceptance_R25_20261105",
+        "nonemptyAlliesAndEnemies": true,
+        "enemyMode": "Enemies only",
+        "subtabs": true,
+        "realFileSaveAndNewHostAutoload": true,
+        "allOff": true,
+        "profileStageGameplayCalls": 0,
+        "freshLuaChunk": false,
+        "closed": true
+      },
+      "jobAndInterruptedReads": {
+        "sourceCommit": "436b38f77893714dce7a3e1da6582083e7b4c922",
+        "root": "IdleMafiaEmberTerritoryJobAcceptance_R26_20261105",
+        "build": 655,
+        "jobs": 1,
+        "jobConfirmed": true,
+        "pending": 0,
+        "maps": 2,
+        "districts": 2,
+        "matchingReadsAfterTwoSyncInterruptions": true,
+        "bootstrapAndInterruptTransfersRestored": true,
+        "closed": true
+      },
+      "station": {
+        "sourceCommit": "21f824460ef7159aeb1f9e68e1e1b8adf40eaf4b",
+        "root": "IdleMafiaEmberStationRestorationAcceptance_R28_20261105",
+        "build": 655,
+        "nativeSends": 0,
+        "pending": 0,
+        "bankRestored": true,
+        "otherDeploymentsPreserved": true,
+        "closed": true,
+        "originalRecalledMemberNotRestored": true,
+        "exactBlocker": "Other deployed Crew slot9 has no healId in the current native Sync; full stable roster identity proof is required. Do not assign a fabricated ID, move unrelated Crew or replay any Recall."
+      },
+      "stationDiagnostic": {
+        "root": "IdleMafiaEmberStationPlanningRead_R28_20261105",
+        "stationPlannerAndNativeSendDisarmed": true,
+        "reads": 4,
+        "nativeMapRows": 112,
+        "matchingNativeCityId": "jade_harbor",
+        "reservationProofPresent": true,
+        "attempts": 0,
+        "bootstrapRestored": true,
+        "closed": true
+      },
+      "currentSetupRead": {
+        "build": 655,
+        "combatControllerCurrent": true,
+        "level": 92,
+        "energy": 22,
+        "xpUntilNextLevel": 34436,
+        "monthlyEnabled": false,
+        "source": "Read-only NativeClientBindings on current client; no gameplay sends",
+        "limits": "Not an authoritative outcome frame or proof of new gameplay acceptance."
+      },
+      "propertyAndJob": {
+        "sourceCommit": "246d5399fc63f7a97f7ca1a7bc48e304bacdddc0",
+        "root": "IdleMafiaEmberPropertyMixedAcceptance_R29_20261105",
+        "build": 655,
+        "property": "p_newsstand",
+        "nativeBuys": 1,
+        "cashCost": 480,
+        "purchaseCap": 500,
+        "beforeOwned": 0,
+        "afterOwned": 1,
+        "propertyConfirmed": true,
+        "jobs": 1,
+        "jobConfirmed": true,
+        "pending": 0,
+        "bankRestored": true,
+        "closed": true,
+        "limits": "One selected ordinary build/mixed case; not all Property variants or release acceptance."
+      },
+      "ladderBeforeCorrection": {
+        "sourceCommit": "246d5399fc63f7a97f7ca1a7bc48e304bacdddc0",
+        "root": "IdleMafiaEmberLadderMixedAcceptance_R29_20261105",
+        "build": 655,
+        "nativeClaims": 0,
+        "jobs": 1,
+        "jobConfirmed": true,
+        "pending": 0,
+        "bankRestored": true,
+        "closed": true,
+        "reason": "Fractional replicated todaySeconds rejected by integer-only PlaytimeState."
+      },
+      "fixedSealClaim": {
+        "sourceCommit": "ee3b059b734c57e33cbb8ba40c82d6a8b790adbd",
+        "root": "IdleMafiaEmberLadderResumeAcceptance_R30_20261105",
+        "build": 654,
+        "index": 4,
+        "kind": "seals",
+        "nativeClaims": 1,
+        "confirmed": true,
+        "pending": 0,
+        "jobs": 0,
+        "priorJobNotReplayed": true,
+        "selectedClaimTier": 4,
+        "otherClaimsUnchanged": true,
+        "bankRestored": true,
+        "closed": true,
+        "limits": "Selected fixed award through actual full Host with one-use filter; no Stamina refill,XP boost,crate opening or general income-Cash acceptance."
+      },
+      "stationMissingIdentityDetail": {
+        "build": 654,
+        "slot": 9,
+        "healIdPresent": false,
+        "deploymentTokenPresent": true,
+        "deploymentTimestampPresent": true,
+        "otherPermanentIdObserved": false,
+        "limits": "Deployment token belongs to the existing deployment; no new permanent Crew ID is inferred or assigned. Current Station stable-roster gate retained."
+      },
+      "groupSetup": {
+        "build": 654,
+        "groupBonusAlreadyClaimed": true,
+        "mutationSends": 0,
+        "limits": "No second grant test available on this character; no auto-join or membership change."
+      },
+      "serverTransition": {
+        "betweenClosedTests": true,
+        "fromBuild": 655,
+        "toBuild": 654,
+        "freshR30BindAndClaimConfirmed": true,
+        "automaticReloadOrReplay": false,
+        "limits": "No active-request natural OnTeleport acceptance; local transfer tests remain the only evidence for in-flight behavior."
+      }
+    },
+    "combatNext": {
+      "status": "Combat scopes remain closed/confirmed. Current native client ready;Favor follow-up is waiting for an eligible related run,not connection or new authorization. No active test.",
+      "next": ".private/favor-mixed-r34d-cached.luau once user confirms eligible Friend/Family run. Single free preflight must pass before any setup spend;do not rerun older scopes.",
+      "lastConsole": 486
+    },
+    "limits": "Bounded observations only; no all-feature live, active-request natural transfer, nonempty historical migration or publication claim.",
+    "combatRollover": {
+      "authorization": "Latest user explicitly approved any work/test needed through MCP; prepared ordinary Scout/Attack test now authorized. Prior native actions/unknown receipts still cannot be replayed. Native challenges and held setups remain.",
+      "implemented": "One read-only dailyCounts view shared by target admission,saved lookup,daily-only dispatch veto and real composed evidence. Older valid UTC bucket means0 today;future/malformed bucket refuses. Original Sync,owned attempt/spend and unknown records are unchanged.",
+      "local": {
+        "focusedTests": 176,
+        "actualPlannerApp": 31,
+        "newRegressions": 6,
+        "fullSource": {
+          "run": 3455,
+          "passed": 3455,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "seconds": 133.4
+        }
+      },
+      "nativeContract": {
+        "build": 654,
+        "cachedDay": 20761,
+        "currentDay": 20762,
+        "cachedCount": 5,
+        "nativeAttacksRemaining": 5,
+        "cap": 5,
+        "privateFunctionBytes": 1065,
+        "privateFunctionSha256": "ab2740700c07a39d957876cc6bbea38e6dc12f6748bacdf8de870744d0ba13e9",
+        "limits": "One source-bound native helper observation; no private source included in fixtures/archive."
+      },
+      "firstRun": {
+        "root": "IdleMafiaEmberCombatMixedAcceptance_R29_20261105",
+        "sourceCommit": "ee3b059b734c57e33cbb8ba40c82d6a8b790adbd",
+        "jobs": 1,
+        "jobConfirmed": true,
+        "scouts": 0,
+        "attacks": 0,
+        "pending": 0,
+        "closed": true,
+        "bankRestored": true,
+        "rejection": "Earlier native UTC bucket incorrectly required current day."
+      },
+      "correctedRun": {
+        "root": "IdleMafiaEmberCombatResumeAcceptance_R31_20261105",
+        "sourceCommit": "6b31ea56d93c6ceacbc340d5e3603af416c90d0d",
+        "jobs": 0,
+        "scouts": 0,
+        "attacks": 0,
+        "pending": 0,
+        "closed": true,
+        "bankRestored": true,
+        "targetListRows": 8,
+        "eligibleTargets": 0,
+        "rejection": "No eligible target with fresh required evidence;source reader itself admitted the daily bucket."
+      },
+      "readOnlyProfileSchema": {
+        "calls": 4,
+        "identityMatches": true,
+        "familyMatches": true,
+        "statsHidden": true,
+        "scoutCost": 1,
+        "targetCost": 1,
+        "shieldFlag": false,
+        "nativeRemaining": 5,
+        "nativeCooldown": 0,
+        "nativeSameFamily": false,
+        "nativeManualWarning": false,
+        "limits": "Two separately bounded two-call diagnostics;no mutation or permission inferred from missing stats."
+      },
+      "admissionDiagnostic": {
+        "root": "IdleMafiaEmberCombatAdmissionRead_R31_20261105",
+        "build": 654,
+        "scoutAndAttackDisarmed": true,
+        "readCounts": {
+          "GetHitList": 1,
+          "PlayerProfile": 3
+        },
+        "profileAccepted": 1,
+        "profileCache": 1,
+        "eligibleTargets": 1,
+        "otherRowsMissingProfile": 7,
+        "closed": true,
+        "pending": 0,
+        "bankRestored": true,
+        "limits": "Server changed between closed tests;positive current admission and warmed friendship/cache make the unused follow-up useful. Not Combat gameplay acceptance."
+      },
+      "next": ".private/combat-resume-r31b-cached.luau;one unused Scout/Attack budget<=10 Stamina,zero Jobs,requires every earlier marker unsent/closed/restored and positive disarmed admission."
+    },
+    "combatScoutHandoff": {
+      "candidate": "r33",
+      "source": "74c40ccb06f064a20506fa236b88ff600f018ba0",
+      "sourceTests": 3457,
+      "sourceSkipped": 0,
+      "archive": "Last verified archive r30; r33 not yet packaged",
+      "implementation": "Retain exact confirmed ordinary Scout facts across temporary roster invalidation, bounded128/1800s; fresh owned roster/profile still required. War remains current-roster-only.",
+      "r32": "Full suite3457 run; one War roster-boundary failure. Corrected in r33;3457 passed.",
+      "r31B": {
+        "scouts": 1,
+        "attacks": 0,
+        "jobs": 0,
+        "outcome": "confirmed",
+        "pending": 0,
+        "closed": true,
+        "bankRestored": true,
+        "scoutExposureCharged": 5,
+        "limit": "One Scout only; exact native cause of subsequent no-target state not established. App list-invalidation edge reproduced independently. Never replay the consumed Scout."
+      },
+      "r33": {
+        "scouts": 0,
+        "attacks": 0,
+        "jobs": 0,
+        "pending": 0,
+        "closed": true,
+        "reason": "Native Combat initialization ownership unavailable",
+        "bindingReason": "Unreviewed native Combat source",
+        "deposits": {
+          "attempts": 2,
+          "amountEach": 100,
+          "positiveReplies": 2,
+          "feeEach": 0,
+          "keptEach": 100,
+          "restorationSent": false,
+          "limit": "Current Bank changed independently by far more than200; exact original after-frame not retained. Do not claim restored or assign unrelated delta. Keep this test setup accounting separate from old unknown transfers."
+        }
+      },
+      "currentNative": {
+        "build": 654,
+        "fightBytes": 109581,
+        "fightSha256": "ae25c1d9065a7cbca1a75cc31bbcc6cbec3fa4c7c120a9fd7682c854ed79581f",
+        "profileSha256": "8329c1cff26a0cbd08e6aff6ef5919dded98e8fc9b69c189c7b5e98271a0475d",
+        "profileUnchanged": true,
+        "scoutGeneration": 0,
+        "attackBusy": false,
+        "scoutBusy": false,
+        "reviewedDoAttackPerformAttackScoutSlicesMatch": true,
+        "limit": "No whole-module equivalence claim; confirmation comparison pending. Native captures remain executor-local."
+      },
+      "r34": {
+        "source": "6ca721a28f00e5185804d47e4d3051e4970a96c9",
+        "entry": "280c790c3017cd326d7e69da0e43e2d0a157ed9e",
+        "sourcePassed": 3458,
+        "sourceSkipped": 0,
+        "bindingFocusedPassed": 50,
+        "nativeAdmission": {
+          "build": 654,
+          "rpc": 0,
+          "ownerAccepted": true,
+          "closed": true
+        },
+        "sourceReview": {
+          "fightSha256": "ae25c1d9065a7cbca1a75cc31bbcc6cbec3fa4c7c120a9fd7682c854ed79581f",
+          "reviewedRequestAndConfirmationFragmentsMatched": 6,
+          "busyGuardReviewed": true,
+          "profileUnchanged": true,
+          "limit": "Used ownership/request slices match;no whole-module equivalence or arbitrary-source admission."
+        },
+        "initialFixture": {
+          "rpc": 0,
+          "setupTransfers": 0,
+          "closed": true,
+          "error": "Fixture inspected a non-exposed wrapper property;fixed to read actual bind result. No production change."
+        },
+        "r34B": {
+          "build": 654,
+          "scouts": 1,
+          "attacks": 0,
+          "jobs": 0,
+          "outcome": "confirmed",
+          "scoutRecorded": true,
+          "scoutCacheCount": 1,
+          "scoutExposure": 5,
+          "attackExposure": 0,
+          "pending": 0,
+          "closed": true,
+          "setup": {
+            "confirmedExactDeposits": 2,
+            "amountEach": 100,
+            "positiveReplyOnlyDeposits": 1,
+            "restorationSent": false,
+            "limit": "Two deposits retain exact Cash/Bank after-frames. Third lacks exact effect;do not clear or restore that uncertain transfer. Separate from r33 and historical holds."
+          },
+          "limit": "No Attack acceptance. Revealed defense29676 exceeds own attack about10527;Cautious threshold would reject. Final view had0 eligible targets;exact combined reason not inferred."
+        },
+        "availability": {
+          "build": 655,
+          "readCalls": 1,
+          "mutationCalls": 0,
+          "hitListRows": 8,
+          "minimumLevel": 147,
+          "maximumLevel": 209,
+          "levelAtMost100": 0,
+          "monthlyEnabled": false,
+          "closed": true,
+          "discardedDiagnostic": "Earlier9-read profile summary parsed the envelope incorrectly;its0 profile count is invalid measurement,not a native refusal."
+        },
+        "currentCustomTest": {
+          "marker": "IdleMafiaEmberCombatCustomAcceptance_R34C_20261105/run.json",
+          "maxScout": 1,
+          "maxAttack": 1,
+          "maxExposurePerLane": 5,
+          "jobs": 0,
+          "previousTwoScoutTargetsExcluded": true,
+          "postScoutSetupMutation": false,
+          "outcome": "confirmed",
+          "build": 655,
+          "scouts": 1,
+          "attacks": 1,
+          "pending": 0,
+          "closed": true,
+          "bankRestored": true,
+          "recordedFights": 1,
+          "wins": 1,
+          "cashConfirmed": 190609392,
+          "actualAttackStamina": 1,
+          "scoutExposure": 5,
+          "attackExposure": 5,
+          "reads": 2
+        },
+        "r34C": {
+          "closed": true,
+          "scouts": 0,
+          "attacks": 0,
+          "jobs": 0,
+          "reads": 5,
+          "preparedProfiles": 1,
+          "reason": "Fixture required2 profiles although1 was admitted;no Combat sent. Corrected fixture threshold and removed redundant refresh in r34D.",
+          "setup": {
+            "positiveReplyOnlyDeposits": 1,
+            "amount": 100,
+            "exactEffect": false,
+            "restorationSent": false
+          }
+        },
+        "mixedJobsCombat": {
+          "build": 655,
+          "source": "6ca721a28f00e5185804d47e4d3051e4970a96c9",
+          "scouts": 1,
+          "attacks": 1,
+          "jobs": 1,
+          "pending": 0,
+          "closed": true,
+          "outcomes": {
+            "combat": "confirmed",
+            "jobs": "confirmed"
+          },
+          "fights": 1,
+          "wins": 1,
+          "cashConfirmed": 356904179,
+          "actualAttackStamina": 1,
+          "scoutExposure": 5,
+          "attackExposure": 5,
+          "reads": 2,
+          "bankSetupAmount": 100,
+          "bankSetupExact": true,
+          "bankRestored": true,
+          "priorThreeScoutTargetsExcluded": true,
+          "limit": "Separate new one-use Job and target;not a replay or adoption of old usage. Bounded Custom ordinary Combat/Job run only;not whole-feature or release acceptance."
+        },
+        "sameSourceRealFileReload": {
+          "build": 655,
+          "accepted": true,
+          "allOff": true,
+          "pending": 0,
+          "rpcAttempts": 0,
+          "nativeCalls": 0,
+          "attackAttempted": 1,
+          "scoutAttempted": 1,
+          "attackSpent": 5,
+          "scoutSpent": 5,
+          "fights": 1,
+          "wins": 1,
+          "cashConfirmed": 356904179,
+          "actualAttackStamina": 1,
+          "closed": true,
+          "limit": "Same current source/test directory only;does not migrate older nonempty custody or establish production cross-release acceptance."
+        },
+        "testTransferAccounting": {
+          "confirmedUnrestoredCash": 200,
+          "positiveReplyWithoutExactRetainedEffectCash": 600,
+          "separateRestoredCash": 200,
+          "limit": "Exact200 Cash left in r34B Combat deposits;600 positive-only uncertain(r33:200,Combat r34B:100,Combat r34C:100,Favor r34B:100,Favor r34C:100). Separate D/E Combat setups200 exactly restored. Do not assign unrelated Bank deltas or clear historical holds."
+        }
+      }
+    },
+    "currentVerification": {
+      "source": {
+        "run": 3458,
+        "passed": 3458,
+        "skipped": 0,
+        "failures": 0,
+        "errors": 0,
+        "seconds": 136.868
+      },
+      "package": {
+        "run": 3458,
+        "passed": 3377,
+        "skipped": 81,
+        "failures": 0,
+        "errors": 0,
+        "seconds": 136.902,
+        "skipReasons": {
+          "Private native contract capture is intentionally excluded from this package": 12,
+          "Private native Recall capture excluded from distributable archive": 69
+        },
+        "skipReason": "Private native captures excluded; corresponding source cases passed."
+      },
+      "sourceCommit": "6ca721a28f00e5185804d47e4d3051e4970a96c9",
+      "entryCommit": "280c790c3017cd326d7e69da0e43e2d0a157ed9e",
+      "artifact": "artifacts/idle-mafia-ember-offline-source-2026-11-05-r34.zip",
+      "identity": "Final metadata-only package refresh preserves the tested functional payload;verify entry/extracted identity and private-capture exclusions after refreshing."
+    },
+    "favorCurrent": {
+      "sourceCommit": "6ca721a28f00e5185804d47e4d3051e4970a96c9",
+      "build": 655,
+      "reconnectedNativeClient": true,
+      "level": 92,
+      "maxEnergy": 22,
+      "slot9HasUniqueHealId": false,
+      "monthlyEnabled": false,
+      "firstScope": {
+        "helps": 0,
+        "jobs": 0,
+        "reads": 0,
+        "setupTransfers": 0,
+        "closed": true,
+        "reason": "Private test omitted existing reviewed migration disposition;startup refused before any game call. Fresh private scope reuses already reviewed exclusions;older production custody unchanged."
+      },
+      "mixedScope": {
+        "helps": 0,
+        "jobs": 1,
+        "jobOutcome": "confirmed",
+        "pending": 0,
+        "reads": 6,
+        "closed": true,
+        "setup": {
+          "positiveDepositReply": true,
+          "cash": 100,
+          "exactRetainedEffect": false,
+          "withdrawals": 0
+        },
+        "limit": "Confirmed one new Job,not a mixed Help success. Favor guard refused absent current proof."
+      },
+      "proofScope": {
+        "helps": 0,
+        "jobs": 0,
+        "pending": 0,
+        "reads": 6,
+        "closed": true,
+        "actualAppFavorBoardAccepted": true,
+        "sourceClockAccountDayUsageMatches": true,
+        "ownedAttempts": 0,
+        "currentQuotedFavorCost": 1,
+        "currentQuotedEnergyCost": 2,
+        "maxHelpsPerHeist": 5,
+        "favorsLeft": 21,
+        "setup": {
+          "positiveDepositReply": true,
+          "cash": 100,
+          "exactRetainedEffect": false,
+          "withdrawals": 0
+        },
+        "terminalReason": "No eligible Favor help",
+        "limit": "Actual App reader accepts native board and durable day proof;no production correction established. No Help was sent."
+      },
+      "availability": {
+        "reads": 1,
+        "mutations": 0,
+        "boardRows": 51,
+        "friendOrFamilyRows": 1,
+        "friendOrFamilyRowsWithinLevel": 0,
+        "eligibleRelatedRows": 0,
+        "closed": true,
+        "exactMissingCondition": "An unexpired Friend/Family run with native required level<=92 and an unused help slot;current only related run requires a higher level."
+      },
+      "levelUpSetup": {
+        "gameRpc": 0,
+        "level": 92,
+        "xpToNext": 33309,
+        "minimumEligibleTierHelpXp": 12,
+        "maximumEligibleTierHelpXp": 140,
+        "exactMissingCondition": "A naturally near-level character plus eligible related run;do not grind or consume items solely for this test."
+      },
+      "next": {
+        "fixture": ".private/favor-mixed-r34d-cached.luau",
+        "prepared": true,
+        "compiled": true,
+        "dispatched": false,
+        "preflightReadCap": 1,
+        "favorCap": 1,
+        "energyCap": 8,
+        "jobCap": 1,
+        "jobEnergyCap": 1,
+        "staminaCap": 0,
+        "nativeChallengeBypass": false,
+        "design": "Free owned eligibility read precedes setup deposit/gameplay;current quote must be integer0..8 and actual App rechecks source/identity/level/cost. Fresh one-use namespace,older consumed markers preserved.",
+        "userQuestion": "Asked asynchronously for an already available eligible Friend/Family run;no request to create a paid setup."
+      },
+      "remaining": "Current mixed Help,negative and level-up gameplay acceptance;older historical usage/custody reconciliation. Existing r14 one-help acceptance is not repeated or relabeled as current-source success."
+    }
+  }
+}

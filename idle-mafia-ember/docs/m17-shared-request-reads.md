@@ -1,0 +1,23 @@
+# Shared request and read integration — October 28
+
+The runtime host now constructs one `RequestLane` and supplies it to the native resolver and dispatch adapter. A mutation reserves its opaque token before deferring. The broker retains ownership after the reply until exact confirmation/rejection or the existing first-send +45-second unconfirmed deadline. A definite scheduling refusal releases only that known-unsent lease. Expiry does not cancel the server call.
+
+The resolver checks ownership immediately before invoking and tracks the invocation object. After expiry a still-yielded old call cannot keep the scheduling gate occupied or clear a newer invocation's marker when it eventually returns. Old tokens cannot release new leases. Checkpoint duplicate exposure and the feature cooldown remain governed by the broker/session.
+
+Group membership refresh uses a five-second lease. Both queued callbacks and the native membership source check ownership; an expired lookup cannot overwrite or erase an already cached result. Closing the host closes the lane and fences queued native work.
+
+`ReadCoordinator` adds bounded, round-robin `ReadBudget` admission under the same lane. It copies the source call, accepts only the saved read command/arity allowlist, verifies the full Sync identity/revision/time before dispatch and after return, and commits only a validated staged result. A timeout backs off that source and permits other work. Disabled/closed/stale queued callbacks invoke nothing; stale returns cannot populate caches or release a newer owner.
+
+Some mutations need a remote read to confirm. `NativeDispatchAdapter:ReadLease(feature)` lends its exact token only after the mutation's physical invocation has returned. Sources declare the features they can confirm. Such a follow-up read retains the original mutation's owner and deadline; completion, timeout or coordinator closure cannot release that mutation. An unrelated background read cannot borrow it. A hung physical follow-up is still subject to the original mutation's maximum, not a new deadline.
+
+Actual connected sources:
+
+- Heists owns the shared `HeistAction("board")` source used when Heists, collection, sabotage or Favors is selected. It attaches a source-key/header-bound proof to the originating native snapshot. No sequence is allocated and no Heist/Favor mutation is enabled. Recovered `HeistsTab-77d5e8fb6f82.lua` still has the private zero-based allocator and nil-target collect; `no_pending` is not treated as safe replay.
+- Combat owns `FamilyBossAction("state", nil)` with exact two-argument arity, bounded current-family state, claim rows and clock validation. It can follow a pending Family claim under that claim's token. App → initial state read → one exact week/stage claim → new Sync → owned follow-up read → exact newer claim-state confirmation passes. All-off and unload paths make zero game calls. Award amounts remain a separate open acceptance item.
+- Global Boss uses current native `GlobalBossRules.decode/canAccess` and read-only player/MW attributes. Private attribute precedence matches `GlobalBossTab`; malformed private data cannot fall back to a public event, and inaccessible private events stay hidden. The host binds and closes this source; it requires no remote polling. Attribute API was checked through Context7 against [Roblox's official attribute documentation](https://github.com/roblox/creator-docs/blob/main/content/en-us/scripting/attributes.md).
+
+`RuntimeAssembly` collects tab-owned read specifications; `AutomationRuntime` steps the coordinator and closes it and tab instances on shutdown. The host creates the native reader before composing the App so current sources receive the same attachment owner. Native proof attachment checks the release source key and exact originating snapshot; every new Sync invalidates earlier attached query data.
+
+This is partial Task 24, not full runtime parity. Market/Territory/Family contribution reads, query/display status, cross-feature item/member/Cash reservations, durable full intent/baseline recovery, Crew replacement/recall hooks, release migration and goal arbitration remain open. Family attack hit-back proof, PvP controllers, Heist sequence/result semantics, income-based reward Cash and active XP stacking remain explicit feature gaps. No live test, Stamina use, spending, commit or GitHub publication occurred.
+
+Final verification: **1116 run, 1115 passed, one skipped**, 30.871 seconds. The skip is the external official Luau analyzer. UI Catalog matches JSON, manifest preflight scans **265 unique modules**, all **55 unique ledger control IDs** match the actual catalog and scoped patch whitespace checks pass. Published entry remains `9da6d31`.

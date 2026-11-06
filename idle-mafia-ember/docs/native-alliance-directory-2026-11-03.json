@@ -1,0 +1,38 @@
+{
+  "date": "2026-11-03",
+  "place": "73897506680154",
+  "build": 653,
+  "scope": "Read-only Family directory; no PvP, Scout, purchases, hooks or challenge changes",
+  "nativeSource": {
+    "module": "PlayerScripts.MWClient.FamilyTab",
+    "decompiledLines": [
+      1647,
+      1698
+    ],
+    "call": "FamilyAction:InvokeServer(\"browse\", query)",
+    "replyFields": [
+      "ok",
+      "families",
+      "browseReady"
+    ]
+  },
+  "observations": {
+    "emptySearchCounts": [
+      179,
+      182
+    ],
+    "idType": "string",
+    "idShape": "UUID-style stable Family IDs",
+    "nameType": "string",
+    "browseReady": true,
+    "exhaustiveCensus": false
+  },
+  "implementationProbe": {
+    "module": "src/tabs/alliance/FamilyDirectoryQuery.luau",
+    "prepareAcceptCommitReadClose": true,
+    "acceptedRows": 182,
+    "closedReadReturnsNil": true,
+    "integratedAppLiveConfirmed": false
+  },
+  "boundaries": "Directory labels never prove target membership. Native battle/friendship/profile reads still supply target evidence. Current executable pins were not changed."
+}

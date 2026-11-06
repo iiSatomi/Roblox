@@ -1,0 +1,177 @@
+{
+  "date": "2026-11-03",
+  "placeVersion": 653,
+  "scope": "Sanitized implementation and bounded native observations; no account/client identifiers or native source copied.",
+  "implemented": {
+    "date": "2026-11-03",
+    "scope": "Implemented and focused-tested; final source/package verification pending",
+    "journal": "Lossless bounded v2 plus guarded v1 compatibility; UTF-8 codepoint escape budget corrected after full-suite maximum-history regression",
+    "native_all_off_host": {
+      "startup": true,
+      "memory_profile_autoload_reload": true,
+      "unload": true,
+      "rpc_attempts": 0,
+      "account_disk_writes": 0
+    },
+    "live_gameplay": "Exactly one approved Corner Store Smash start observed; no second start/collect/reset/Recall/Attack/Scout/Stamina action",
+    "uncertainty": "Original Heist record remains held after server/controller change"
+  },
+  "heistLive": {
+    "approvedStartsSent": 1,
+    "quoteCash": 10000,
+    "quoteEnergy": 25,
+    "nativeReply": "ok plus message; no runId",
+    "observed": "Matching mine and startsLeft decrement",
+    "held": "Original journal retained after server/controller changed; no replay, no collect",
+    "secondStartSent": false
+  },
+  "bindingOnly": {
+    "combat": true,
+    "recall": true,
+    "prestige": true,
+    "closed": true,
+    "actionsSent": 0
+  },
+  "allOffActualHost": {
+    "startup": true,
+    "memoryProfileAutoloadReload": true,
+    "destroy": true,
+    "rpcAttempts": 0,
+    "accountDiskWrites": 0,
+    "date": "2026-11-04",
+    "sourceCommit": "35ae99b657a2eeb69cf89850e7f12910b638d18e",
+    "modules": 303,
+    "allSwitchesOff": true,
+    "currentContextLimit": "See native-runtime-acceptance-2026-11-04.json: inaccessible existing Ember GUI caused a prior Configure failure; fresh context passed with native PlayerGui fallback."
+  },
+  "journal": {
+    "oldConservativeBytes": 566468,
+    "actualCompactJsonBytes": 225166,
+    "limit": 262144,
+    "nativeJsonFullEquality": true,
+    "dataNativeAliasPreserved": true,
+    "copyAndReply": true,
+    "maximumHistoryUnicodeBudget": "Counts JSON Unicode escapes per codepoint; full-suite regression fixed",
+    "finalNativeJsonBytes": 223523
+  },
+  "remaining": "Live actions/current-server receipts and exact external facts remain separate; RuntimeEntry stays Jobs/city Bosses.",
+  "automaticReview": "Conditional recovery harness rejected because fallback could send a second paid start; replaced with strictly read-only recovery harness. Copying a private native capture into the archive was also rejected; it remains excluded and12 dependent archive tests are explicitly skipped. Copying a private native capture into the archive was also rejected; it remains excluded and12 dependent archive tests are explicitly skipped.",
+  "localVerification": {
+    "source": {
+      "run": 3401,
+      "passed": 3401,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 137.706
+    },
+    "package": {
+      "run": 3401,
+      "passed": 3322,
+      "skipped": 79,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 139.051,
+      "skipReasons": {
+        "Private native contract capture is intentionally excluded from this package": 12,
+        "Private native Recall capture excluded from distributable archive": 67
+      },
+      "skipReason": "Private native captures excluded; these cases passed in the original source workspace."
+    },
+    "compiledFiles": 309,
+    "modules": 303,
+    "previewTests": 12,
+    "officialAnalyzer": "App/wrapper old and new solvers passed"
+  },
+  "realFileProfiles": {
+    "date": "2026-11-04",
+    "placeVersion": 653,
+    "scope": "Actual inert App/ProfileStore/RedundantStore using executor files in an isolated acceptance directory; no automation runtime or gameplay adapter constructed",
+    "saveReadback": true,
+    "freshChunkReload": true,
+    "oneShotSelectionStore": true,
+    "oneShotConsumedByExplicitTest": true,
+    "autoloadSelectionStore": true,
+    "previewApply": true,
+    "activeProfileSync": true,
+    "unload": true,
+    "allFeatureSwitchesOff": true,
+    "rpcAttempts": 0,
+    "testFileWrites": 8,
+    "legacyFileBytesUnchanged": true,
+    "accountScope": "NativeClientObserver uses player.Name; numeric-ID path absence was not valid evidence",
+    "fullRuntimeHost": {
+      "accepted": false,
+      "reason": "Legacy settings state requires explicit migration review",
+      "rpcAttempts": 0,
+      "fileWrites": 0,
+      "testDirectoriesCreated": true
+    },
+    "remaining": "Scoped r18 production migration and real-file all-off profile/autoload/reload/unload now passed; nonempty older custody/usage and broader gameplay remain separate."
+  },
+  "currentSavedStateReview": {
+    "date": "2026-11-04",
+    "scope": "Current connected client; known account-name paths and default Ember checkpoint directory; read-only metadata, no raw account data copied",
+    "bytesRechecked": true,
+    "atomicSnapshot": false,
+    "authorizesActivation": false,
+    "completeHistory": false,
+    "legacySettings": {
+      "version": 17,
+      "savedFields": 236,
+      "favorUsageCount": 30,
+      "favorUsageDay": 20760,
+      "sabotageUsageCount": 0,
+      "sabotageUsageDay": -1,
+      "sabotageAttemptCount": 0,
+      "sabotageAttemptDay": -1,
+      "extraKeyNames": [
+        "heistsUseBank",
+        "operationsUseBank",
+        "propertiesUseBank",
+        "safehouseUseBank",
+        "shopBuyAll",
+        "shopSelected"
+      ],
+      "totalIncludingVersion": 237,
+      "baselineDefaultKeys": 231
+    },
+    "legacyJournal": {
+      "version": 1,
+      "retained": 100,
+      "maximum": 100,
+      "nextId": 352448,
+      "confirmed": 56,
+      "responseReceived": 44,
+      "settlementUnknown": 0,
+      "exactArgsRetained": false,
+      "responseReceivedByFeature": {
+        "heistCollect": 27,
+        "familyBossClaims": 9,
+        "familyStamina": 8
+      },
+      "classificationLimit": "Corrected2026-11-05: all44 current response_received rows are zero-cost board/info/state reads, corroborated by diagnostic arguments and legacy emitter/finish code. They are not44 unresolved gameplay mutations. Historical coverage and older-release custody remain separate; no automatic adoption follows.",
+      "unresolvedMutationRowsInRetainedSnapshot": 0,
+      "readOnlyResponseReceipts": 44,
+      "reviewedUtc": "2026-11-05",
+      "diagnosticArgsAvailable": true
+    },
+    "legacyProfiles": {
+      "count": 1,
+      "autoloadPresent": true,
+      "nextLaunchPresent": false,
+      "backupPresent": true
+    },
+    "otherReleaseEmberRecords": 1,
+    "missingFact": "Scoped migration of older-release Ember custody and historical consumed allowances still requires review. The44 current legacy response receipts are read-only refreshes and do not require missing mutation receipts. Rolling history is incomplete; legacy confirmed labels were not independently reverified.",
+    "sources": [
+      "mafia/ActionJournal.lua:3,19-25,32-33,63,68-76,86-89",
+      "src/storage/SavedStateReview.luau",
+      "src/storage/StorageAssembly.luau"
+    ],
+    "filesModified": false,
+    "logReviewEvidence": "docs/local-potassium-log-review-2026-11-05.json",
+    "productionMigrationFollowup": "See docs/native-migration-collections-2026-11-05.json: reviewed exact legacy bytes and truly empty generation6 checkpoint acknowledged without deletion; all-off production save/autoload/reload passed."
+  },
+  "privateCapturePackaging": "r16 excludes raw native-source files and removes19 embedded capture fields from five archived JSON evidence documents while retaining provenance/hashes. Original private workspace evidence is unchanged. The older r12 archive is superseded and must not be redistributed."
+}

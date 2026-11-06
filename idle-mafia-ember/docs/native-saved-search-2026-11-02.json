@@ -1,0 +1,84 @@
+{
+  "date": "2026-11-02",
+  "placeVersion": 648,
+  "kind": "Bounded native source/schema evidence; no integrated automation acceptance",
+  "sourceFacts": {
+    "call": "native FightTab passes SearchTarget and search text to fetchTargets; fetchTargets calls remote:InvokeServer(text)",
+    "fragments": [
+      "ine: 1874\n            -- upvalues: fetchTargets (ref), u2 (ref), Text2 (copy), showFetchError (ref), u5 (ref), renderHitList (ref)\n            local v393 = fetchTargets(u2.Remotes.SearchTarget, Text2);\n\n            if not v393.ok then\n                showFetchError(v393.msg);\n\n                return;\n            end;\n\n            v393.at = os.clock();\n            u5 = v393;\n            renderHitList(v393);\n        end);\n    end;\n\n    u3.SearchRow.SearchButton.Activated:Connect(runSearch);\n    u3.SearchRow.SearchBox.FocusLost:Connect(function(p394) -- Line: 1886\n        -- upvalues: runSearch (copy)\n        if p394 then\n            runSearch();\n        end;\n    end);\n    u3.WarFilterButton.Activated:Connect(function() -- Line: 1889\n        -- upvalues: u2 (ref)\n        if u2.openWarTargets then\n            u2.openWarTargets();\n        end;\n    end);\n    u7.DoneButton.Activated:Connect(closeFightModal);\n    u7:GetPropertyChangedSignal(\"Visible\"):Connect(function() -- Line: 1895\n        -- upvalues: u7 (ref), u16 (ref), u15 (ref), u2 (ref)\n        if not u7.Visible then\n            u16 = nil;\n            u15 = u15 + 1;\n            u7:SetAttribute(\"HoldOpen\", false);"
+    ],
+    "fragmentOnly": true,
+    "wholeNativeSourceHashAvailable": false
+  },
+  "readOnlyQueries": {
+    "count": 3,
+    "ordinaryHitList": 1,
+    "ownNameSearch": 1,
+    "existingHitListIdentitySearch": 1,
+    "gameplayRequests": 0,
+    "attackRequests": 0,
+    "scoutRequests": 0
+  },
+  "negativeSelfLookup": {
+    "ok": false,
+    "returned": true,
+    "scope": true,
+    "pending": false,
+    "replyTable": true,
+    "binding": true,
+    "listType": "nil",
+    "searchCaseFold": false,
+    "fields": [
+      "msg:string",
+      "ok:boolean"
+    ],
+    "searchEcho": false,
+    "searchType": "nil",
+    "presence": false,
+    "rateLimited": false
+  },
+  "positiveSearch": {
+    "ok": true,
+    "presence": false,
+    "matchingIdentityRows": 1,
+    "returned": true,
+    "scope": true,
+    "pending": false,
+    "usableTarget": true,
+    "rows": 1,
+    "searchType": "string",
+    "fields": [
+      "list:table",
+      "ok:boolean",
+      "search:string"
+    ],
+    "rowFields": [
+      "background:string",
+      "border:string",
+      "family:string",
+      "familyIcon:number",
+      "familyId:string",
+      "level:number",
+      "name:string",
+      "online:boolean",
+      "prestige:number",
+      "respect:number",
+      "shielded:boolean",
+      "stamina:number",
+      "userId:number"
+    ],
+    "echoFold": true,
+    "hitListOk": true,
+    "echoExact": true,
+    "replyTable": true,
+    "rateLimited": false
+  },
+  "identityValuesStored": false,
+  "integratedAppLiveConfirmed": false,
+  "limits": [
+    "Positive reply schema and exact ID match observed; not a fight or proof of every search variant.",
+    "Lookup code must match the saved user ID, not only a name, and retain native roster contradictions/ordinary restrictions.",
+    "No bot challenge answered, private flag/token changed/read, premium purchase, attack or Scout invoked.",
+    "Historical old-account ledger migration remains separate; new lookup seeds are retained owned settlements only."
+  ]
+}

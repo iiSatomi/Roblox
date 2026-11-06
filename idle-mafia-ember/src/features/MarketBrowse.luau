@@ -92,12 +92,15 @@ function Methods:Accept(request, reply)
     end
     local accepted = rows(reply.rows)
     if not accepted then return nil, "Invalid Market browse rows" end
-    local pages = reply.pages
-    if pages == nil then
-        pages = math.min(self.maxPages,
-            request.page + (reply.more == true and 1 or 0))
+    if request.kind == "item" then
+        for _, row in ipairs(accepted) do
+            if row.item ~= request.arg then return nil, "Market item scope changed" end
+        end
     end
-    if not integer(pages, request.page, self.maxPages) then
+    local pages = reply.pages
+    -- Native browse returns the first N pages in ONE reply. It can exhaust
+    -- naturally before the requested budget, but cannot exceed that budget.
+    if not integer(pages, 1, request.page) then
         return nil, "Invalid Market browse pages"
     end
     for _, field in ipairs({ "more", "stale", "small" }) do

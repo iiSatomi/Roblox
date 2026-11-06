@@ -22,8 +22,13 @@ function Adapter.new(ember, catalog, callbacks)
         degraded = false, lastError = nil,
         allowedFeatures = callbacks.allowedFeatures,
     }, Adapter)
+    -- Configure({ Storage = false }) still reads custom themes in reviewed Ember.
+    -- Disable its public storage configuration before any window/persistence work;
+    -- omit Storage from Configure so it cannot trigger that external theme reload.
+    assert(type(ember.Config) == "table" and type(ember.Config.Storage) == "table",
+        "Missing reviewed Ember storage configuration")
+    ember.Config.Storage.Enabled = false
     ember.Configure({
-        Storage = false,
         Themes = { Default = "Midnight" },
         Effects = { RespectReducedMotion = true, Quality = "Low" },
     })
@@ -43,6 +48,15 @@ function Adapter.new(ember, catalog, callbacks)
     end)
 
     local ok, reason = pcall(function()
+        if callbacks.uiParent ~= nil then
+            local checked, valid = pcall(function()
+                return callbacks.uiParent:IsA("PlayerGui") and callbacks.uiParent.Parent ~= nil
+            end)
+            assert(checked and valid == true, "Verified PlayerGui parent required")
+            -- Reviewed Ember has no Parent option. Its controls must live below
+            -- normal PlayerGui so native callback contexts can access them.
+            self.window.Gui.Parent = callbacks.uiParent
+        end
         local sections = {}
         for _, page in ipairs(catalog.pages) do
             local section = self.window:Section(page.label, ICONS[page.id], { Search = true })

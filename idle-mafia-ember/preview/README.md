@@ -1,0 +1,19 @@
+# Local design preview
+
+This is a browser design/debug tool, not Ember executing outside Roblox and not a runnable gameplay hub.
+
+Open `standalone.html` locally for a self-contained preview. No server, packages, internet access, account files or game bridge are needed. All controls affect simulated in-memory choices only. The file is source when viewed on GitHub; this repository has not been deployed as a website.
+
+Maintained files are `index.html`, `styles.css`, `app.mjs`, `model.mjs` and `catalog.json`. Regenerate the standalone artifact from the Roblox workspace root:
+
+```powershell
+node idle-mafia-ember/tools/build_preview.mjs
+node --test idle-mafia-ember/tests/preview-model.test.mjs
+node idle-mafia-ember/tools/check_native_audit.mjs
+```
+
+Each system now has its own tab. Combat includes player fights, city Bosses, Family Takedown and Global Bosses. Money, Property, Shop, Black Market, Collection, Heists, Jobs and Operations keep separate controls. The longer sidebar scrolls independently.
+
+Try the sample choices, Combat permission/policy, Property goal/Custom limits, feature search, Pause/Resume, Emergency Stop/F8 and sample situations. Scenarios explain low health, native Auto Jobs ownership, closed Market and unconfirmed requests. They are not a gameplay simulator or proof of native formulas.
+
+Twelve local model/schema tests pass, including exact feature-to-tab ownership and mutually exclusive native/custom gear choices with atomic profile validation. The [native reuse audit](../docs/native-reuse-audit.md) explains why the updated game Auto Equip is the preferred gear engine and why custom optimization needs comparison evidence. Automated visual testing is still unverified: this environment's browser security policy blocks local URL/file navigation. Actual Ember rendering/scaling, pointer/focus, respawn and cleanup need a separate inert Roblox check later.

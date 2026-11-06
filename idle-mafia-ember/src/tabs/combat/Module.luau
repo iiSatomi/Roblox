@@ -172,6 +172,8 @@ function CombatTab.new(deps)
         hitListQuery = hitListQuery, warRosterQuery = warRosterQuery, playerProfiles = playerProfiles, warProfiles = warProfiles,
         familyDirectory = type(deps.FamilyDirectoryQuery) == "table" and deps.FamilyDirectoryQuery.new(deps.nativeReadSource) or nil,
         nativeReadSource = deps.nativeReadSource,
+        familyFrameReader = type(deps.nativeReadSource) == "table" and deps.nativeReadSource.FamilyBossFrame or nil,
+        fingerprint = deps.fingerprint,
         frameReader = type(deps.nativeReadSource) == "table" and deps.nativeReadSource.CombatFrame or nil,
         targetReader = deps.PlayerTargetState, playerPlannerReady = playerPlannerReady, warPlannerReady = warPlannerReady,
         warAttemptReader = deps.PlayerTargetState.readWarAttempt,
@@ -318,7 +320,36 @@ function Methods:PlayerFrame(snapshot, proof, targets)
     return bound
 end
 
+-- Only the owned state query and a current native controller can issue this proof.
+function Methods:FamilyAttackProof(snapshot)
+    local proof = type(snapshot) == "table" and snapshot.familyTakedownProof
+    local state = type(proof) == "table" and proof.state
+    local native = type(snapshot) == "table" and snapshot.native
+    local family = type(native) == "table" and native.family
+    if self.closed or type(self.familyFrameReader) ~= "function"
+        or self.nativeReadSource.FamilyBossFrame ~= self.familyFrameReader
+        or type(proof) ~= "table" or proof.sourceKey ~= self.fingerprint
+        or type(proof.header) ~= "table" or type(state) ~= "table"
+        or type(family) ~= "table" or family.id ~= state.famId
+        or proof.account ~= snapshot.account or proof.capturedAt ~= snapshot.capturedAt then return nil end
+    local header = {}
+    for _, field in ipairs({"session", "account", "place", "release", "revision", "capturedAt"}) do
+        if proof.header[field] ~= snapshot[field] then return nil end
+        header[field] = snapshot[field]
+    end
+    local ok, frame = pcall(self.familyFrameReader, self.nativeReadSource, native)
+    if not ok or type(frame) ~= "table" or frame.hitBackKnown ~= false
+        or self.nativeReadSource.FamilyBossFrame ~= self.familyFrameReader then return nil end
+    return {account = snapshot.account, capturedAt = snapshot.capturedAt,
+        header = header, sourceKey = proof.sourceKey,
+        week = state.week, famId = state.famId, stage = state.stage,
+        staminaCost = frame.staminaCost, hospitalHealth = frame.hospitalHealth,
+        hitBackKnown = false, nativePreflight = true, controllersClear = frame.controllersClear}
+end
+
 function Methods:Enrich(snapshot, settings)
+    self.familyUnknownAllowed = type(settings) == "table" and type(settings.familyBossAttacks) == "table"
+        and settings.familyBossAttacks.enabled == true and settings.familyBossAttacks.allowUncalculatedHitBack == true
     local result = {}
     for key, value in pairs(snapshot) do result[key] = value end
     for _, field in ipairs(ownedProofs) do result[field] = nil end
@@ -365,6 +396,8 @@ function Methods:Enrich(snapshot, settings)
         result.playerFightHistoryProof = self.playerLedger:Proof(result, source == "High value only" or source == "High value only + lookup"
             or type(combat) == "table" and combat.enabled == true and combat.preferHighValue == true)
     end
+    result.familyAttackProof = self:FamilyAttackProof(result)
+    self.latestBossSnapshot = result
     self.latestPlayerSnapshot = result
     return result, nil
 end
@@ -780,6 +813,13 @@ function Methods:Descriptors()
                 if self.closed or not self.globalBossSource or not self.latestBossSnapshot then return false end
                 local latest = self.globalBossSource:Enrich(self.latestBossSnapshot)
                 return latest ~= nil and descriptor.evidence.canDispatch(proposal, latest)
+            end or descriptor.id == "familyBossAttacks" and function(proposal)
+                if self.closed or not self.latestBossSnapshot
+                    or proposal.intent.uncalculatedHitBack == true and self.familyUnknownAllowed ~= true then return false end
+                local latest = {}
+                for key, value in pairs(self.latestBossSnapshot) do latest[key] = value end
+                latest.familyAttackProof = self:FamilyAttackProof(latest)
+                return descriptor.evidence.canDispatch(proposal, latest)
             end or descriptor.id == "familyBossClaims" and function(proposal)
                 return not self.closed and self.latestBossSnapshot ~= nil
                     and descriptor.evidence.canDispatch(proposal, self.latestBossSnapshot)

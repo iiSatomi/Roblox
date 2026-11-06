@@ -64,7 +64,15 @@ function EventsTab.new(deps)
             "Current native Event Shop source and buyer required")
         buyer = deps.EventShopBuyer.new(source)
     end
-    return setmetatable({ id = "events", ownedProofs = {"eventShopProof"}, deps = deps, shopSource = source, buyer = buyer }, Methods)
+    local cases = deps.briefcaseSource
+    if cases ~= nil then
+        assert(type(cases) == "table" and type(cases.read) == "function" and type(cases.Enrich) == "function"
+            and type(cases.CanDispatch) == "function" and type(cases.Close) == "function"
+            and cases.sourceKey == deps.fingerprint and cases.release == deps.release,
+            "Current native Briefcase source required")
+    end
+    return setmetatable({ id = "events", ownedProofs = {"eventShopProof", "briefcaseProof"},
+        deps = deps, shopSource = source, buyer = buyer, briefcaseSource = cases }, Methods)
 end
 
 function Methods:NewEventShopSource(definition, readAttributes)
@@ -76,24 +84,35 @@ function Methods:NewEventShopSource(definition, readAttributes)
 end
 
 function Methods:Enrich(snapshot)
+    local result = snapshot
     if self.shopSource then
         -- Missing shop attributes must not block free Briefcase picks.
-        local enriched = self.shopSource:Enrich(snapshot)
-        if enriched then return enriched end
+        local enriched = self.shopSource:Enrich(result)
+        if enriched then result = enriched end
     end
-    return snapshot
+    if self.briefcaseSource then
+        local enriched = self.briefcaseSource:Enrich(result)
+        if enriched then result = enriched end
+    end
+    return result
 end
 
 function Methods:Close()
     if self.shopSource then self.shopSource:Close() end
+    if self.briefcaseSource then self.briefcaseSource:Close() end
 end
 
 function Methods:Descriptors()
     local d = self.deps
     return {
-        { id = "briefcases", reader = d.FreeBriefcasesState,
+        { id = "briefcases", reader = self.briefcaseSource or {read = function()
+                return nil, "Current native Briefcase source unavailable"
+            end},
             planner = d.FreeBriefcases,
-            evidence = d.FreeBriefcasesEvidence },
+            evidence = d.FreeBriefcasesEvidence,
+            canDispatch = function(proposal)
+                return self.briefcaseSource ~= nil and self.briefcaseSource:CanDispatch(proposal) == true
+            end },
         { id = "eventShop", reader = self.buyer or d.EventShopBlocked,
             planner = self.buyer or d.EventShopBlocked,
             evidence = self.buyer or d.EventShopBlocked,

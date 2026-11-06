@@ -1,0 +1,362 @@
+{
+  "schema": 1,
+  "date": "2026-10-20",
+  "evidence_type": "offline-inert-place-source",
+  "native_version": "0.26.487.1",
+  "latest_notes_version": "0.26.454",
+  "previous_native_version": "0.26.253",
+  "place_sha256": "a45286db115f2696000b859e8435439620c853bb33179f66a7c78029a504bca6",
+  "place_bytes": 1855869,
+  "unique_script_source_records": 260,
+  "previous_selected_records": 48,
+  "changed_previous_selected_records": 40,
+  "changed_previous_selected_names": [
+    "Config",
+    "GameData",
+    "Util",
+    "GameVersion",
+    "UpdateNotes",
+    "UpdateLogModel",
+    "TerritoryDistricts",
+    "TerritoryBonusRules",
+    "ResidencyRules",
+    "GearSets",
+    "GlobalBossRules",
+    "Hud",
+    "JobsTab",
+    "PropsTab",
+    "OpsTab",
+    "FightTab",
+    "InventoryTab",
+    "FamilyTab",
+    "ShopTab",
+    "CrewTab",
+    "TradeTab",
+    "SafehouseTab",
+    "TerritoryTab",
+    "RankingsTab",
+    "BossTab",
+    "CollectionTab",
+    "ProfilePopup",
+    "HeistsTab",
+    "EventBanner",
+    "FamilyProfilePopup",
+    "ContractsTab",
+    "UpdateLog",
+    "MarketTab",
+    "MarketRAP",
+    "MarketRAPDetails",
+    "ResidencyPanel",
+    "PropertyBlock",
+    "GlobalBossTab",
+    "MWClient",
+    "AFKSessionRefreshClient"
+  ],
+  "districts_by_city": {
+    "jade_harbor": 112,
+    "new_ashport": 116,
+    "port_caldera": 108,
+    "sterling_cross": 116,
+    "the_exiles": 110,
+    "veilmont": 90,
+    "vespera": 95,
+    "volkovsk": 105
+  },
+  "anchors": [
+    {
+      "id": "version",
+      "script": "GameVersion",
+      "source_sha256": "ff20dd0fc842537d21da510f343ec8cf5cd7d905d96ead829a265f7681db8b55",
+      "extracted_file": "GameVersion-ff20dd0fc842.lua",
+      "line": 5
+    },
+    {
+      "id": "newest_notes",
+      "script": "UpdateNotes",
+      "source_sha256": "8fad17e5e00866eebbf731d944f0f96943f40e5a51535e659cc8596b7f2a2332",
+      "extracted_file": "UpdateNotes-8fad17e5e008.lua",
+      "line": 7
+    },
+    {
+      "id": "collection_10000",
+      "script": "Config",
+      "source_sha256": "e07fd1c45e85b890025b0e9a462c08dbd35362702bd81e06853d997553e37492",
+      "extracted_file": "Config-e07fd1c45e85.lua",
+      "line": 2033
+    },
+    {
+      "id": "collection_25000",
+      "script": "Config",
+      "source_sha256": "e07fd1c45e85b890025b0e9a462c08dbd35362702bd81e06853d997553e37492",
+      "extracted_file": "Config-e07fd1c45e85.lua",
+      "line": 2036
+    },
+    {
+      "id": "player_consumable_cooldown",
+      "script": "Config",
+      "source_sha256": "e07fd1c45e85b890025b0e9a462c08dbd35362702bd81e06853d997553e37492",
+      "extracted_file": "Config-e07fd1c45e85.lua",
+      "line": 1610
+    },
+    {
+      "id": "crew_consumable_cooldown",
+      "script": "Config",
+      "source_sha256": "e07fd1c45e85b890025b0e9a462c08dbd35362702bd81e06853d997553e37492",
+      "extracted_file": "Config-e07fd1c45e85.lua",
+      "line": 1611
+    },
+    {
+      "id": "native_jobs_entitlement",
+      "script": "JobsTab",
+      "source_sha256": "c0dacdf1aff6344961d928c29c7834645c7e2ab72f4c56028174d426e013c65b",
+      "extracted_file": "JobsTab-c0dacdf1aff6.lua",
+      "line": 939
+    },
+    {
+      "id": "native_jobs_state",
+      "script": "JobsTab",
+      "source_sha256": "c0dacdf1aff6344961d928c29c7834645c7e2ab72f4c56028174d426e013c65b",
+      "extracted_file": "JobsTab-c0dacdf1aff6.lua",
+      "line": 959
+    },
+    {
+      "id": "native_jobs_dispatch",
+      "script": "JobsTab",
+      "source_sha256": "c0dacdf1aff6344961d928c29c7834645c7e2ab72f4c56028174d426e013c65b",
+      "extracted_file": "JobsTab-c0dacdf1aff6.lua",
+      "line": 1952
+    },
+    {
+      "id": "native_shop_state",
+      "script": "AutoBuy",
+      "source_sha256": "5555dc5b550e6edf118a73aa5073f8cf6cb4ec4a753c2e5fb80e4df3eb24ce47",
+      "extracted_file": "AutoBuy-5555dc5b550e.lua",
+      "line": 104
+    },
+    {
+      "id": "native_shop_dispatch",
+      "script": "AutoBuy",
+      "source_sha256": "5555dc5b550e6edf118a73aa5073f8cf6cb4ec4a753c2e5fb80e4df3eb24ce47",
+      "extracted_file": "AutoBuy-5555dc5b550e.lua",
+      "line": 897
+    },
+    {
+      "id": "gold_shop_arguments",
+      "script": "ShopTab",
+      "source_sha256": "c1083d41f0d31b94c518592455e0e29201f8acbae124430c0dd3845319a5746d",
+      "extracted_file": "ShopTab-c1083d41f0d3.lua",
+      "line": 1357
+    },
+    {
+      "id": "crew_item_heal",
+      "script": "CrewHealModal",
+      "source_sha256": "b79981b394f3310d9464f26fbae77525bbb29083a50ec394eadb3370c71a7386",
+      "extracted_file": "CrewHealModal-b79981b394f3.lua",
+      "line": 548
+    },
+    {
+      "id": "crew_stable_heal_identity",
+      "script": "CrewHealModal",
+      "source_sha256": "b79981b394f3310d9464f26fbae77525bbb29083a50ec394eadb3370c71a7386",
+      "extracted_file": "CrewHealModal-b79981b394f3.lua",
+      "line": 518
+    },
+    {
+      "id": "monthly_claim",
+      "script": "MonthlyCalendar",
+      "source_sha256": "5c1cd9380e96f0006dd69676c3194b8cb746cde41bb733afdd66ee8e7db81fe6",
+      "extracted_file": "MonthlyCalendar-5c1cd9380e96.lua",
+      "line": 282
+    },
+    {
+      "id": "reward_weekend_override",
+      "script": "DailyRewards",
+      "source_sha256": "88e624cc4b744ccea69de56f3bad055949aecc8efcb7d7fefc17cb9eaa84e175",
+      "extracted_file": "DailyRewards-88e624cc4b74.lua",
+      "line": 122
+    },
+    {
+      "id": "personal_xp_reward",
+      "script": "Config",
+      "source_sha256": "e07fd1c45e85b890025b0e9a462c08dbd35362702bd81e06853d997553e37492",
+      "extracted_file": "Config-e07fd1c45e85.lua",
+      "line": 806
+    },
+    {
+      "id": "mystery_reward",
+      "script": "Config",
+      "source_sha256": "e07fd1c45e85b890025b0e9a462c08dbd35362702bd81e06853d997553e37492",
+      "extracted_file": "Config-e07fd1c45e85.lua",
+      "line": 815
+    },
+    {
+      "id": "ladder_tiers",
+      "script": "Config",
+      "source_sha256": "e07fd1c45e85b890025b0e9a462c08dbd35362702bd81e06853d997553e37492",
+      "extracted_file": "Config-e07fd1c45e85.lua",
+      "line": 824
+    },
+    {
+      "id": "weekend_composition",
+      "script": "GlobalBuffKinds",
+      "source_sha256": "8eca1c22333d60b93a86e6f1163b0031757a726d7d1a253c9a70d5af5dac08fb",
+      "extracted_file": "GlobalBuffKinds-8eca1c22333d.lua",
+      "line": 271
+    },
+    {
+      "id": "luck_composition",
+      "script": "GlobalBuffKinds",
+      "source_sha256": "8eca1c22333d60b93a86e6f1163b0031757a726d7d1a253c9a70d5af5dac08fb",
+      "extracted_file": "GlobalBuffKinds-8eca1c22333d.lua",
+      "line": 316
+    },
+    {
+      "id": "native_server_clock",
+      "script": "ServerClock",
+      "source_sha256": "d4b81ad7ac37169cbd63d7d504d0d4d60b0ffd52db40c84c41c6fa77e54cc956",
+      "extracted_file": "ServerClock-d4b81ad7ac37.lua",
+      "line": 57
+    },
+    {
+      "id": "decree_exemption",
+      "script": "DecreeRules",
+      "source_sha256": "d5304a5a005ce12aa7eec35e4e2a31325c093bc11bd170a3d8ee47f073444749",
+      "extracted_file": "DecreeRules-d5304a5a005c.lua",
+      "line": 308
+    },
+    {
+      "id": "market_fee_rounding",
+      "script": "Config",
+      "source_sha256": "e07fd1c45e85b890025b0e9a462c08dbd35362702bd81e06853d997553e37492",
+      "extracted_file": "Config-e07fd1c45e85.lua",
+      "line": 2913
+    },
+    {
+      "id": "new_safehouse",
+      "script": "Config",
+      "source_sha256": "e07fd1c45e85b890025b0e9a462c08dbd35362702bd81e06853d997553e37492",
+      "extracted_file": "Config-e07fd1c45e85.lua",
+      "line": 681
+    },
+    {
+      "id": "new_safehouse_215",
+      "script": "Config",
+      "source_sha256": "e07fd1c45e85b890025b0e9a462c08dbd35362702bd81e06853d997553e37492",
+      "extracted_file": "Config-e07fd1c45e85.lua",
+      "line": 689
+    },
+    {
+      "id": "global_boss_catalog",
+      "script": "GlobalBossRules",
+      "source_sha256": "443f6ec1a958ce248afa190ffedb5ebee4228aff7415d786302c1662b6a1b2b6",
+      "extracted_file": "GlobalBossRules-443f6ec1a958.lua",
+      "line": 189
+    },
+    {
+      "id": "boss_decay",
+      "script": "GlobalBossRules",
+      "source_sha256": "443f6ec1a958ce248afa190ffedb5ebee4228aff7415d786302c1662b6a1b2b6",
+      "extracted_file": "GlobalBossRules-443f6ec1a958.lua",
+      "line": 318
+    },
+    {
+      "id": "boss_pending",
+      "script": "GlobalBossRules",
+      "source_sha256": "443f6ec1a958ce248afa190ffedb5ebee4228aff7415d786302c1662b6a1b2b6",
+      "extracted_file": "GlobalBossRules-443f6ec1a958.lua",
+      "line": 337
+    },
+    {
+      "id": "territory_bonus_selection",
+      "script": "TerritoryBonusRules",
+      "source_sha256": "234e0dc21c97034d1ab01eb117ca842f771112150fe600a11137ff53a57bc0eb",
+      "extracted_file": "TerritoryBonusRules-234e0dc21c97.lua",
+      "line": 6
+    },
+    {
+      "id": "district_remapping",
+      "script": "CityMaps",
+      "source_sha256": "b59d3d893f6365eaabe65ab3a6ec019dc0bad915a51fe7ebc47b538e6b7df922",
+      "extracted_file": "CityMaps-b59d3d893f63.lua",
+      "line": 332
+    },
+    {
+      "id": "residency_remapping",
+      "script": "CityMaps",
+      "source_sha256": "b59d3d893f6365eaabe65ab3a6ec019dc0bad915a51fe7ebc47b538e6b7df922",
+      "extracted_file": "CityMaps-b59d3d893f63.lua",
+      "line": 377
+    },
+    {
+      "id": "season_length",
+      "script": "SeasonRules",
+      "source_sha256": "22422956f6af2003a4f8fac8b05299ec5da1f5e90e0ceeb23736efa863c95b79",
+      "extracted_file": "SeasonRules-22422956f6af.lua",
+      "line": 15
+    },
+    {
+      "id": "season_start",
+      "script": "SeasonRules",
+      "source_sha256": "22422956f6af2003a4f8fac8b05299ec5da1f5e90e0ceeb23736efa863c95b79",
+      "extracted_file": "SeasonRules-22422956f6af.lua",
+      "line": 14
+    },
+    {
+      "id": "fortify_unlock",
+      "script": "Config",
+      "source_sha256": "e07fd1c45e85b890025b0e9a462c08dbd35362702bd81e06853d997553e37492",
+      "extracted_file": "Config-e07fd1c45e85.lua",
+      "line": 1418
+    },
+    {
+      "id": "event_shop_request",
+      "script": "EventShopTab",
+      "source_sha256": "5c8d001aae456bb6dea4577d8311f467cb6c0271c17d21d730a79d28711c8993",
+      "extracted_file": "EventShopTab-5c8d001aae45.lua",
+      "line": 307
+    },
+    {
+      "id": "medal_origin",
+      "script": "EventShop",
+      "source_sha256": "dd4873a000cfd7d6a58bf2ec291135545897c0b17350c8e94a677d9fafd881cc",
+      "extracted_file": "EventShop-dd4873a000cf.lua",
+      "line": 299
+    },
+    {
+      "id": "restricted_medals",
+      "script": "EventShopTab",
+      "source_sha256": "5c8d001aae456bb6dea4577d8311f467cb6c0271c17d21d730a79d28711c8993",
+      "extracted_file": "EventShopTab-5c8d001aae45.lua",
+      "line": 71
+    },
+    {
+      "id": "operation_drop_display",
+      "script": "OperationCardArt",
+      "source_sha256": "d06dd8a4ec25d8469006f192bc939aa6239dabe1a76dac4de3b825f1d7da17de",
+      "extracted_file": "OperationCardArt-d06dd8a4ec25.lua",
+      "line": 54
+    },
+    {
+      "id": "operation_rate",
+      "script": "OpsTab",
+      "source_sha256": "a8a8dd7f89833af4fd8e3f1cc1f384e279f08723bcf85bd889d309823d16a9fd",
+      "extracted_file": "OpsTab-a8a8dd7f8983.lua",
+      "line": 802
+    },
+    {
+      "id": "collection_variant_total",
+      "script": "CollectionTab",
+      "source_sha256": "758ec86b5f45159876b7fe4d3ce587cabd1d44662222db5b86fd0130f39d0b60",
+      "extracted_file": "CollectionTab-758ec86b5f45.lua",
+      "line": 91
+    },
+    {
+      "id": "source_dispatch_seam",
+      "script": "MWClient",
+      "source_sha256": "2dd0835af927995b7d2a35cb81c5f9aa797efee94bfeaae0341c5178032d8684",
+      "extracted_file": "MWClient-2dd0835af927.lua",
+      "line": 180
+    }
+  ],
+  "live_verified": false
+}

@@ -68,7 +68,9 @@ local app, reason = ExecutorEntry.start({
     place = "73897506680154", gameVersion = reviewed.version,
     fingerprint = reviewed.fingerprint,
     directory = "IdleMafiaEmber",
-    allowedFeatures = { jobs = true, bosses = true },
+    allowedFeatures = {
+        jobs = true, operations = true, collect = true, heists = true, heistCollect = true, favors = true, sabotage = true, combat = true, warCombat = true, bosses = true, bossShop = true, crew = true, crewGear = true, crewRoll = true, crewSort = true, crewHeal = true, crewTrain = true, crewHire = true, crewHealItems = true, cosmetics = true, collectionDonate = true, chests = true, restoratives = true, bank = true, withdraw = true, properties = true, safehouse = true, prestige = true, shop = true, marketWatch = true, marketSell = true, marketFlip = true, marketRent = true, marketManage = true, familyCash = true, familyStamina = true, familyGold = true, familyBossAttacks = true, familyBossClaims = true, territoryWatch = true, station = true, residency = true, contracts = true, bonuses = true, trophies = true, skills = true, playtime = true, groupBonus = true, monthlyRewards = true, autoContracts = true, trophyFocus = true, globalBossAttack = true, globalBossClaim = true, briefcases = true, eventShop = true
+    },
 }, {
     ReleaseAdapters = ReleaseAdapters, Bootstrap = Bootstrap,
     Loader = Loader, Manifest = Manifest, executorEnv = env, executionRegistry = _G,

@@ -28,7 +28,7 @@ function ContractsTab.BuildUI(section, feature, bind)
         end
     end
     local reason = feature.id == "autoContracts"
-        and "Prioritizes supported objectives through separately enabled Jobs, Operation and Heist starts. Borrowing stays off until selected." or nil
+        and "Prioritizes supported objectives through separately enabled Jobs, Operation and Heist starts, and ordinary Crew hires. Borrowing stays off until selected." or nil
     if reason then group:Description({ Text = reason }) end
     return { feature = feature, tabOwned = true,
         status = group:Status({ Text = "Activity",

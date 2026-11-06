@@ -448,7 +448,7 @@ local function familyBefore(before)
         or not plain(native.pools) or not plain(native.inventory)
         or not plain(native.inventoryBound) then return nil end
     local saved = selectedFields(before, {"session", "account", "place", "release", "revision", "capturedAt",
-        "familyContributionCatalog", "familyContributionProof", "familyUsageProof"})
+        "familyContributionCatalog", "familyContributionProof", "familyUsageProof", "familyActorProof"})
     saved.native = selectedFields(native, {"fullSync", "serverNow", "userId", "cash"})
     saved.native.family = selectedFields(native.family, {"id"})
     saved.native.pools = selectedFields(native.pools, {"stamina"})

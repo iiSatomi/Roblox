@@ -1,0 +1,92 @@
+{
+  "date": "2026-11-02",
+  "placeVersion": 648,
+  "scope": "Read-only current native source, upvalue type/boolean and modal-visibility inspection. No gameplay RPC/reset, callback invocation, hook or private-flag change. No account/client IDs or private values retained.",
+  "observed": {
+    "busy": false,
+    "busyType": "boolean",
+    "contextMatches": true,
+    "rootMatches": true,
+    "modalMatches": true,
+    "rootVisible": false,
+    "prestigeModalVisible": false,
+    "visibleModals": []
+  },
+  "sourceFacts": {
+    "prestigeBusy": "PrestigeModal.init upvalue5 is the private busy boolean; set true synchronously before task.spawn and reset false after PrestigeAction returns. Reading it is not exclusive ownership.",
+    "context": "PrestigeModal.init/open share current native context and Root.Modals/PrestigeModal instances.",
+    "sharedConfirmation": "MWClient assigns ctx.confirmDialog=FightTab.confirm. Its closure holds Root.Modals at1, pending callback at3 (nil at observation), native context at4. No pending callback value was copied.",
+    "confirmationLifecycle": "openConfirm assigns callback and shows native ConfirmModal. ConfirmButton copies callback, clears stored callback, closes modal and invokes copy synchronously; Cancel/hide clear the callback. closeModal only changes native visibility; hub must never call or answer these for a probe.",
+    "resetCall": "PrestigeAction:InvokeServer(\"prestige\") from native confirmed callback."
+  },
+  "limitations": [
+    "Observed native idle/modal/callback checks are not an atomic native/hub lease; simultaneous manual UI interleaving remains an external ownership gap.",
+    "No live reset was sent or authorized. The exact positive reset reply variant and current-client integrated lifecycle remain unverified; missing/nonexact replies and effects remain held.",
+    "Current executable entry does not permit Prestige; source is uncommitted/unpinned. No native private flag/callback was changed or invoked.",
+    "Historical checkpoints without owned Prestige ordinals remain unknown; no automatic consumed-attempt migration/reset."
+  ],
+  "sourceFiles": [
+    {
+      "path": "docs/native-source/2026-11-02/PrestigeModal.lua.txt",
+      "bytes": 4497,
+      "sha256": "e08a7b50420068cea8889de24070d5b6a104cc41e1401eb25c80ac871c92ad82"
+    },
+    {
+      "path": "docs/native-source/2026-11-02/FightTab-confirm.fragments.json",
+      "bytes": 2895,
+      "sha256": "198115f679df92baf38b37e6e4d51f487667095a1c15cf6051833c8e27c57fcf"
+    }
+  ],
+  "implemented": {
+    "observer": "NativeClientBindings.currentPrestigeController, source/version/context/modal/rules/remote identity pinned; read-only, sticky retirement and close fencing",
+    "ownership": "Checkpoint-scoped durable attempt counter and per-record ordinal written atomically with the pending reset; caller proofs stripped; sent/rejected/unknown charge retained; only proven unsent refunded",
+    "lifecycle": "Actual Prestige tab/App/broker/native adapter: queued source/state/consent checks; exact newer Sync and positive matching reply confirmation; exact saved rejection/positive recovery; uncertainty held through reload/45-second skip; yielding storage/native reads fenced on disable/unload",
+    "ui": "Capability-conditioned status; unavailable entries keep blocked warning; all retain irreversible warning and supported path explicitly remains live-unverified"
+  },
+  "readOnlyObserverCheck": {
+    "current": true,
+    "observation": true,
+    "controllersClear": true,
+    "busy": false,
+    "confirmationPending": false,
+    "modalOpen": false,
+    "rankKnown": true,
+    "levelKnown": true,
+    "xpKnown": true,
+    "readyKnown": true,
+    "closeFenced": true,
+    "gameplayCalls": 0,
+    "numericPlayerValuesStored": false,
+    "newIntegratedAppOrResetVerified": false
+  },
+  "localVerification": {
+    "ownedAppTests": 29,
+    "resetTests": 13,
+    "checkpointTests": 9,
+    "nativeObserverTests": 13,
+    "runtimeHostTests": 27,
+    "nativeBindingsTests": 11
+  },
+  "implementationFiles": [
+    {
+      "path": "src/transport/NativeClientBindings.luau",
+      "sha256": "878e3a94c5ad87d13a82d98744c9e805f0873d1955962d5bd636d775edd34ef6"
+    },
+    {
+      "path": "src/storage/Checkpoint.luau",
+      "sha256": "a493c9846112d05038adaf334084ddd7ec14cb8d4c829d13dc366393f354a1a9"
+    },
+    {
+      "path": "src/engine/AutomationRuntime.luau",
+      "sha256": "a6eaecc89556ca3466710390bcdaffa0b08fb58e03c0c26ec7d83a03eccf413f"
+    },
+    {
+      "path": "src/tabs/prestige/Module.luau",
+      "sha256": "a899df896df94e254a2b50808cdabeae9d7b92fcf2a4bc4260283e30c4d39fe4"
+    },
+    {
+      "path": "src/tabs/prestige/PrestigeReset.luau",
+      "sha256": "2f82fdb4fbb3f9a2d2124ec3080e1a0815dba785a57433ce584be3a5f523bb34"
+    }
+  ]
+}

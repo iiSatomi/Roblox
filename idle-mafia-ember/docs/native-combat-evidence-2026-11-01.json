@@ -1,0 +1,185 @@
+{
+  "schema": 1,
+  "date": "2026-11-01",
+  "placeId": "73897506680154",
+  "placeVersion": 648,
+  "scope": "User-authorized read-only native Combat inspection; no scout, attack, hooks, native/UI modifications or Stamina use.",
+  "provenance": "Decompiled native client text captured through Potassium console, not server source or a bytecode/release pin. No client IDs, credentials or player records retained.",
+  "functions": [
+    {
+      "name": "performAttack",
+      "module": "FightTab",
+      "source": "local function performAttack(u188) -- Line: 853\n    -- upvalues: attackBlocked (copy), u9 (ref), u10 (ref), u11 (ref), u14 (ref), repaintAttackButtons (copy), u2 (ref), openFightModal (copy), u15 (ref), closeFightModal (copy), rememberDailyReply (copy), WarStatus (copy), u20 (copy), actionFeedback (copy), u7 (ref), playExchange (copy), revealFight (copy)\n    if attackBlocked(u188) then\n        return;\n    end;\n\n    u9 = true;\n    u10 = u188.userId;\n    u11 = os.clock();\n    u14 = os.clock() + 2.05;\n    repaintAttackButtons();\n    local u189 = true;\n\n    local function releaseState() -- Line: 861\n        -- upvalues: u189 (ref), u2 (ref)\n        if u189 then\n            u189 = false;\n            u2.State.release();\n        end;\n    end;\n\n    u2.State.hold();\n\n    if u188.beforePresent then\n        u188.beforePresent();\n    end;\n\n    local u190 = openFightModal(u188, nil);\n    local u191 = true;\n    task.delay(1.4, function() -- Line: 870\n        -- upvalues: u191 (ref), u189 (ref), u2 (ref)\n        if not u191 then\n            return;\n        end;\n\n        if u189 then\n            u189 = false;\n            u2.State.release();\n        end;\n\n        u2.toast(\"info\", \"Waiting for server.\", {\n            clientFeedback = true\n        });\n    end);\n    task.spawn(function() -- Line: 875\n        -- upvalues: u2 (ref), u188 (copy), u191 (ref), u189 (ref), u9 (ref), u15 (ref), u190 (copy), closeFightModal (ref), repaintAttackButtons (ref), rememberDailyReply (ref), WarStatus (ref), u14 (ref), u20 (ref), actionFeedback (ref), u7 (ref), playExchange (ref), revealFight (ref)\n        local success, result = pcall(function() -- Line: 876\n            -- upvalues: u2 (ref), u188 (ref)\n            return u2.Remotes.Attack:InvokeServer(u188.userId);\n        end);\n        u191 = false;\n\n        if not success or type(result) ~= \"table\" then\n            if u189 then\n                u189 = false;\n                u2.State.release();\n            end;\n\n            u9 = false;\n\n            if u15 == u190 then\n                closeFightModal();\n            end;\n\n            repaintAttackButtons();\n            u2.toast(\n                \"error\",\n                \"The attack response was interrupted. Check your attack history before trying again.\",\n                {\n                    clientFeedback = true\n                }\n            );\n\n            return;\n        end;\n\n        rememberDailyReply(u188.userId, result);\n        WarStatus.requestRefresh();\n\n        if result.code == \"rate_limited\" then\n            u14 = os.clock() + (tonumber(result.retryIn) or 2);\n        end;\n\n        if not (result and result.ok) then\n            if u189 then\n                u189 = false;\n                u2.State.release();\n            end;\n\n            u9 = false;\n\n            if u15 == u190 then\n                closeFightModal();\n            end;\n\n            if result.retryIn and (result.code ~= \"rate_limited\" and result.code ~= \"daily_target_cap\") then\n                u20[u188.userId] = os.clock() + result.retryIn;\n            end;\n\n            repaintAttackButtons();\n            actionFeedback(result.code == \"target_hospitalized\" and \"hospitalized\" or \"error\", result.msg or \"The attack could not be resolved. Try again.\", result);\n\n            return;\n        end;\n\n        u20[u188.userId] = os.clock() + u2.Config.COMBAT.targetCooldown;\n\n        if u15 ~= u190 or not u7.Visible then\n            if u189 then\n                u189 = false;\n                u2.State.release();\n            end;\n\n            u9 = false;\n            repaintAttackButtons();\n            u2.toast(result.won and \"success\" or \"error\", (result.won and \"You won your fight against \" or \"You lost your fight against \") .. (result.targetName or (u188.name or \"your target\")) .. \".\", {\n                clientFeedback = true\n            });\n\n            return;\n        end;\n\n        playExchange(u188, result, u190);\n        u9 = false;\n        repaintAttackButtons();\n\n        if u15 == u190 and u7.Visible then\n            if u189 then\n                u189 = false;\n                u2.State.release();\n            end;\n\n            revealFight(result);\n\n            return;\n        end;\n\n        if u189 then\n            u189 = false;\n            u2.State.release();\n        end;\n\n        u2.toast(result.won and \"success\" or \"error\", (result.won and \"You won your fight against \" or \"You lost your fight against \") .. (result.targetName or (u188.name or \"your target\")) .. \".\", {\n            clientFeedback = true\n        });\n    end);\nend;\n",
+      "capturedTextSha256": "7ecd01045ed8b0ef14683ebf0621ccf09078e8f94cf542a1ede3f05793dc47f7"
+    },
+    {
+      "name": "doAttack",
+      "module": "FightTab",
+      "source": "local function doAttack(u196) -- Line: 946\n    -- upvalues: attackBlocked (copy), u2 (ref), isFamilyTarget (copy), u23 (ref), WarStatus (copy), openConfirm (copy), performAttack (copy)\n    if attackBlocked(u196) then\n        return;\n    end;\n\n    local v197 = u2.GameData.BOTS_BY_ID[u196.userId] ~= nil;\n    local v198 = not v197 and isFamilyTarget(u196);\n    local v199 = u23 - os.time();\n    local math_floor_ret = math.floor(v199);\n    local v200;\n\n    if math_floor_ret > 0 then\n        v200 = not u196.war and not v197;\n    else\n        v200 = false;\n    end;\n\n    local v201;\n\n    if v197 then\n        v201 = nil;\n    else\n        v201 = WarStatus.warning(u196.userId) or nil;\n    end;\n\n    if not (v198 or (v200 or v201)) then\n        performAttack(u196);\n\n        return;\n    end;\n\n    if u196.beforePresent then\n        u196.beforePresent();\n    end;\n\n    local v202 = {};\n\n    if v198 then\n        table.insert(v202, (u196.name or \"This player\") .. \" is in your Family.\");\n    end;\n\n    if v200 then\n        local v203 = \"Attacking removes your shield (\" .. u2.Util.clock(math_floor_ret) .. \" left).\";\n        table.insert(v202, v203);\n    end;\n\n    if v201 then\n        table.insert(v202, v201);\n    end;\n\n    table.insert(v202, \"Attack anyway?\");\n    openConfirm(v198 and \"ATTACK FAMILY MEMBER\" or (v200 and \"SHIELD ACTIVE\" or \"NO WAR POINTS\"), table.concat(v202, \"\\n\\n\"), \"ATTACK ANYWAY\", function() -- Line: 964\n        -- upvalues: performAttack (ref), u196 (copy)\n        performAttack(u196);\n    end);\nend;\n\nv1.attack = doAttack;\nv1.confirm = openConfirm;\n",
+      "capturedTextSha256": "1c7a877fcf3843fa47f7529ed00cd00b60448c3c0ebcf276b98063cedffae0ed"
+    },
+    {
+      "name": "onScout",
+      "module": "ProfilePopup",
+      "source": "local function onScout() -- Line: 767\n    -- upvalues: u30 (ref), u31 (ref), u24 (ref), u29 (ref), u21 (ref), u23 (ref), u32 (ref), StatTooltip (copy), u2 (ref)\n    local u165 = u30;\n\n    if not u165 or u31 then\n        return;\n    end;\n\n    u31 = true;\n    u24.Text = \"SCOUTING...\";\n    local u166 = u29;\n    task.spawn(function() -- Line: 773\n        -- upvalues: u21 (ref), u165 (copy), u31 (ref), u166 (copy), u29 (ref), u23 (ref), u24 (ref), u32 (ref), StatTooltip (ref), u2 (ref)\n        local v167 = u21.Remotes.ScoutPlayer:InvokeServer(u165);\n        u31 = false;\n\n        if u166 ~= u29 or not u23.Visible then\n            return;\n        end;\n\n        if not (v167 and v167.ok) then\n            u24.Text = u32;\n            u21.toast(\"error\", v167 and v167.msg or \"Scouting failed. Try again.\");\n\n            return;\n        end;\n\n        u24.Visible = false;\n        u24.Text = u32;\n        local Card_stats = u23.Card_stats;\n        local v168, v169 = u21.Util.comma(v167.atk);\n        local Value = Card_stats.Row_atk.Value;\n        Value.Text = v168;\n\n        if v169 then\n            Value.TextColor3 = v169;\n        end;\n\n        local v170, v171 = u21.Util.comma(v167.def);\n        local Value2 = Card_stats.Row_def.Value;\n        Value2.Text = v170;\n\n        if v171 then\n            Value2.TextColor3 = v171;\n        end;\n\n        local v172, v173 = u21.Util.comma(v167.crew);\n        local Value3 = Card_stats.Row_crew.Value;\n        Value3.Text = v172;\n\n        if v173 then\n            Value3.TextColor3 = v173;\n        end;\n\n        StatTooltip.hide();\n        u2 = {\n            atk = v167.atk,\n            def = v167.def,\n            statBreakdown = v167.statBreakdown\n        };\n    end);\nend;\n",
+      "capturedTextSha256": "fec8e8dedf629c77563783a985c6e89600c8fa2ce23b6f0dec59a3afeb0387bc"
+    }
+  ],
+  "modules": [
+    {
+      "name": "FightCashPresentation",
+      "reported": 3436,
+      "source": "-- Decompiled with Potassium's decompiler.\n\nlocal FightCashReward = require(script.Parent.FightCashReward);\nlocal u10 = {\n    changedMessage = \"The defenderâ€™s cash changed before the attack was sent.\",\n\n    report = function(p1, p2, p3, p4) -- Line: 6, Name: report\n        -- upvalues: FightCashReward (copy)\n        local v5 = {};\n\n        for i, v in pairs(p1.report) do\n            v5[i] = v;\n        end;\n\n        v5.fightId = p1.id;\n        v5.cashStage = p2;\n        v5.cashEstimate = p1.report.cashEstimate;\n\n        if p1.row then\n            v5.dmgDealt = p3 and p3.canceled and 0 or (p1.row.dmg or 0);\n        end;\n\n        v5.cashPending = p2 < 3;\n        v5.rewardsPending = p2 < 4;\n        local v6;\n\n        if p3 and not p3.canceled then\n            v6 = FightCashReward.amount(p3.amount, p1.cashCap) or nil;\n        else\n            v6 = nil;\n        end;\n\n        v5.cashConfirmed = v6;\n        local v7;\n\n        if v5.cashConfirmed == nil or (v5.cashEstimate == nil or v5.cashConfirmed >= v5.cashEstimate) then\n            v7 = false;\n        else\n            v7 = not p4 or p4(v5.cashConfirmed) ~= p4(v5.cashEstimate);\n        end;\n\n        v5.cashAdjusted = v7;\n\n        if p2 < 4 then\n            if not p1.xpAwarded then\n                v5.xp = nil;\n                v5.xpEventMultiplier = nil;\n            end;\n\n            v5.respect = nil;\n            v5.knockout = false;\n        end;\n\n        if p2 < 3 then\n            v5.stolen = nil;\n        elseif p3 then\n            v5.stolen = FightCashReward.amount(p3.amount, p1.cashCap);\n        end;\n\n        if p2 == 4 and (p3 and (p3.canceled and not p1.xpAwarded)) then\n            v5.ok = false;\n            v5.cashPending = false;\n            v5.rewardsPending = false;\n            v5.cashAdjusted = false;\n            v5.msg = p1.result and p1.result.msg or \"The fight expired before it could settle. Your stamina was returned.\";\n        end;\n\n        return v5;\n    end,\n\n    choose = function(p8, p9) -- Line: 34, Name: choose\n        if not p8 then\n            return p9;\n        end;\n\n        if p8.fightId ~= p9.fightId then\n            return p8;\n        end;\n\n        if (p9.cashStage or 0) > (p8.cashStage or 0) then\n            return p9;\n        end;\n\n        return p8;\n    end\n};\n\nfunction u10.view(p11, p12) -- Line: 41\n    -- upvalues: u10 (copy)\n    if p11.ok == false then\n        return {\n            text = \"\",\n            pending = false,\n            canceled = true,\n            note = p11.msg or \"\"\n        };\n    end;\n\n    local v13 = p11.cashPending == true;\n    local cashConfirmed = p11.cashConfirmed;\n    local v14;\n\n    if v13 then\n        v14 = cashConfirmed or p11.cashEstimate;\n    else\n        v14 = p11.stolen or 0;\n    end;\n\n    local v15 = v14 == nil and \"Confirming\" or ((v13 and cashConfirmed == nil and \"~\" or (v13 and \"\" or \"+\")) .. p12(v14) or \"Confirming\");\n    local v16 = \"\";\n    local v17;\n\n    if v13 then\n        v17 = cashConfirmed == nil and \"Estimated winnings. Confirming available cash.\" or \"Cash confirmed. Your payment is pending.\";\n    else\n        v17 = p11.rewardsPending and \"Cash received. Your remaining rewards are being confirmed.\" or v16;\n    end;\n\n    if p11.cashAdjusted then\n        v17 = u10.changedMessage .. (v13 and \"\\nYour payment is pending.\" or \"\");\n    end;\n\n    return {\n        canceled = false,\n        text = v15,\n        pending = v13,\n        note = v17\n    };\nend;\n\nreturn u10;",
+      "capturedBytes": 3441,
+      "reportedLengthMatchesCapturedBytes": false,
+      "capturedTextSha256": "6a620d8cdce1727ff99041ce46b9e9331a296ff4b5d97a828f159096f33e1f35"
+    },
+    {
+      "name": "State",
+      "reported": 1457,
+      "source": "-- Decompiled with Potassium's decompiler.\n\nlocal u1 = {\n    data = nil,\n    lastSyncClock = 0\n};\nlocal BindableEvent = Instance.new(\"BindableEvent\");\nlocal u2 = false;\nlocal u3 = 0;\nlocal u4 = nil;\n\nfunction u1.set(p5) -- Line: 16\n    -- upvalues: u2 (ref), u4 (ref), u1 (copy), BindableEvent (copy)\n    if u2 then\n        u4 = p5;\n\n        return;\n    end;\n\n    u1.data = p5;\n    u1.lastSyncClock = os.clock();\n    BindableEvent:Fire(p5);\nend;\n\nfunction u1.hold(p6) -- Line: 26\n    -- upvalues: u2 (ref), u3 (ref), u1 (copy)\n    u2 = true;\n    u3 = u3 + 1;\n    local u7 = u3;\n    task.delay(p6 or 5, function() -- Line: 30\n        -- upvalues: u2 (ref), u3 (ref), u7 (copy), u1 (ref)\n        if u2 and u3 == u7 then\n            u1.release();\n        end;\n    end);\nend;\n\nfunction u1.release() -- Line: 37\n    -- upvalues: u2 (ref), u3 (ref), u4 (ref), u1 (copy)\n    if not u2 then\n        return;\n    end;\n\n    u2 = false;\n    u3 = u3 + 1;\n\n    if u4 then\n        local v8 = u4;\n        u4 = nil;\n        u1.set(v8);\n    end;\nend;\n\nfunction u1.latest() -- Line: 55\n    -- upvalues: u4 (ref), u1 (copy)\n    return u4 or u1.data;\nend;\n\nfunction u1.sinceSync() -- Line: 60\n    -- upvalues: u1 (copy)\n    return os.clock() - u1.lastSyncClock;\nend;\n\nfunction u1.onChanged(p9) -- Line: 64\n    -- upvalues: u1 (copy), BindableEvent (copy)\n    if u1.data then\n        task.defer(p9, u1.data);\n    end;\n\n    return BindableEvent.Event:Connect(p9);\nend;\n\nreturn u1;",
+      "capturedBytes": 1457,
+      "reportedLengthMatchesCapturedBytes": true,
+      "capturedTextSha256": "ecf7ea6719128e64d151817e5ad61233ebb43960c99773c832d92742c43b405c"
+    }
+  ],
+  "observations": {
+    "nativeController": "FightTab.attack is doAttack; private attackBlocked/performAttack busy booleans observed false. This is a point-in-time observation, not exclusive ownership.",
+    "nativeScout": "ProfilePopup.onScout has independent private u31 busy state, captures current target, invokes ScoutPlayer, displays atk/def/crew/statBreakdown; no Scout call made.",
+    "nativePrompts": "doAttack preserves Family/shield/war warnings and native confirmation. beforePresent fires before warnings and again inside performAttack; no checked abort return.",
+    "cash": "Native receiver privately caches at most 32 reports. Notify fightcash routes payload/message to FightTab.receiveCashProgress. Cache empty during inspection.",
+    "settlement": "report sets cashPending = stage < 3 and rewardsPending = stage < 4; stage 4 may also report canceled failure. choose advances only the same fightId to a higher stage. No actual settled receipt observed.",
+    "state": "latest returns buffered Sync or data. hold is temporary with release/timeout; equality/latest is not a fight lock.",
+    "war": {
+      "readCall": "GetHitList:InvokeServer(\"warStatus\")",
+      "serverReadCalls": 1,
+      "ok": true,
+      "warStatusKeys": [
+        "day:number",
+        "resetsAt:number",
+        "serverNow:number",
+        "targets:table"
+      ],
+      "targets": 0,
+      "summaryPresent": false
+    },
+    "attackLog": {
+      "observedRows": 15,
+      "rowKeys": [
+        "background",
+        "border",
+        "cash",
+        "dir",
+        "dmg",
+        "fam",
+        "famIcon",
+        "famId",
+        "name",
+        "respect",
+        "t",
+        "uid",
+        "won"
+      ],
+      "fightIdPresent": false
+    }
+  },
+  "remaining": [
+    "Native UI has no inspected public exclusive acquire/abort owner. Current guards read native busy/context without modifying flags; they do not promise atomic exclusion against simultaneous manual activity.",
+    "Ordinary Attack/Scout runtime, profile/friendship/cache and durable allowances are locally accepted; the new automated path still needs separately authorized current-client gameplay acceptance.",
+    "Active war summary/nonempty target-to-enemy-Family identity remains unobserved in the inactive client. War dispatch stays unmapped; no declaration or spending was used to collect data.",
+    "Unsettled/canceled saved fights without an exact owned terminal receipt remain held. No authoritative server query keyed by fightId or cancellation/refund contract was established; never replay or refund such attempts automatically."
+  ],
+  "laterAuthorizedLiveEvidence": "docs/native-combat-live-2026-11-01.json: two separately authorized ordinary test attacks won/settled; initial stage-1 reply and same-fight stages 2/3/4 now observed. This file remains the earlier read-only source inspection; production Combat ownership/integration is not established by either record.",
+  "currentReadContracts": {
+    "profileAndPower": [
+      "EMBER_COMBAT_CURRENT_HELPER ProfilePopup function v1.open(p155) -- Line: 698\n    -- upvalues: u29 (ref), u30 (ref), u31 (ref), u33 (ref), u21 (ref), u25 (ref), Color3_fromRGB_ret7 (copy), Color3_fromRGB_ret2 (copy), u28 (ref), u26 (ref), UIKit (copy), u27 (ref), u23 (ref), paint (copy), u22 (ref)\n    if not (p155 and p155.userId) then\n        return;\n    end;\n\n    u29 = u29 + 1;\n    local u156 = u29;\n    u30 = p155.userId;\n    u31 = false;\n    u33 = {\n        userId = p155.userId,\n        name = p155.displayName or p155.name,\n        level = p155.level,\n        family = p155.familyName,\n        familyId = p155.familyId,\n        sameFamily = p155.sameFamily,\n        border = p155.border\n    };\n    local v157 = p155.userId ~= u21.player.UserId;\n    u25.Text = \"ATTACK\";\n    u25.BackgroundColor3 = Color3_fromRGB_ret7;\n    u25.TextColor3 = Color3_fromRGB_ret2;\n    u25.AutoButtonColor = true;\n    u25.Visible = v157;\n\n    if u21.watchAttackButton then\n        u21.watchAttackButton(u25, u30, nil);\n    end;\n\n    u28 = p155.name or p155.displayName;\n    local v158 = p155.userId ~= u21.player.UserId;\n\n    if v158 then\n        v158 = u21.openMail ~= nil;\n    end;\n\n    u26.Visible = v158;\n    local data = u21.State.data;\n    UIKit.button(u26, \"Secondary\", not data or u21.Config.highestLevel(data) < u21.Config.MAIL.minLevel);\n    local v159 = p155.userId ~= u21.player.UserId;\n\n    if u27 then\n        if v159 then\n            if u21.openTreatTrick == nil then\n                v159 = false;\n            else\n                local Parent = u21.Remotes.Parent;\n\n                if Parent:GetAttribute(\"GlobalTrickOrTreat\") == true then\n                    local v160 = tonumber(Parent:GetAttribute(\"GlobalTrickOrTreatEnd\")) or 0;\n                    v159 = v160 == 0 and true or workspace:GetServerTimeNow() < v160;\n                else\n                    v159 = false;\n                end;\n            end;\n        end;\n\n        u27.Visible = v159;\n        UIKit.button(u27, \"Secondary\", false);\n    end;\n\n    local v161 = {};\n\n    for i, v in pairs(p155) do\n        if i ~= \"atk\" and (i ~= \"def\" and (i ~= \"crew\" and i ~= \"statBreakdown\")) then\n            v161[i] = v;\n        end;\n    end;\n\n    local u162 = v161;\n    u23.Avatar.Image = \"rbxthumb://type=AvatarHeadShot&id=\" .. u162.userId .. \"&w=150&h=150\";\n    paint(u162, \"...\", true);\n    u22.Visible = true;\n    u23.Visible = true;\n    u21.Sfx.play(\"Panel\");\n    task.spawn(function() -- Line: 734\n        -- upvalues: u21 (ref), u162 (ref), u156 (copy), u29 (ref), u23 (ref), paint (ref), u28 (ref), u33 (ref), u25 (ref), Color3_fromRGB_ret7 (ref), Color3_fromRGB_ret2 (ref), u30 (ref)\n        local v163 = u21.Remotes.PlayerProfile:InvokeServer(u162.userId);\n\n        if u156 ~= u29 or not u23.Visible then\n            return;\n        end;\n\n        if not (v163 and v163.ok) then\n            paint(u162, \"-\");\n\n            if v163 and v163.msg then\n                u21.toast(\"error\", v163.msg);\n            end;\n\n            return;\n        end;\n\n        local v164 = {};\n\n        for i, v in pairs(u162) do\n            v164[i] = v;\n        end;\n\n        for i, v in pairs(v163.profile or {}) do\n            v164[i] = v;\n        end;\n\n        paint(v164, \"-\");\n        u28 = v164.name or u28;\n        u33 = {\n            userId = u162.userId,\n            name = v164.displayName or v164.name,\n            level = v164.level,\n            family = v164.familyName,\n            familyId = v164.familyId,\n            border = v164.border,\n            sameFamily = v164.sameFamily\n        };\n\n        if type(v164.shieldLeft) == \"number\" and v164.shieldLeft > 0 then\n            u33.shieldedUntil = os.clock() + v164.shieldLeft;\n            local shieldLeft = v164.shieldLeft;\n            u25.Text = \"ATTACK\";\n            u25.BackgroundColor3 = Color3_fromRGB_ret7;\n            u25.TextColor3 = Color3_fromRGB_ret2;\n            u25.AutoButtonColor = true;\n            u25.Visible = true;\n\n            if u21.watchAttackButton then\n                u21.watchAttackButton(u25, u30, shieldLeft);\n            end;\n        end;\n    end);\nend;\n",
+      "EMBER_COMBAT_CURRENT_HELPER FightTab local function myExpectedPower() -- Line: 413\n    -- upvalues: u2 (ref)\n    local data = u2.State.data;\n\n    if not data then\n        return 100;\n    end;\n\n    local v99 = data.derived or {};\n    local v100 = (data.stats.atkBase + (v99.gearAtk or 0)) * (1 + (v99.crewBonus or 0)) * u2.Config.prestigeMult(data) * u2.Config.skillPowerMult(data, \"attack\");\n\n    return math.max(10, v100);\nend;\n",
+      "EMBER_COMBAT_CURRENT_NUMERIC_RULES bullyLevelGraceMin:5,bullyMaxStamina:5,bullyRespectGrace:150,bullyRespectGracePercent:0.25,bullyRespectPer:300,bullyRespectPerPercent:0.5,crewCap:40,crewPerMember:0.02,dailyTargetCap:5,eloK:40,eloSpread:400,fightVariance:0.2,fightVarianceCap:5000,hospitalHealth:20,levelRange:0.2,lossHealthMax:20,lossHealthMin:10,respectFloor:0,respectKnockout:3,respectLossFactor:0.9,respectRange:150,respectStart:100,respectUpsetFull:2000,respectUpsetStart:400,respectWinMax:60,scoutStaminaCost:1,staminaCost:1,stealCapFloorShare:0.1,stealIncomeHours:48,stealOffline:0.1,stealOnline:0.05,targetCooldown:30,variance:0.3,xpRespectBase:1000,xpRespectFull:20000,xpRespectMax:3.5,xpScaleFullLevel:200,xpScaleLevel:10,xpScaleMax:3.5,xpWinMax:50,xpWinMin:30",
+      "EMBER_COMBAT_STAT_FIELDS atkBase:number,defBase:number,maxEnergy:number,maxHealth:number,maxStamina:number"
+    ],
+    "profileCostShape": [
+      "EMBER_PLAYER_PROFILE_READ_SHAPE true table animal:string,background:string,border:string,contributed:number,donated:number,donatedGold:number,familyIcon:number,familyId:string,familyName:string,gear:table,joined:number,lastSeen:number,level:number,maxLevel:number,name:string,online:boolean,playtime:number,prestige:number,rankings:table,respect:number,role:string,scoutCost:number,serverNow:number,statsHidden:boolean,userId:number,vip:boolean",
+      "EMBER_PLAYER_PROFILE_COSTS 1 1 true nil"
+    ],
+    "hitList": {
+      "placeVersion": 648,
+      "readOnly": true,
+      "rowFields": [
+        "background",
+        "border",
+        "family",
+        "familyIcon",
+        "familyId",
+        "level",
+        "name",
+        "online",
+        "prestige",
+        "respect",
+        "shielded",
+        "stamina",
+        "userId"
+      ],
+      "friendshipPresent": false,
+      "staminaMeaning": "Native FightTab displays row.stamina (fallback 1) as the target card's Stamina attack quote; colors quotes above 1 differently."
+    },
+    "friendshipAPI": {
+      "source": "https://create.roblox.com/docs/reference/engine/classes/Player",
+      "method": "Player:IsFriendsWithAsync(userId)",
+      "documentationRetrievedVia": "Context7 /websites/create_roblox_reference_engine",
+      "yields": true,
+      "engineCachesResults": true,
+      "failureMeaning": "unknown, never false; observation time is not an uncached real-time guarantee"
+    },
+    "profileShapeCheck": {
+      "placeVersion": 648,
+      "readOnly": true,
+      "profileOk": true,
+      "userNameLevelFamilyMatchedTarget": true,
+      "maxLevelAtLeastDisplayedLevel": true,
+      "statsHidden": true,
+      "scoutCost": 1,
+      "friendshipMethodAvailable": true,
+      "friendshipReturnedBoolean": true,
+      "newGameplayCalls": 0
+    },
+    "warStatusModule": {
+      "source": "-- Decompiled with Potassium's decompiler.\n\nlocal u1 = {};\nlocal u2 = nil;\nlocal u3 = nil;\nlocal u4 = nil;\nlocal u5 = nil;\nlocal u6 = 0;\nlocal u7 = {};\nlocal u8 = false;\nlocal u9 = 0;\nlocal u10 = false;\nlocal u11 = -1;\n\nfunction u1.classify(p12, p13, p14) -- Line: 13\n    if type(p12) ~= \"table\" or p12.day ~= math.floor(p13 / 86400) then\n        return {\n            code = \"CHECKING\",\n            text = \"Checking war allowance...\",\n            rank = 2,\n            capped = false\n        };\n    end;\n\n    local math_min_ret = math.min(p12.attacksRemaining, p14 or p12.attacksRemaining);\n    local math_max_ret = math.max(0, math_min_ret);\n\n    return math_max_ret == 0 and {\n        code = \"DAILY LIMIT\",\n        text = \"Your daily attack limit against this player is reached.\",\n        rank = 3,\n        capped = true,\n        attacks = math_max_ret\n    } or (p12.remaining <= 0 and {\n        code = \"WAR CAPPED\",\n        text = \"No more war points from this player today.\",\n        rank = 3,\n        capped = true,\n        warning = \"This attack cannot earn war points. This player has reached their daily war defeat limit.\",\n        attacks = math_max_ret\n    } or (p12.pairRemaining <= 0 and {\n        code = \"WAR LIMIT\",\n        text = \"You cannot earn more attack points from this player today.\",\n        rank = 3,\n        capped = true,\n        warning = \"This attack cannot earn war points. You have reached your personal war scoring limit against this player.\",\n        attacks = math_max_ret\n    } or (p12.canScore and {\n        code = \"WAR TARGET\",\n        text = \"\",\n        rank = 1,\n        capped = false,\n        attacks = math_max_ret\n    } or {\n        code = \"SCORING LOCKED\",\n        text = \"Your new-member war scoring restriction is active.\",\n        rank = 2,\n        capped = false,\n        warning = \"This attack cannot earn war points while your new-member scoring restriction is active.\",\n        attacks = math_max_ret\n    })));\nend;\n\nfunction u1.now() -- Line: 30\n    -- upvalues: u5 (ref), u6 (ref)\n    if not u5 then\n        return os.time();\n    end;\n\n    local serverNow = u5.serverNow;\n    local v15 = os.clock() - u6;\n\n    return serverNow + math.max(0, v15);\nend;\n\nfunction u1.state(p16) -- Line: 35\n    -- upvalues: u7 (ref), u4 (ref), u1 (copy)\n    local v17 = u7[p16.userId];\n    local v18 = v17 and v17.warStatus or p16.warStatus;\n    local v19 = u4 and u4.attacksRemaining(p16.userId) or nil;\n\n    return u1.classify(v18, u1.now(), v19), v18;\nend;\n\nfunction u1.targetOf(p20) -- Line: 42\n    -- upvalues: u7 (ref)\n    return u7[p20];\nend;\n\nfunction u1.attacksBaseline(p21) -- Line: 46\n    -- upvalues: u7 (ref), u1 (copy)\n    local v22 = u7[p21];\n\n    if v22 then\n        v22 = v22.warStatus;\n    end;\n\n    if v22 then\n        local day = v22.day;\n        local v23 = u1.now() / 86400;\n\n        if day == math.floor(v23) then\n            return v22.attacksRemaining;\n        end;\n    end;\n\n    return (1 / 0);\nend;\n\nfunction u1.warning(p24) -- Line: 53\n    -- upvalues: u7 (ref), u1 (copy)\n    local v25 = u7[p24];\n\n    if v25 then\n        return u1.state(v25).warning;\n    end;\n\n    return nil;\nend;\n\nfunction u1.accept(p26) -- Line: 59\n    -- upvalues: u5 (ref), u6 (ref), u7 (ref), u9 (ref)\n    if type(p26) ~= \"table\" or type(p26.serverNow) ~= \"number\" then\n        return false;\n    end;\n\n    if u5 and p26.serverNow < u5.serverNow then\n        return false;\n    end;\n\n    local os_clock_ret = os.clock();\n    u5 = p26;\n    u6 = os_clock_ret;\n    u7 = {};\n\n    for _, v in ipairs(p26.targets or {}) do\n        u7[v.userId] = v;\n    end;\n\n    u9 = os.clock() + 15;\n\n    return true;\nend;\n\nfunction u1.requestRefresh() -- Line: 69\n    -- upvalues: u9 (ref)\n    local v27 = os.clock() + 0.3;\n    u9 = math.min(u9, v27);\nend;\n\nfunction u1.ordered(p28) -- Line: 73\n    -- upvalues: u1 (copy)\n    local table_clone_ret = table.clone(p28);\n    table.sort(table_clone_ret, function(p29, p30) -- Line: 75\n        -- upvalues: u1 (ref)\n        local v31 = u1.state(p29);\n        local v32 = u1.state(p30);\n\n        if v31.rank ~= v32.rank then\n            return v31.rank < v32.rank;\n        end;\n\n        if p29.name == p30.name then\n            return p29.userId < p30.userId;\n        end;\n\n        return p29.name < p30.name;\n    end);\n\n    return table_clone_ret;\nend;\n\nfunction u1.show(p33) -- Line: 84\n    -- upvalues: u8 (ref), u1 (copy)\n    return not (u8 and u1.state(p33).capped);\nend;\n\nfunction u1.hideCapped() -- Line: 90\n    -- upvalues: u8 (ref)\n    return u8;\nend;\n\nfunction u1.setHideCapped(p34) -- Line: 94\n    -- upvalues: u8 (ref)\n    u8 = p34 == true;\nend;\n\nfunction u1.age() -- Line: 99\n    -- upvalues: u5 (ref), u6 (ref)\n    return u5 and os.clock() - u6 or (1 / 0);\nend;\n\nfunction u1.snapshot() -- Line: 103\n    -- upvalues: u5 (ref)\n    return u5;\nend;\n\nfunction u1.init(p35, p36, p37) -- Line: 109\n    -- upvalues: u2 (ref), u3 (ref), u4 (ref)\n    u2 = p35;\n    u3 = p36;\n    u4 = p37;\nend;\n\nfunction u1.tick() -- Line: 113\n    -- upvalues: u3 (ref), u11 (ref), u4 (ref), u2 (ref), u5 (ref), u1 (copy), u9 (ref), u10 (ref)\n    if not (u3 and u3.Visible) then\n        return;\n    end;\n\n    local os_clock_ret = os.clock();\n    local math_floor_ret = math.floor(os_clock_ret);\n\n    if math_floor_ret == u11 then\n        return;\n    end;\n\n    u11 = math_floor_ret;\n\n    if u4.repaint then\n        u4.repaint();\n    end;\n\n    local data = u2.State.data;\n    local v38 = data and data.derived and data.derived.war;\n\n    if u5 then\n        local day = u5.day;\n        local v39 = u1.now() / 86400;\n\n        if day ~= math.floor(v39) then\n            u9 = 0;\n        end;\n    end;\n\n    if (u5 and u5.summary or v38 and v38.state == \"active\") and (u9 <= os.clock() and not u10) then\n        u10 = true;\n        u9 = os.clock() + 15;\n        task.spawn(function() -- Line: 125\n            -- upvalues: u2 (ref), u10 (ref), u1 (ref), u4 (ref)\n            local success, result = pcall(function() -- Line: 126\n                -- upvalues: u2 (ref)\n                return u2.Remotes.GetHitList:InvokeServer(\"warStatus\");\n            end);\n            u10 = false;\n\n            if success and (type(result) == \"table\" and (result.ok and (type(result.warStatus) == \"table\" and u1.accept(result.warStatus)))) then\n                u4.received(result.warStatus);\n            end;\n        end);\n    end;\nend;\n\nreturn u1;",
+      "provenance": "Current native WarStatus module resolved from the cached FightTab warning function environment's script; only public client source retained.",
+      "capturedTextSha256": "6c059c107c58d66d6c0573b7f83b52725b5d685b748885fa00482884700badc0"
+    },
+    "warDisplay": "combat-war-summary-use:ale.apply(v210, u206);\n        v210.Parent = Scroller;\n    end;\n\n    local v211 = u2.State.data and u2.State.data.derived and u2.State.data.derived.war;\n    u3.WarFilterButton.Visible = (p204.warStatus and p204.warStatus.summary ~= nil or p204.warStatus == nil and (v211 ~= nil and v211.state == \"active\")) and true or require(script.Parent.FamilyTab.WarRosterView).isPreview();\n\n    if p204.search then\n        local v212 = \"RESULTS FOR \\\"\" .. string.upper(p204.search) .. \"\\\"\";\n        u208 = u208 + 1;\n        local v213 = Scroller.WarHeaderTemplate:Clone();\n        v213.Name = \"Header_\" .. v212;\n        v213.Visible = true;\n        v213.LayoutOrder = u208;\n        v213.Text.Text = v212;\n        PixelScale.apply(v213, u206);\n        v213.Parent = Scroller;\n    end;\n\n    for i, v in ipairs(p204.list) do\n        local v214 = WarStatus.targetOf(v.userId);\n        local u2",
+    "hitListWarCheck": {
+      "ok": true,
+      "hasStatus": true,
+      "serverDelta": 4.717327356338501,
+      "dayMatches": true,
+      "targets": 0,
+      "summaryPresent": false
+    },
+    "nativeFrameReadOnly": {
+      "placeVersion": 648,
+      "available": true,
+      "attackKnown": true,
+      "healthKnown": true,
+      "targets": 8,
+      "maxStaminaCost": 5,
+      "scoutCost": 1,
+      "ownFamilyType": "string",
+      "meaning": "Read-only new provider check; no native gameplay invocation."
+    },
+    "scoutGuardShape": {
+      "module": "ProfilePopup",
+      "function": "open",
+      "busyUpvalue": 3,
+      "contextUpvalue": 5,
+      "contextStateMatched": true,
+      "contextConfigMatched": true,
+      "wrappedScoutPlayerMatched": true,
+      "noScoutSent": true
+    },
+    "nativeClock": {
+      "serverNowCanBeFractional": true,
+      "integerReplyTimeTreatedAsUpperBoundPlusOneSecond": true
+    }
+  }
+}

@@ -24,7 +24,8 @@ function FreeBriefcases.propose(view, settings)
         intent = { kind = "freeBriefcasePick", command = "open",
             index = view.index, season = view.season, board = view.board,
             free = view.free, endAt = view.endAt,
-            catalogKey = view.catalogKey },
+            catalogKey = view.catalogKey, sourceKey = view.sourceKey,
+            sourceGeneration = view.sourceGeneration },
     }, nil
 end
 

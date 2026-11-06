@@ -1,0 +1,3327 @@
+{
+  "schema": 1,
+  "baseline_hub": "0.48.57",
+  "status": "bounded-schema-17-reviewed-preferences-and-conditional-groups",
+  "source": "mafia/Core.lua:Core.defaults and mafia/runtime/Interface.inc.lua",
+  "default_key_count": 231,
+  "settings": [
+    {
+      "legacy_key": "version",
+      "legacy_default_literal": "17",
+      "value_kind": "number",
+      "disposition": "schema_metadata",
+      "rule": "Do not reuse the legacy schema version as the new application schema.",
+      "source_line": 207,
+      "migration": {
+        "status": "validated-schema-17"
+      }
+    },
+    {
+      "legacy_key": "jobMode",
+      "legacy_default_literal": "'XP / energy'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 207,
+      "migration": {
+        "status": "reviewed-label-subset",
+        "target": "jobs.policy",
+        "condition": "Only reviewed labels; Selected job requires an explicit current Job ID; unsupported labels remain unresolved."
+      }
+    },
+    {
+      "legacy_key": "jobId",
+      "legacy_default_literal": "''",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 207,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "jobs.custom.selectedJobId"
+      }
+    },
+    {
+      "legacy_key": "jobCity",
+      "legacy_default_literal": "''",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 207,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "jobs.custom.city"
+      }
+    },
+    {
+      "legacy_key": "masteryTarget",
+      "legacy_default_literal": "'Gold'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 207,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "jobs.custom.masteryTarget"
+      }
+    },
+    {
+      "legacy_key": "energyReserve",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 207,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "shared.energyReserve"
+      }
+    },
+    {
+      "legacy_key": "jobLimits",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 208,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "jobs.custom.limitsEnabled"
+      }
+    },
+    {
+      "legacy_key": "propertyLimits",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 208,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "properties.custom.limitsEnabled",
+        "condition": "Current supported typed bounds only; unsupported values remain named for review; senders stay off."
+      }
+    },
+    {
+      "legacy_key": "operationLimits",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 208,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "operations.custom.limitsEnabled",
+        "condition": "Current supported typed bounds only; unsupported values remain named for review; senders stay off."
+      }
+    },
+    {
+      "legacy_key": "heistLimits",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 208,
+      "migration": {
+        "status": "reviewed-exact-inert-selection-preference",
+        "target": "heists.custom.limitsEnabled"
+      }
+    },
+    {
+      "legacy_key": "combatLimits",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 208,
+      "migration": {
+        "status": "reviewed-conditional-combat-range-group",
+        "condition": "Only combatLimits=true: include omitted legacy defaults; both modes get level/quoted-cost bounds, ordinary mode gets saved samples (1..32). Inactive non-default cached bounds, invalid/inverted ranges remain unresolved. No enable/Scout/spending imported.",
+        "source": "mafia/Combat.lua:520-524; tests/test_legacy_profile_preview.py (47 cases total)"
+      }
+    },
+    {
+      "legacy_key": "jobMinLevel",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 209,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "jobs.custom.minLevel"
+      }
+    },
+    {
+      "legacy_key": "jobMaxLevel",
+      "legacy_default_literal": "10000",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 209,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "jobs.custom.maxLevel"
+      }
+    },
+    {
+      "legacy_key": "jobMinEnergy",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 209,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "jobs.custom.minCost"
+      }
+    },
+    {
+      "legacy_key": "jobMaxEnergy",
+      "legacy_default_literal": "1000000000000",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 209,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "jobs.custom.maxCost"
+      }
+    },
+    {
+      "legacy_key": "depositThreshold",
+      "legacy_default_literal": "10000",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 210,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "bank.custom.depositThreshold"
+      }
+    },
+    {
+      "legacy_key": "bankCashToKeep",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 210,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "bank.custom.cashToKeep"
+      }
+    },
+    {
+      "legacy_key": "withdrawalLimit",
+      "legacy_default_literal": "1000000",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 210,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "withdraw.custom.maxWithdrawal"
+      }
+    },
+    {
+      "legacy_key": "perAction",
+      "legacy_default_literal": "100000",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 211,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "superseded-limit",
+        "reason": "The old global per-action limit was replaced by feature-specific spending rules; select current limits explicitly."
+      }
+    },
+    {
+      "legacy_key": "sessionBudget",
+      "legacy_default_literal": "1000000",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 211,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "superseded-limit",
+        "reason": "The old global session budget was replaced by feature-specific allowances; import cannot establish unused funds."
+      }
+    },
+    {
+      "legacy_key": "propertyCap",
+      "legacy_default_literal": "10",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 211,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "properties.custom.ownedLimit"
+      }
+    },
+    {
+      "legacy_key": "propertyMode",
+      "legacy_default_literal": "'ROI'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 211,
+      "migration": {
+        "status": "reviewed-label-subset",
+        "target": "properties.policy",
+        "condition": "ROI maps to Best value; Income to Most income; Highest tier retains required-level then income priority. Default replacements remain visible."
+      }
+    },
+    {
+      "legacy_key": "propertyReplace",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 211,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "separate-permission",
+        "reason": "Legacy property replacement permits selling an owned property; current import cannot authorize replacement or sale."
+      }
+    },
+    {
+      "legacy_key": "propertyReplaceMultiplier",
+      "legacy_default_literal": "2",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 212,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-constraint",
+        "reason": "The replacement income multiplier has no current Property replacement control; it cannot become a purchase ROI preference."
+      }
+    },
+    {
+      "legacy_key": "propertyReplacePaybackHours",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 212,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-constraint",
+        "reason": "The replacement payback-hours ceiling has no current equivalent; an ordinary purchase budget does not preserve it."
+      }
+    },
+    {
+      "legacy_key": "propertyMinLevel",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 212,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "properties.custom.minLevel",
+        "condition": "Current supported typed bounds only; unsupported values remain named for review; senders stay off."
+      }
+    },
+    {
+      "legacy_key": "propertyMaxLevel",
+      "legacy_default_literal": "10000",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 212,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "properties.custom.maxLevel",
+        "condition": "Current supported typed bounds only; unsupported values remain named for review; senders stay off."
+      }
+    },
+    {
+      "legacy_key": "propertySelection",
+      "legacy_default_literal": "'Automatic'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 213,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "properties.custom.selection",
+        "condition": "Current supported typed bounds only; unsupported values remain named for review; senders stay off."
+      }
+    },
+    {
+      "legacy_key": "selectedProperties",
+      "legacy_default_literal": "{}",
+      "value_kind": "selection_table",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 213,
+      "migration": {
+        "status": "reviewed-selected-id-map",
+        "target": "properties.custom.selectedIds",
+        "condition": "Current typed bounds only; inactive preview. Selected ID maps are sorted, bounded and validated; unknown IDs hold at planning."
+      }
+    },
+    {
+      "legacy_key": "operationMode",
+      "legacy_default_literal": "'Profit / hour'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 214,
+      "migration": {
+        "status": "reviewed-label-subset",
+        "target": "operations.policy",
+        "condition": "Reviewed Best chest, Highest tier, Profit / hour, XP / hour, Shortest duration and Balanced labels. Default replacements remain visible in the preview."
+      }
+    },
+    {
+      "legacy_key": "operationSelection",
+      "legacy_default_literal": "'Automatic'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 214,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "operations.custom.selection",
+        "condition": "Current supported typed bounds only; unsupported values remain named for review; senders stay off."
+      }
+    },
+    {
+      "legacy_key": "selectedOperations",
+      "legacy_default_literal": "{}",
+      "value_kind": "selection_table",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 214,
+      "migration": {
+        "status": "reviewed-selected-id-map",
+        "target": "operations.custom.selectedIds",
+        "condition": "Current typed bounds only; inactive preview. Selected ID maps are sorted, bounded and validated; unknown IDs hold at planning."
+      }
+    },
+    {
+      "legacy_key": "minOperationHours",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 215,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "operations.custom.minHours",
+        "condition": "Current supported typed bounds only; unsupported values remain named for review; senders stay off."
+      }
+    },
+    {
+      "legacy_key": "maxOperationHours",
+      "legacy_default_literal": "24",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 215,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "operations.custom.maxHours",
+        "condition": "Current supported typed bounds only; unsupported values remain named for review; senders stay off."
+      }
+    },
+    {
+      "legacy_key": "operationMinLevel",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 215,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "operations.custom.minLevel",
+        "condition": "Current supported typed bounds only; unsupported values remain named for review; senders stay off."
+      }
+    },
+    {
+      "legacy_key": "operationMaxLevel",
+      "legacy_default_literal": "10000",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 215,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "operations.custom.maxLevel",
+        "condition": "Current supported typed bounds only; unsupported values remain named for review; senders stay off."
+      }
+    },
+    {
+      "legacy_key": "operationMinCrateRarity",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 216,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "operations.custom.minCrateRarity",
+        "condition": "Current supported typed bounds only; unsupported values remain named for review; senders stay off."
+      }
+    },
+    {
+      "legacy_key": "healthFloor",
+      "legacy_default_literal": "50",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 216,
+      "migration": {
+        "status": "reviewed-inert-exact-alias",
+        "target": "combat.custom.healthFloor",
+        "targets": [
+          "combat.custom.healthFloor",
+          "warCombat.custom.healthFloor",
+          "bosses.custom.healthFloor"
+        ],
+        "activation": false,
+        "note": "Exact preference fan-out; independent send permissions remain off."
+      }
+    },
+    {
+      "legacy_key": "staminaReserve",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 216,
+      "migration": {
+        "status": "reviewed-inert-exact-alias",
+        "target": "combat.custom.staminaReserve",
+        "targets": [
+          "combat.custom.staminaReserve",
+          "warCombat.custom.staminaReserve",
+          "bosses.custom.staminaReserve",
+          "globalBossAttack.custom.staminaReserve"
+        ],
+        "activation": false,
+        "note": "Exact preference fan-out; independent send permissions remain off."
+      }
+    },
+    {
+      "legacy_key": "combatNativeRefresh",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 217,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "separate-permission",
+        "reason": "Forced native hit-list refresh is a separate action; no current profile preference imports that opt-in."
+      }
+    },
+    {
+      "legacy_key": "bossMode",
+      "legacy_default_literal": "'Smart'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 218,
+      "migration": {
+        "status": "implemented-build-653-selection",
+        "target": "bosses.custom.selection",
+        "condition": "Six exact legacy modes; explicit mode requires the reviewed complete current source. Activity stays off."
+      }
+    },
+    {
+      "legacy_key": "bossMinLevel",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 218,
+      "migration": {
+        "status": "implemented-conditional-bounds",
+        "target": "bosses.custom.minLevel",
+        "condition": "Explicit either endpoint enables limits; preserve omitted endpoint legacy default and reject inversion."
+      }
+    },
+    {
+      "legacy_key": "bossMaxLevel",
+      "legacy_default_literal": "10000",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 218,
+      "migration": {
+        "status": "implemented-conditional-bounds",
+        "target": "bosses.custom.maxLevel",
+        "condition": "Explicit either endpoint enables limits; preserve omitted endpoint legacy default and reject inversion."
+      }
+    },
+    {
+      "legacy_key": "bossMaxHits",
+      "legacy_default_literal": "100",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 218,
+      "migration": {
+        "status": "implemented-conditional-reviewed",
+        "target": "bosses.custom.maxConfirmedHits",
+        "condition": "Optional original load/stage/day/best confirmed count; fractional comparator preserved. Durable attempted cap remains. Numbered and legacy unnumbered exact recovery dedupes without minting IDs."
+      }
+    },
+    {
+      "legacy_key": "bossMaxStamina",
+      "legacy_default_literal": "100",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 218,
+      "migration": {
+        "status": "implemented-conditional-reviewed",
+        "target": "bosses.custom.maxConfirmedStamina",
+        "condition": "Optional prospective confirmed Stamina sum with exact fractions; original day/best/load scope and independent durable attempted cap."
+      }
+    },
+    {
+      "legacy_key": "bossHitDelay",
+      "legacy_default_literal": "5",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 218,
+      "migration": {
+        "status": "implemented-conditional-reviewed",
+        "target": "bosses.custom.confirmationDelay",
+        "condition": "Explicit values including defaults enable5..120 local-clock delay after observed confirmation; server-time changes cannot shorten it."
+      }
+    },
+    {
+      "legacy_key": "bossShopItem",
+      "legacy_default_literal": "'crate_loot'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 219,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "bossShop.custom.itemId"
+      }
+    },
+    {
+      "legacy_key": "bossShopQuantity",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 219,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "bossShop.custom.crateQuantity"
+      }
+    },
+    {
+      "legacy_key": "bossShopTokenReserve",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 219,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "bossShop.custom.tokenReserve"
+      }
+    },
+    {
+      "legacy_key": "bossShopMaxPerLoad",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 219,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "bossShop.custom.maxSends"
+      }
+    },
+    {
+      "legacy_key": "globalBossHealthFloor",
+      "legacy_default_literal": "50",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 220,
+      "migration": {
+        "status": "implemented",
+        "target": "globalBossAttack.custom.healthFloor",
+        "condition": "Finite original range; combines with hit buffer without clamping; activity stays off."
+      }
+    },
+    {
+      "legacy_key": "globalBossHitBufferPct",
+      "legacy_default_literal": "25",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 220,
+      "migration": {
+        "status": "implemented",
+        "target": "globalBossAttack.custom.hitBufferPct",
+        "condition": "Finite original range; combines with health floor without clamping."
+      }
+    },
+    {
+      "legacy_key": "globalBossAttackDelay",
+      "legacy_default_literal": "5",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 220,
+      "migration": {
+        "status": "implemented",
+        "target": "globalBossAttack.custom.minimumDelay",
+        "condition": "Default5, range2..120; effective delay includes source-owned native cooldown; unknown current cooldown blocks low-delay admission."
+      }
+    },
+    {
+      "legacy_key": "globalBossAttackMaxPerLoad",
+      "legacy_default_literal": "25",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 221,
+      "migration": {
+        "status": "implemented-conditional-cap",
+        "target": "globalBossAttack.custom.maxPerLoad",
+        "condition": "Explicit values including defaults enable independent per-load send cap. Zero blocks; fractional comparator preserved; durable event cap remains."
+      }
+    },
+    {
+      "legacy_key": "globalBossClaimMaxPerLoad",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 221,
+      "migration": {
+        "status": "implemented-conditional-cap",
+        "target": "globalBossClaim.custom.maxPerLoad",
+        "condition": "Explicit values including defaults enable independent per-load send cap. Zero blocks; fractional comparator preserved; durable event cap remains."
+      }
+    },
+    {
+      "legacy_key": "prestigeMaxRank",
+      "legacy_default_literal": "6",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 222,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "prestige.custom.targetRank"
+      }
+    },
+    {
+      "legacy_key": "prestigeMaxPerLoad",
+      "legacy_default_literal": "6",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 222,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "historical-allowance",
+        "reason": "Legacy resets per load are not the durable reset allowance; consumed or unknown resets cannot be cleared by import."
+      }
+    },
+    {
+      "legacy_key": "skill",
+      "legacy_default_literal": "'energy'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 223,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "skills.custom.stat"
+      }
+    },
+    {
+      "legacy_key": "skillCap",
+      "legacy_default_literal": "25",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 223,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "skills.custom.maxAllocations",
+        "condition": "Current supported typed bounds only; unsupported values remain named for review; senders stay off."
+      }
+    },
+    {
+      "legacy_key": "skillBatchMax",
+      "legacy_default_literal": "100",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 223,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "skills.custom.batchSize"
+      }
+    },
+    {
+      "legacy_key": "interval",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "preserve_minimum",
+      "rule": "Default/minimum one second; native cooldowns and unresolved actions may make sends slower.",
+      "source_line": 223,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "owned-timing",
+        "reason": "Legacy outbound spacing has no profile equivalent; the current one-second minimum and request owner remain authoritative."
+      }
+    },
+    {
+      "legacy_key": "timeout",
+      "legacy_default_literal": "15",
+      "value_kind": "number",
+      "disposition": "clarify_observation",
+      "rule": "Retain only as supported response-observation policy; cannot shorten the 45-second first-send uncertainty deadline.",
+      "source_line": 223,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "owned-timing",
+        "reason": "Legacy response timeout cannot replace the current 45-second unconfirmed-action deadline or establish cancellation."
+      }
+    },
+    {
+      "legacy_key": "readTimeout",
+      "legacy_default_literal": "8",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 223,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "owned-timing",
+        "reason": "Legacy read timeout has no current profile field; source-owned read deadlines and stale-response checks remain."
+      }
+    },
+    {
+      "legacy_key": "combatConfirmGrace",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 223,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "owned-timing",
+        "reason": "Legacy Combat confirmation grace has no current equivalent; elapsed time cannot prove the current owned fight outcome."
+      }
+    },
+    {
+      "legacy_key": "antiAfk",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 223,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unavailable-utility",
+        "reason": "Legacy anti-AFK activation has no current profile equivalent; native idle handling is not permission to start a fallback."
+      }
+    },
+    {
+      "legacy_key": "botCheckCapture",
+      "legacy_default_literal": "true",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 223,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unavailable-utility",
+        "reason": "Legacy bot-check evidence capture has no current profile switch; challenge handling remains native and manual."
+      }
+    },
+    {
+      "legacy_key": "acrylic",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "replace_presentation",
+      "rule": "Fluent-specific blur setting; expose only supported reviewed Ember appearance options.",
+      "source_line": 223,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "ui-mismatch",
+        "reason": "Fluent acrylic is not an Ember preference; the visual choice is retained for manual theme review."
+      }
+    },
+    {
+      "legacy_key": "transparent",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "replace_presentation",
+      "rule": "Review a supported Ember equivalent; do not silently import a Fluent-only renderer flag.",
+      "source_line": 223,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "ui-mismatch",
+        "reason": "Fluent transparency has no reviewed Ember profile equivalent; the original visual choice is retained."
+      }
+    },
+    {
+      "legacy_key": "theme",
+      "legacy_default_literal": "'DuoTone Dark Earth'",
+      "value_kind": "string",
+      "disposition": "map_with_preview",
+      "rule": "Map legacy Fluent palette to an available Ember theme; preview the fallback.",
+      "source_line": 223,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "ui-mismatch",
+        "reason": "Legacy Fluent theme names are not current Ember theme IDs; no nearest theme is guessed."
+      }
+    },
+    {
+      "legacy_key": "collectionObjective",
+      "legacy_default_literal": "'Balanced'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 224,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-policy",
+        "reason": "Legacy Attack/Defense/Balanced Collection scoring has no current surplus-donation objective control."
+      }
+    },
+    {
+      "legacy_key": "crewGearObjective",
+      "legacy_default_literal": "'Balanced'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 224,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "crewGear.policy"
+      }
+    },
+    {
+      "legacy_key": "crewGearStrategy",
+      "legacy_default_literal": "'Safe swaps'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 224,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-policy",
+        "reason": "Legacy safe-swap or complete-set strategy is not the current native equip objective; no strategy is substituted."
+      }
+    },
+    {
+      "legacy_key": "briefcaseUseKeys",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 225,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "separate-permission",
+        "reason": "Spending owned Briefcase keys requires separate current permission; legacy activation is never imported."
+      }
+    },
+    {
+      "legacy_key": "briefcaseKeyLimit",
+      "legacy_default_literal": "10",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 225,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "historical-allowance",
+        "reason": "The legacy Briefcase key-use limit has no current profile equivalent; import cannot reset consumed key allowance."
+      }
+    },
+    {
+      "legacy_key": "crateLuckOnly",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 225,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-constraint",
+        "reason": "The old crate luck-only condition has no current Chest preference; dropping it would allow opening outside the chosen luck window."
+      }
+    },
+    {
+      "legacy_key": "consumableHealthBelow",
+      "legacy_default_literal": "25",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 226,
+      "migration": {
+        "status": "reviewed-exact-threshold-and-pool-disable",
+        "target": "restoratives.custom.healthBelow",
+        "condition": "Explicit finite0..100 thresholds preserve exact values, including old baseline25 and fractions. Legacy0 also maps the pool policy to Off. No rounding, sender enable or tradable permission."
+      }
+    },
+    {
+      "legacy_key": "consumableStaminaBelow",
+      "legacy_default_literal": "25",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 226,
+      "migration": {
+        "status": "reviewed-exact-threshold-and-pool-disable",
+        "target": "restoratives.custom.staminaBelow",
+        "condition": "Explicit finite0..100 thresholds preserve exact values, including old baseline25 and fractions. Legacy0 also maps the pool policy to Off. No rounding, sender enable or tradable permission."
+      }
+    },
+    {
+      "legacy_key": "consumableEnergyBelow",
+      "legacy_default_literal": "25",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 226,
+      "migration": {
+        "status": "reviewed-exact-threshold-and-pool-disable",
+        "target": "restoratives.custom.energyBelow",
+        "condition": "Explicit finite0..100 thresholds preserve exact values, including old baseline25 and fractions. Legacy0 also maps the pool policy to Off. No rounding, sender enable or tradable permission."
+      }
+    },
+    {
+      "legacy_key": "consumableHealthMode",
+      "legacy_default_literal": "'Balanced'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 227,
+      "migration": {
+        "status": "reviewed-shared-or-per-pool-policy",
+        "target": "restoratives.custom.healthPolicy",
+        "condition": "Effective legacy pool modes use Balanced when omitted; matching nondefault modes may map shared policy, mixed modes map each pool exactly. Unknown labels remain unresolved. No tradable permission or activation."
+      }
+    },
+    {
+      "legacy_key": "consumableEnergyMode",
+      "legacy_default_literal": "'Balanced'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 227,
+      "migration": {
+        "status": "reviewed-shared-or-per-pool-policy",
+        "target": "restoratives.custom.energyPolicy",
+        "condition": "Effective legacy pool modes use Balanced when omitted; matching nondefault modes may map shared policy, mixed modes map each pool exactly. Unknown labels remain unresolved. No tradable permission or activation."
+      }
+    },
+    {
+      "legacy_key": "consumableStaminaMode",
+      "legacy_default_literal": "'Balanced'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 227,
+      "migration": {
+        "status": "reviewed-shared-or-per-pool-policy",
+        "target": "restoratives.custom.staminaPolicy",
+        "condition": "Effective legacy pool modes use Balanced when omitted; matching nondefault modes may map shared policy, mixed modes map each pool exactly. Unknown labels remain unresolved. No tradable permission or activation."
+      }
+    },
+    {
+      "legacy_key": "consumableUseTradable",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 228,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "separate-permission",
+        "reason": "Choose current item-custody permission explicitly; a legacy size preference never authorizes tradable consumption."
+      }
+    },
+    {
+      "legacy_key": "crewTrainMinRarity",
+      "legacy_default_literal": "'Legendary'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 229,
+      "migration": {
+        "status": "reviewed-label-subset",
+        "target": "crewTrain.custom.minRarity"
+      }
+    },
+    {
+      "legacy_key": "crewTrainTargetLevel",
+      "legacy_default_literal": "3",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 229,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "crewTrain.custom.targetLevel"
+      }
+    },
+    {
+      "legacy_key": "crewTrainMaxCost",
+      "legacy_default_literal": "100000000",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 229,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "crewTrain.custom.maxCost"
+      }
+    },
+    {
+      "legacy_key": "crewTrainConcurrent",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 229,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "crewTrain.custom.maxConcurrent"
+      }
+    },
+    {
+      "legacy_key": "chestLimit",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 230,
+      "migration": {
+        "status": "reviewed-inert-exact-alias",
+        "target": "chests.custom.totalLimit",
+        "targets": [
+          "chests.custom.totalLimit"
+        ],
+        "activation": false,
+        "note": "Durable attempted-crate allowance; explicit paused reset, never reset by profile/toggle/reload."
+      }
+    },
+    {
+      "legacy_key": "chestLimitEnabled",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 230,
+      "migration": {
+        "status": "reviewed-inert-exact-alias",
+        "target": "chests.custom.totalLimitEnabled",
+        "targets": [
+          "chests.custom.totalLimitEnabled"
+        ],
+        "activation": false,
+        "note": "Durable attempted-crate allowance; explicit paused reset, never reset by profile/toggle/reload."
+      }
+    },
+    {
+      "legacy_key": "shopKind",
+      "legacy_default_literal": "'All allowed'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 230,
+      "migration": {
+        "status": "reviewed-atomic-inert-cash-shop",
+        "target": "shop.custom.kind",
+        "condition": "Validated as one Shop preference group. Native cash order and legacy category/all/selected/conditional-price/rarity-override semantics preserved; invalid or incomplete groups refuse without partial application. Shop and Bank senders remain off. Gold, Robux and shared historical session spending stay excluded.",
+        "source": "mafia/Core.lua:2439; src/storage/LegacySettings.luau; tests/test_shop_legacy.py"
+      }
+    },
+    {
+      "legacy_key": "shopRule",
+      "legacy_default_literal": "'Buy all allowed'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 230,
+      "migration": {
+        "status": "reviewed-atomic-inert-cash-shop",
+        "target": "shop.custom.priceRule",
+        "condition": "Validated as one Shop preference group. Native cash order and legacy category/all/selected/conditional-price/rarity-override semantics preserved; invalid or incomplete groups refuse without partial application. Shop and Bank senders remain off. Gold, Robux and shared historical session spending stay excluded.",
+        "source": "mafia/Core.lua:2439; src/storage/LegacySettings.luau; tests/test_shop_legacy.py"
+      }
+    },
+    {
+      "legacy_key": "shopCashMax",
+      "legacy_default_literal": "100000",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 230,
+      "migration": {
+        "status": "reviewed-atomic-inert-cash-shop",
+        "target": "shop.custom.cashMax",
+        "condition": "Validated as one Shop preference group. Native cash order and legacy category/all/selected/conditional-price/rarity-override semantics preserved; invalid or incomplete groups refuse without partial application. Shop and Bank senders remain off. Gold, Robux and shared historical session spending stay excluded.",
+        "source": "mafia/Core.lua:2439; src/storage/LegacySettings.luau; tests/test_shop_legacy.py"
+      }
+    },
+    {
+      "legacy_key": "shopOwnedCap",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 231,
+      "migration": {
+        "status": "reviewed-atomic-inert-cash-shop",
+        "target": "shop.custom.ownedCap",
+        "condition": "Validated as one Shop preference group. Native cash order and legacy category/all/selected/conditional-price/rarity-override semantics preserved; invalid or incomplete groups refuse without partial application. Shop and Bank senders remain off. Gold, Robux and shared historical session spending stay excluded.",
+        "source": "mafia/Core.lua:2439; src/storage/LegacySettings.luau; tests/test_shop_legacy.py"
+      }
+    },
+    {
+      "legacy_key": "shopMinRarity",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 231,
+      "migration": {
+        "status": "reviewed-atomic-inert-cash-shop",
+        "target": "shop.custom.minRarity",
+        "condition": "Validated as one Shop preference group. Native cash order and legacy category/all/selected/conditional-price/rarity-override semantics preserved; invalid or incomplete groups refuse without partial application. Shop and Bank senders remain off. Gold, Robux and shared historical session spending stay excluded.",
+        "source": "mafia/Core.lua:2439; src/storage/LegacySettings.luau; tests/test_shop_legacy.py"
+      }
+    },
+    {
+      "legacy_key": "shopCosmetics",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 231,
+      "migration": {
+        "status": "reviewed-atomic-inert-cash-shop",
+        "target": "shop.custom.allowCosmetics",
+        "condition": "Validated as one Shop preference group. Native cash order and legacy category/all/selected/conditional-price/rarity-override semantics preserved; invalid or incomplete groups refuse without partial application. Shop and Bank senders remain off. Gold, Robux and shared historical session spending stay excluded.",
+        "source": "mafia/Core.lua:2439; src/storage/LegacySettings.luau; tests/test_shop_legacy.py"
+      }
+    },
+    {
+      "legacy_key": "shopCrates",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 231,
+      "migration": {
+        "status": "reviewed-atomic-inert-cash-shop",
+        "target": "shop.custom.allowCrates",
+        "condition": "Validated as one Shop preference group. Native cash order and legacy category/all/selected/conditional-price/rarity-override semantics preserved; invalid or incomplete groups refuse without partial application. Shop and Bank senders remain off. Gold, Robux and shared historical session spending stay excluded.",
+        "source": "mafia/Core.lua:2439; src/storage/LegacySettings.luau; tests/test_shop_legacy.py"
+      }
+    },
+    {
+      "legacy_key": "shopRarityOverride",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 232,
+      "migration": {
+        "status": "reviewed-atomic-inert-cash-shop",
+        "target": "shop.custom.rarityOverride",
+        "condition": "Validated as one Shop preference group. Native cash order and legacy category/all/selected/conditional-price/rarity-override semantics preserved; invalid or incomplete groups refuse without partial application. Shop and Bank senders remain off. Gold, Robux and shared historical session spending stay excluded.",
+        "source": "mafia/Core.lua:2439; src/storage/LegacySettings.luau; tests/test_shop_legacy.py"
+      }
+    },
+    {
+      "legacy_key": "shopOverrideRarities",
+      "legacy_default_literal": "{Secret=true,Forbidden=true}",
+      "value_kind": "selection_table",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 232,
+      "migration": {
+        "status": "reviewed-atomic-inert-cash-shop",
+        "target": "shop.custom.overrideRarities",
+        "condition": "Validated as one Shop preference group. Native cash order and legacy category/all/selected/conditional-price/rarity-override semantics preserved; invalid or incomplete groups refuse without partial application. Shop and Bank senders remain off. Gold, Robux and shared historical session spending stay excluded.",
+        "source": "mafia/Core.lua:2439; src/storage/LegacySettings.luau; tests/test_shop_legacy.py"
+      }
+    },
+    {
+      "legacy_key": "shopUseBank",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 233,
+      "migration": {
+        "status": "reviewed-atomic-inert-cash-shop",
+        "target": "withdraw.custom.allowShop",
+        "condition": "Validated as one Shop preference group. Native cash order and legacy category/all/selected/conditional-price/rarity-override semantics preserved; invalid or incomplete groups refuse without partial application. Shop and Bank senders remain off. Gold, Robux and shared historical session spending stay excluded.",
+        "source": "mafia/Core.lua:2439; src/storage/LegacySettings.luau; tests/test_shop_legacy.py"
+      }
+    },
+    {
+      "legacy_key": "shopGold",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "preserve_separate_opt_in",
+      "rule": "Current client arguments observed; OFF until explicitly enabled and exact live contract/confirmation is established.",
+      "source_line": 233,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "separate-permission",
+        "reason": "Legacy Gold Shop purchasing is a separate currency permission; current selected-Cash Shop controls cannot represent it."
+      }
+    },
+    {
+      "legacy_key": "shopGoldMax",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 233,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-constraint",
+        "reason": "The legacy per-offer Gold ceiling has no current Cash-Shop equivalent; it cannot become Cash budget or earned-Gold permission."
+      }
+    },
+    {
+      "legacy_key": "shopGoldReserve",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 233,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-constraint",
+        "reason": "The legacy Shop Gold reserve has no current Shop Gold lane; importing it into another feature would change its scope."
+      }
+    },
+    {
+      "legacy_key": "marketFlipMaxBuy",
+      "legacy_default_literal": "100",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 234,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "marketFlip.custom.maxBuy"
+      }
+    },
+    {
+      "legacy_key": "marketFlipGoldReserve",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 234,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "marketFlip.custom.goldReserve"
+      }
+    },
+    {
+      "legacy_key": "marketFlipSessionBudget",
+      "legacy_default_literal": "500",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 234,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "marketFlip.custom.sessionBudget"
+      }
+    },
+    {
+      "legacy_key": "marketFlipMinMargin",
+      "legacy_default_literal": "10",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 235,
+      "migration": {
+        "status": "reviewed-exact-inert-net-margin",
+        "target": "marketFlip.custom.minMargin",
+        "condition": "Explicit finite integer 1..1000000 absolute net Gold, including old default10. Never minMarginPct; Watch, selection, attempts and allowances stay at current defaults. Larger old values remain review-required without clamping.",
+        "source": "mafia/Market.lua:flipCandidate; src/tabs/blackMarket/MarketWatchOpportunity.luau; tests/test_legacy_market_preferences.py"
+      }
+    },
+    {
+      "legacy_key": "marketFlipMinSales",
+      "legacy_default_literal": "10",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 235,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "marketFlip.custom.minSales"
+      }
+    },
+    {
+      "legacy_key": "marketResearchMode",
+      "legacy_default_literal": "'Balanced'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 235,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-policy",
+        "reason": "Legacy turnover research modes have no exact current item-scope and evidence-policy equivalent."
+      }
+    },
+    {
+      "legacy_key": "marketSellKeepLoose",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 236,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "marketSell.custom.keepLoose"
+      }
+    },
+    {
+      "legacy_key": "marketSellMaxQuantity",
+      "legacy_default_literal": "10",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 236,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "marketSell.custom.maxQuantity"
+      }
+    },
+    {
+      "legacy_key": "marketSellMinNet",
+      "legacy_default_literal": "5",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 236,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "marketSell.custom.minNet"
+      }
+    },
+    {
+      "legacy_key": "marketSellMinSales",
+      "legacy_default_literal": "3",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 237,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "marketSell.custom.minSales"
+      }
+    },
+    {
+      "legacy_key": "marketSellMaxListingsPerLoad",
+      "legacy_default_literal": "5",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 237,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "historical-allowance",
+        "reason": "Legacy listing count per load is not the current durable listing-attempt allowance; prior or unknown listings cannot be reset."
+      }
+    },
+    {
+      "legacy_key": "marketSellFromCollection",
+      "legacy_default_literal": "true",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 237,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "marketSell.custom.fromCollection",
+        "condition": "Explicit legacy false remains false. Legacy true equals its baseline and retains the current false default; withdrawal permission/allowances are never enabled by this mapping."
+      }
+    },
+    {
+      "legacy_key": "marketSellLikelyOnly",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 238,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "marketSell.custom.likelyOnly"
+      }
+    },
+    {
+      "legacy_key": "marketSellBlockedKinds",
+      "legacy_default_literal": "{}",
+      "value_kind": "selection_table",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 238,
+      "migration": {
+        "status": "reviewed-sale-exclusion-map",
+        "target": "marketSell.custom.excludedKinds",
+        "condition": "Strict boolean maps, bounded CSV and reviewed rarity names. Both sale and flip-buy consumers retain exclusions; Watch stays unchanged. Unknown names/types hold review; false entries remain in original input. No activation or allowance import. Source: mafia/Market.lua:501-509,537.",
+        "additional_targets": [
+          "marketFlip.custom.excludedKinds"
+        ]
+      }
+    },
+    {
+      "legacy_key": "marketSellBlockedRarities",
+      "legacy_default_literal": "{}",
+      "value_kind": "selection_table",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 238,
+      "migration": {
+        "status": "reviewed-sale-exclusion-map",
+        "target": "marketSell.custom.excludedRarities",
+        "condition": "Strict boolean maps, bounded CSV and reviewed rarity names. Both sale and flip-buy consumers retain exclusions; Watch stays unchanged. Unknown names/types hold review; false entries remain in original input. No activation or allowance import. Source: mafia/Market.lua:501-509,537.",
+        "additional_targets": [
+          "marketFlip.custom.excludedRarities"
+        ]
+      }
+    },
+    {
+      "legacy_key": "marketSellBlockedItems",
+      "legacy_default_literal": "{}",
+      "value_kind": "selection_table",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 238,
+      "migration": {
+        "status": "reviewed-sale-exclusion-map",
+        "target": "marketSell.custom.excludedItems",
+        "condition": "Strict boolean maps, bounded CSV and reviewed rarity names. Both sale and flip-buy consumers retain exclusions; Watch stays unchanged. Unknown names/types hold review; false entries remain in original input. No activation or allowance import. Source: mafia/Market.lua:501-509,537.",
+        "additional_targets": [
+          "marketFlip.custom.excludedItems"
+        ]
+      }
+    },
+    {
+      "legacy_key": "marketRentGoldReserve",
+      "legacy_default_literal": "5",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 239,
+      "migration": {
+        "status": "reviewed-inert-market-reserve",
+        "target": "marketRent.custom.goldReserve",
+        "condition": "Non-default whole Gold reserve 0..1e9. Total loose+bound reserve preserved; cost still requires loose Gold. Independent attempts/spend remain zero."
+      }
+    },
+    {
+      "legacy_key": "marketRentMaxPerLoad",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 239,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "historical-allowance",
+        "reason": "Legacy rentals per load are not the current durable rental-attempt allowance; consumed or uncertain rentals remain owned."
+      }
+    },
+    {
+      "legacy_key": "marketAutoCheck",
+      "legacy_default_literal": "true",
+      "value_kind": "boolean",
+      "disposition": "exclude_auto_answer",
+      "rule": "Retain native bot-check pause/evidence and manual resolution; no automatic answers.",
+      "source_line": 240,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "native-manual-only",
+        "reason": "Native manual challenge resolution is retained; automatic answering is not imported."
+      }
+    },
+    {
+      "legacy_key": "marketCollectMinimum",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 241,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "marketManage.custom.minEarnings"
+      }
+    },
+    {
+      "legacy_key": "marketAgingHours",
+      "legacy_default_literal": "24",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 241,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "marketWatch.custom.minAgeHours"
+      }
+    },
+    {
+      "legacy_key": "eventScheduling",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 241,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-policy",
+        "reason": "Legacy event-based scheduling has no current profile ordering switch; independent feature priorities remain unchanged."
+      }
+    },
+    {
+      "legacy_key": "xpTargetLevel",
+      "legacy_default_literal": "200",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 241,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-policy",
+        "reason": "The legacy XP target belongs to an unported progression controller; it is not a Trophy ID or permission to borrow activities."
+      }
+    },
+    {
+      "legacy_key": "marketUndercutGold",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 242,
+      "migration": {
+        "status": "reviewed-inert-shared-market-preference",
+        "target": "marketSell.custom.undercutGold",
+        "additional_targets": [
+          "marketFlip.custom.undercutGold"
+        ],
+        "condition": "Non-default typed bounds only. Old gentleAsk pricing is shared by Sell/Flip; Watch remains unchanged. No activation, selection or allowance import."
+      }
+    },
+    {
+      "legacy_key": "marketPriceFloorPct",
+      "legacy_default_literal": "95",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 242,
+      "migration": {
+        "status": "reviewed-inert-shared-market-preference",
+        "target": "marketSell.custom.floorPct",
+        "additional_targets": [
+          "marketFlip.custom.floorPct"
+        ],
+        "condition": "Non-default typed bounds only. Old gentleAsk pricing is shared by Sell/Flip; Watch remains unchanged. No activation, selection or allowance import."
+      }
+    },
+    {
+      "legacy_key": "heistMode",
+      "legacy_default_literal": "'Best chest'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 243,
+      "migration": {
+        "status": "reviewed-exact-inert-selection-preference",
+        "target": "heists.policy"
+      }
+    },
+    {
+      "legacy_key": "heistSelection",
+      "legacy_default_literal": "'Automatic'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 243,
+      "migration": {
+        "status": "reviewed-exact-inert-selection-preference",
+        "target": "heists.custom.selection"
+      }
+    },
+    {
+      "legacy_key": "selectedHeists",
+      "legacy_default_literal": "{}",
+      "value_kind": "selection_table",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 243,
+      "migration": {
+        "status": "reviewed-exact-inert-selection-preference",
+        "target": "heists.custom.selectedIds"
+      }
+    },
+    {
+      "legacy_key": "heistMaxHelps",
+      "legacy_default_literal": "6",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 243,
+      "migration": {
+        "status": "reviewed-exact-inert-selection-preference",
+        "target": "heists.custom.maxHelps"
+      }
+    },
+    {
+      "legacy_key": "heistMaxHours",
+      "legacy_default_literal": "2",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 243,
+      "migration": {
+        "status": "reviewed-exact-inert-selection-preference",
+        "target": "heists.custom.maxHours"
+      }
+    },
+    {
+      "legacy_key": "heistPoll",
+      "legacy_default_literal": "15",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 243,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "owned-timing",
+        "reason": "Legacy Heist poll cadence has no current profile equivalent; the native board source and request owner control refreshes."
+      }
+    },
+    {
+      "legacy_key": "heistId",
+      "legacy_default_literal": "''",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 243,
+      "migration": {
+        "status": "reviewed-unambiguous-selected-heist-group",
+        "note": "Old Selected heist is normalized into Best chest plus one selected ID; other dormant/ambiguous forms remain review-required."
+      }
+    },
+    {
+      "legacy_key": "heistMinLevel",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 244,
+      "migration": {
+        "status": "reviewed-exact-inert-selection-preference",
+        "target": "heists.custom.minLevel"
+      }
+    },
+    {
+      "legacy_key": "heistMaxLevel",
+      "legacy_default_literal": "10000",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 244,
+      "migration": {
+        "status": "reviewed-exact-inert-selection-preference",
+        "target": "heists.custom.maxLevel"
+      }
+    },
+    {
+      "legacy_key": "heistMinEnergy",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 244,
+      "migration": {
+        "status": "reviewed-exact-inert-selection-preference",
+        "target": "heists.custom.minEnergy"
+      }
+    },
+    {
+      "legacy_key": "heistMaxEnergy",
+      "legacy_default_literal": "1000000000000",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 244,
+      "migration": {
+        "status": "reviewed-exact-inert-selection-preference",
+        "target": "heists.custom.maxEnergy"
+      }
+    },
+    {
+      "legacy_key": "heistMinCrateRarity",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 244,
+      "migration": {
+        "status": "reviewed-exact-inert-selection-preference",
+        "target": "heists.custom.minCrateRarity"
+      }
+    },
+    {
+      "legacy_key": "favorMode",
+      "legacy_default_literal": "'Balanced'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 245,
+      "migration": {
+        "status": "reviewed-exact-inert-selection-preference",
+        "target": "favors.policy"
+      }
+    },
+    {
+      "legacy_key": "favorRelationship",
+      "legacy_default_literal": "'Friends & family'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 245,
+      "migration": {
+        "status": "reviewed-label-subset",
+        "target": "favors.custom.relations"
+      }
+    },
+    {
+      "legacy_key": "favorDailyCap",
+      "legacy_default_literal": "5",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 245,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "favors.custom.maxDailyAttempts"
+      }
+    },
+    {
+      "legacy_key": "favorReserve",
+      "legacy_default_literal": "5",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 245,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "favors.custom.minFavorReserve"
+      }
+    },
+    {
+      "legacy_key": "favorEnergyReserve",
+      "legacy_default_literal": "10",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 245,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "favors.custom.minEnergyReserve"
+      }
+    },
+    {
+      "legacy_key": "favorMinCash",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 246,
+      "migration": {
+        "status": "reviewed-exact-inert-selection-preference",
+        "target": "favors.custom.minRewardCash"
+      }
+    },
+    {
+      "legacy_key": "favorMinXp",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 246,
+      "migration": {
+        "status": "reviewed-exact-inert-selection-preference",
+        "target": "favors.custom.minRewardXp"
+      }
+    },
+    {
+      "legacy_key": "favorUsageDay",
+      "legacy_default_literal": "-1",
+      "value_kind": "number",
+      "disposition": "move_runtime_ledger",
+      "rule": "Per-account native-day usage/exposure state, excluded from reusable profile snapshots.",
+      "source_line": 246,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "runtime-ledger",
+        "reason": "The Favor usage-day ledger identifies historical consumption; importing it as a preference could reset daily custody."
+      }
+    },
+    {
+      "legacy_key": "favorUsageCount",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "move_runtime_ledger",
+      "rule": "Per-account native-day usage/exposure state, excluded from reusable profile snapshots.",
+      "source_line": 246,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "runtime-ledger",
+        "reason": "The Favor usage-count ledger must be reconciled separately; import cannot invent remaining daily allowance."
+      }
+    },
+    {
+      "legacy_key": "sabotageEnabled",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 247,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "separate-permission",
+        "reason": "Sabotage activation is a separate sensitive-action permission; no legacy enabled flag starts a current sender."
+      }
+    },
+    {
+      "legacy_key": "sabotageDailyCap",
+      "legacy_default_literal": "5",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 247,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-constraint",
+        "reason": "The old sabotage daily cap has no current profile field; it cannot become a fresh attempt allowance without its ledger."
+      }
+    },
+    {
+      "legacy_key": "sabotageFavorReserve",
+      "legacy_default_literal": "5",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 247,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-constraint",
+        "reason": "The sabotage-only Favor reserve has no current profile equivalent; mapping it to ordinary Favor help would change scope."
+      }
+    },
+    {
+      "legacy_key": "sabotageEnergyReserve",
+      "legacy_default_literal": "10",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 247,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-constraint",
+        "reason": "The sabotage-only Energy reserve has no current profile equivalent; a shared reserve would change other activities."
+      }
+    },
+    {
+      "legacy_key": "sabotageUsageDay",
+      "legacy_default_literal": "-1",
+      "value_kind": "number",
+      "disposition": "move_runtime_ledger",
+      "rule": "Per-account native-day usage/exposure state, excluded from reusable profile snapshots.",
+      "source_line": 247,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "runtime-ledger",
+        "reason": "The sabotage usage-day ledger belongs to historical outcomes and cannot be reset or imported as a preference."
+      }
+    },
+    {
+      "legacy_key": "sabotageUsageCount",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "move_runtime_ledger",
+      "rule": "Per-account native-day usage/exposure state, excluded from reusable profile snapshots.",
+      "source_line": 247,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "runtime-ledger",
+        "reason": "The sabotage usage-count ledger must retain historical outcomes; import cannot grant an unused daily allowance."
+      }
+    },
+    {
+      "legacy_key": "sabotageAttemptDay",
+      "legacy_default_literal": "-1",
+      "value_kind": "number",
+      "disposition": "move_runtime_ledger",
+      "rule": "Per-account native-day usage/exposure state, excluded from reusable profile snapshots.",
+      "source_line": 248,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "runtime-ledger",
+        "reason": "The sabotage attempt-day ledger includes attempted actions; import cannot clear their day ownership."
+      }
+    },
+    {
+      "legacy_key": "sabotageAttemptCount",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "move_runtime_ledger",
+      "rule": "Per-account native-day usage/exposure state, excluded from reusable profile snapshots.",
+      "source_line": 248,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "runtime-ledger",
+        "reason": "The sabotage attempt-count ledger includes unknown outcomes; it must be reconciled without resetting attempted allowance."
+      }
+    },
+    {
+      "legacy_key": "safehouseCap",
+      "legacy_default_literal": "16",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 249,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "safehouse.custom.maxTier",
+        "condition": "Current supported typed bounds only; unsupported values remain named for review; senders stay off."
+      }
+    },
+    {
+      "legacy_key": "playtimeEnergy",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 249,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "separate-permission",
+        "reason": "Allowing an immediate Playtime Energy refill is a separate current permission; legacy consent is not imported."
+      }
+    },
+    {
+      "legacy_key": "playtimeEnergyBelow",
+      "legacy_default_literal": "50",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 249,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-constraint",
+        "reason": "The legacy Playtime Energy threshold has no current profile field; it cannot grant refill permission or select a reward."
+      }
+    },
+    {
+      "legacy_key": "contractFocus",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 249,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-policy",
+        "reason": "Legacy Contract reprioritization is not the current explicit borrowing policy; current activity permissions must stay independent."
+      }
+    },
+    {
+      "legacy_key": "autoContracts",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 249,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "separate-permission",
+        "reason": "Legacy Auto Contracts activation cannot enable the current controller or any of its independent borrowing permissions."
+      }
+    },
+    {
+      "legacy_key": "contractExcluded",
+      "legacy_default_literal": "{}",
+      "value_kind": "selection_table",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 249,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-constraint",
+        "reason": "Legacy objective exclusions have no current profile list; silently dropping them could allow an explicitly excluded goal."
+      }
+    },
+    {
+      "legacy_key": "trophyFocus",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 249,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "separate-permission",
+        "reason": "Legacy Trophy Focus activation cannot enable the current controller or its separate activity-borrowing permissions."
+      }
+    },
+    {
+      "legacy_key": "trophyGoalId",
+      "legacy_default_literal": "''",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 249,
+      "migration": {
+        "status": "reviewed-inert-exact-alias",
+        "target": "trophyFocus.custom.goalId",
+        "condition": "Known selected goal ID only; no focus activation,borrowing or claim permission."
+      }
+    },
+    {
+      "legacy_key": "combatMinimum",
+      "legacy_default_literal": "100000000",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 250,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "combat.custom.minimumPayout",
+        "condition": "Ordinary Combat threshold only; current validation/policy floors remain. Import is paused/inert; no Combat/war/Scout permission or spending allowance imported.",
+        "source": "mafia/Combat.lua:518-519,534; current TargetSelection.luau ordinary thresholds; tests/test_legacy_profile_preview.py"
+      }
+    },
+    {
+      "legacy_key": "combatMinWinRate",
+      "legacy_default_literal": "70",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 250,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "combat.custom.minWinRate",
+        "condition": "Ordinary Combat threshold only; current validation/policy floors remain. Import is paused/inert; no Combat/war/Scout permission or spending allowance imported.",
+        "source": "mafia/Combat.lua:518-519,534; current TargetSelection.luau ordinary thresholds; tests/test_legacy_profile_preview.py"
+      }
+    },
+    {
+      "legacy_key": "combatMinSamples",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 250,
+      "migration": {
+        "status": "reviewed-conditional-combat-range-group",
+        "condition": "Only combatLimits=true: include omitted legacy defaults; both modes get level/quoted-cost bounds, ordinary mode gets saved samples (1..32). Inactive non-default cached bounds, invalid/inverted ranges remain unresolved. No enable/Scout/spending imported.",
+        "source": "mafia/Combat.lua:520-524; tests/test_legacy_profile_preview.py (47 cases total)"
+      }
+    },
+    {
+      "legacy_key": "combatPriority",
+      "legacy_default_literal": "'Risk-adjusted value'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 250,
+      "migration": {
+        "status": "reviewed-shared-combat-priority",
+        "targets": [
+          "combat.custom.targetPriority",
+          "warCombat.custom.targetPriority"
+        ],
+        "condition": "Five reviewed labels; both modes remain off with independent zero allowances. Safest and highest-level ordering is lexicographic rather than using legacy magic cash weights. War actions remain unmapped."
+      }
+    },
+    {
+      "legacy_key": "combatDailyOnly",
+      "legacy_default_literal": "true",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 250,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "combat.custom.dailyOnly",
+        "condition": "Explicit false is retained; current default true matches the legacy default. Ordinary target policy only; imports never enable Combat/Scout or spending."
+      }
+    },
+    {
+      "legacy_key": "combatSource",
+      "legacy_default_literal": "'Saved history'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 250,
+      "migration": {
+        "status": "reviewed-label-subset",
+        "target": "combat.custom.targetSource",
+        "condition": "Saved history -> Saved only even when explicitly equal to the old default; History then discover -> Saved and new, whose selector already prioritizes eligible saved history. Forced paid Scout phase remains unresolved; no consent inferred."
+      }
+    },
+    {
+      "legacy_key": "combatWarPriority",
+      "legacy_default_literal": "true",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 250,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-policy",
+        "reason": "Legacy War queue priority is not permission for the separate current War sender; there is no equivalent ordering field."
+      }
+    },
+    {
+      "legacy_key": "combatTakedownPriority",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 250,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-policy",
+        "reason": "Legacy Takedown queue priority has no current scheduler preference and cannot enable Family Boss attacks."
+      }
+    },
+    {
+      "legacy_key": "combatHighEnabled",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 251,
+      "migration": {
+        "status": "reviewed-inert-high-value-preference",
+        "targets": [
+          "combat.memory.preferHighValue"
+        ],
+        "condition": "Future owned fights only; no historical replay or sender/source/lookup/Scout activation. Existing safety/caps remain; no legacy implicit daily/payout bypass."
+      }
+    },
+    {
+      "legacy_key": "combatHighPromoteCash",
+      "legacy_default_literal": "1000000000",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 251,
+      "migration": {
+        "status": "reviewed-inert-high-value-preference",
+        "targets": [
+          "combat.memory.promoteCash"
+        ],
+        "condition": "Future owned fights only; no historical replay or sender/source/lookup/Scout activation. Existing safety/caps remain; no legacy implicit daily/payout bypass."
+      }
+    },
+    {
+      "legacy_key": "combatHighDemoteBelow",
+      "legacy_default_literal": "100000000",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 251,
+      "migration": {
+        "status": "reviewed-inert-high-value-preference",
+        "targets": [
+          "combat.memory.demoteBelow"
+        ],
+        "condition": "Future owned fights only; no historical replay or sender/source/lookup/Scout activation. Existing safety/caps remain; no legacy implicit daily/payout bypass."
+      }
+    },
+    {
+      "legacy_key": "combatHighDemoteHits",
+      "legacy_default_literal": "3",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 251,
+      "migration": {
+        "status": "reviewed-inert-high-value-preference",
+        "targets": [
+          "combat.memory.demoteHits"
+        ],
+        "condition": "Future owned fights only; no historical replay or sender/source/lookup/Scout activation. Existing safety/caps remain; no legacy implicit daily/payout bypass."
+      }
+    },
+    {
+      "legacy_key": "combatScout",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 252,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "separate-permission",
+        "reason": "Paid scouting requires separate current Scout consent and attempted-Stamina allowance; neither is imported."
+      }
+    },
+    {
+      "legacy_key": "combatExploreUnknown",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 252,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "separate-permission",
+        "reason": "Legacy exploration of unknown opponents cannot bypass current evidence requirements or grant player-attack permission."
+      }
+    },
+    {
+      "legacy_key": "combatMinWinChance",
+      "legacy_default_literal": "60",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 252,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "combat.custom.minWinChance",
+        "condition": "Ordinary Combat threshold only; current validation/policy floors remain. Import is paused/inert; no Combat/war/Scout permission or spending allowance imported.",
+        "source": "mafia/Combat.lua:518-519,534; current TargetSelection.luau ordinary thresholds; tests/test_legacy_profile_preview.py"
+      }
+    },
+    {
+      "legacy_key": "combatProfileRefresh",
+      "legacy_default_literal": "600",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 252,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "owned-timing",
+        "reason": "Legacy public-profile refresh cadence is not the current maximum evidence age; source-owned freshness remains."
+      }
+    },
+    {
+      "legacy_key": "combatScoutRefresh",
+      "legacy_default_literal": "1800",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 253,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "owned-timing",
+        "reason": "Legacy Scout refresh cadence is not current stats freshness or permission to spend Stamina on scouting."
+      }
+    },
+    {
+      "legacy_key": "combatMinPowerRatio",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 253,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "conditional-mismatch",
+        "reason": "Legacy scout power ratio constrained ordinary and War fights; the current ratio gates War only, so mapping it would lose ordinary-fight intent."
+      }
+    },
+    {
+      "legacy_key": "combatMinTargetLevel",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 253,
+      "migration": {
+        "status": "reviewed-conditional-combat-range-group",
+        "condition": "Only combatLimits=true: include omitted legacy defaults; both modes get level/quoted-cost bounds, ordinary mode gets saved samples (1..32). Inactive non-default cached bounds, invalid/inverted ranges remain unresolved. No enable/Scout/spending imported.",
+        "source": "mafia/Combat.lua:520-524; tests/test_legacy_profile_preview.py (47 cases total)"
+      }
+    },
+    {
+      "legacy_key": "combatMaxTargetLevel",
+      "legacy_default_literal": "10000",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 253,
+      "migration": {
+        "status": "reviewed-conditional-combat-range-group",
+        "condition": "Only combatLimits=true: include omitted legacy defaults; both modes get level/quoted-cost bounds, ordinary mode gets saved samples (1..32). Inactive non-default cached bounds, invalid/inverted ranges remain unresolved. No enable/Scout/spending imported.",
+        "source": "mafia/Combat.lua:520-524; tests/test_legacy_profile_preview.py (47 cases total)"
+      }
+    },
+    {
+      "legacy_key": "combatMinStaminaCost",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 254,
+      "migration": {
+        "status": "reviewed-conditional-combat-range-group",
+        "condition": "Only combatLimits=true: include omitted legacy defaults; both modes get level/quoted-cost bounds, ordinary mode gets saved samples (1..32). Inactive non-default cached bounds, invalid/inverted ranges remain unresolved. No enable/Scout/spending imported.",
+        "source": "mafia/Combat.lua:520-524; tests/test_legacy_profile_preview.py (47 cases total)"
+      }
+    },
+    {
+      "legacy_key": "combatMaxStaminaCost",
+      "legacy_default_literal": "5",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 254,
+      "migration": {
+        "status": "reviewed-conditional-combat-range-group",
+        "condition": "Only combatLimits=true: include omitted legacy defaults; both modes get level/quoted-cost bounds, ordinary mode gets saved samples (1..32). Inactive non-default cached bounds, invalid/inverted ranges remain unresolved. No enable/Scout/spending imported.",
+        "source": "mafia/Combat.lua:520-524; tests/test_legacy_profile_preview.py (47 cases total)"
+      }
+    },
+    {
+      "legacy_key": "combatTargetRefresh",
+      "legacy_default_literal": "30",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 254,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "owned-timing",
+        "reason": "Legacy target-cache refresh cadence has no current profile field; it is not native forced-refresh permission."
+      }
+    },
+    {
+      "legacy_key": "crewRollTier",
+      "legacy_default_literal": "'Street'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 255,
+      "migration": {
+        "status": "reviewed-label-subset",
+        "target": "crewRoll.custom.tier"
+      }
+    },
+    {
+      "legacy_key": "crewRollRarity",
+      "legacy_default_literal": "'Legendary'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 255,
+      "migration": {
+        "status": "reviewed-inert-exact-alias",
+        "target": "crewRoll.custom.targetRarity",
+        "condition": "Exact supported rarity threshold plus Custom policy so presets cannot replace it; no rolling,replacement or permission inferred."
+      }
+    },
+    {
+      "legacy_key": "crewRollCashReserve",
+      "legacy_default_literal": "1000000",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 255,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "crewRoll.custom.cashReserve"
+      }
+    },
+    {
+      "legacy_key": "crewRollUseBank",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 255,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "separate-permission",
+        "reason": "Using Bank funds for Crew hiring needs current funding permission; legacy settings cannot authorize withdrawal."
+      }
+    },
+    {
+      "legacy_key": "replaceCrew",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 255,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "separate-permission",
+        "reason": "Replacing Crew can permanently dismiss a member; legacy opt-in cannot grant current dismissal permission or choose a slot."
+      }
+    },
+    {
+      "legacy_key": "crewRollWorstFirst",
+      "legacy_default_literal": "true",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 255,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-policy",
+        "reason": "Legacy worst-first Crew selection is not the current explicitly selected member slot; no member is chosen implicitly."
+      }
+    },
+    {
+      "legacy_key": "replaceWeakCrew",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 256,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "separate-permission",
+        "reason": "Legacy weak-quality rerolls can dismiss owned Crew; current import cannot authorize dismissal or recreate that quality strategy."
+      }
+    },
+    {
+      "legacy_key": "crewRollMinQuality",
+      "legacy_default_literal": "25",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 256,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-constraint",
+        "reason": "The legacy combined Crew-quality threshold has no current rarity-only replacement equivalent."
+      }
+    },
+    {
+      "legacy_key": "crewRollMinAttackQuality",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 256,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-constraint",
+        "reason": "The legacy attack-quality percentile floor has no current Crew replacement field; rarity cannot represent it."
+      }
+    },
+    {
+      "legacy_key": "crewRollMinDefenseQuality",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 256,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-constraint",
+        "reason": "The legacy defense-quality percentile floor has no current Crew replacement field; rarity cannot represent it."
+      }
+    },
+    {
+      "legacy_key": "crewRollQualityScope",
+      "legacy_default_literal": "'Selected rarity only'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 256,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-policy",
+        "reason": "Legacy quality reroll scope across selected or higher rarities is not a current dismissal-rarity cap or selected-slot policy."
+      }
+    },
+    {
+      "legacy_key": "crewRollLuckOnly",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 256,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-constraint",
+        "reason": "The legacy Crew luck-only condition has no current hire preference; dropping it would permit hiring outside the chosen luck window."
+      }
+    },
+    {
+      "legacy_key": "crewHealStaminaReserve",
+      "legacy_default_literal": "10",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 256,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "crewHeal.custom.staminaReserve"
+      }
+    },
+    {
+      "legacy_key": "contractHireTier",
+      "legacy_default_literal": "'Street'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 257,
+      "migration": {
+        "status": "reviewed-inert-exact-alias",
+        "target": "crewHire.policy",
+        "condition": "Exact supported native tier ID; no hire permission,attempts or Cash allowance."
+      }
+    },
+    {
+      "legacy_key": "contractHireMaxCost",
+      "legacy_default_literal": "10000",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 257,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "crewHire.custom.maxCost"
+      }
+    },
+    {
+      "legacy_key": "skipConfirmation",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "exclude_runtime_bypass",
+      "rule": "Offline fault injection only; no production confirmation bypass.",
+      "source_line": 257,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "native-manual-only",
+        "reason": "Confirmation bypass is not supported; native confirmation remains required."
+      }
+    },
+    {
+      "legacy_key": "familyCashAmount",
+      "legacy_default_literal": "1000000",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 258,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "familyCash.custom.amount"
+      }
+    },
+    {
+      "legacy_key": "familyCashMaxPerLoad",
+      "legacy_default_literal": "1000000",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 258,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "historical-allowance",
+        "reason": "Legacy Family Cash per-load spending is not a fresh durable contribution allowance; prior or unknown consumption must remain held."
+      }
+    },
+    {
+      "legacy_key": "familyGoldAmount",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 259,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "familyGold.custom.amount"
+      }
+    },
+    {
+      "legacy_key": "familyGoldReserve",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 259,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "familyGold.custom.reserve"
+      }
+    },
+    {
+      "legacy_key": "familyGoldMaxPerLoad",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 259,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "historical-allowance",
+        "reason": "Legacy Family Gold per-load spending cannot initialize unused durable allowance or reconcile unknown contribution custody."
+      }
+    },
+    {
+      "legacy_key": "familyStaminaAmount",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 260,
+      "migration": {
+        "status": "reviewed-native-exact-amount",
+        "target": "familyStamina.custom.amount",
+        "condition": "Only numeric1or5;2..4 and fractional amounts refuse without coercion."
+      }
+    },
+    {
+      "legacy_key": "familyStaminaReserve",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 260,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "familyStamina.custom.reserve"
+      }
+    },
+    {
+      "legacy_key": "familyStaminaMaxPerLoad",
+      "legacy_default_literal": "25",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 260,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "historical-allowance",
+        "reason": "Legacy Family Stamina per-load spending cannot reset durable consumption or grant remaining contribution allowance."
+      }
+    },
+    {
+      "legacy_key": "familyPerk",
+      "legacy_default_literal": "'runners'",
+      "value_kind": "string",
+      "disposition": "migrate_legacy_single",
+      "rule": "Map the older single selection to familyPerks when the multi-selection is absent.",
+      "source_line": 261,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "familyStamina.custom.selectedPerk",
+        "condition": "Only when familyPerks is absent; explicit multi-perk precedence is retained."
+      }
+    },
+    {
+      "legacy_key": "familyPerks",
+      "legacy_default_literal": "{runners=true}",
+      "value_kind": "selection_table",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 261,
+      "migration": {
+        "status": "reviewed-single-or-rotating-perk-map",
+        "target": "familyStamina.custom.selectedPerk or selectedPerks",
+        "condition": "One true known-ID entry maps single selection; multiple map validated CSV/native-order confirmed-only rotation. Explicit runners default is preserved. Empty/unknown/malformed/conflicting maps remain unresolved. No permission or allowance import."
+      }
+    },
+    {
+      "legacy_key": "familyHospitalOnly",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 261,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-constraint",
+        "reason": "The legacy hospital-only Family healing condition has no current profile field; dropping it would widen eligible patients."
+      }
+    },
+    {
+      "legacy_key": "familyStaminaOnlyStationed",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 261,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-constraint",
+        "reason": "The legacy stationed-only contribution condition has no current Family Stamina field; omitting it changes contribution eligibility."
+      }
+    },
+    {
+      "legacy_key": "familyBossHealthFloor",
+      "legacy_default_literal": "50",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 262,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-constraint",
+        "reason": "The legacy Family Boss health floor has no current profile field; ordinary or Global Boss floors do not cover this separate action."
+      }
+    },
+    {
+      "legacy_key": "familyBossStaminaReserve",
+      "legacy_default_literal": "1",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 262,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-constraint",
+        "reason": "The legacy Family Boss Stamina reserve has no current profile field; mapping it to another combat lane would change scope."
+      }
+    },
+    {
+      "legacy_key": "familyBossStrategy",
+      "legacy_default_literal": "'Steady'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 262,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-policy",
+        "reason": "Legacy Steady/Rank focus Family Boss strategies have no current profile equivalent; rank-based attack ordering is not inferred."
+      }
+    },
+    {
+      "legacy_key": "residencyKind",
+      "legacy_default_literal": "'landlord'",
+      "value_kind": "string",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 263,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "residency.custom.selectedKind"
+      }
+    },
+    {
+      "legacy_key": "residencyMaxRent",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 263,
+      "migration": {
+        "status": "reviewed-inert-exact-alias",
+        "target": "residency.custom.maxRentPct",
+        "condition": "Whole legacy ceiling0..10 only; fractional/out-of-range values remain reviewable. No admission or replacement enabled."
+      }
+    },
+    {
+      "legacy_key": "residencyMinImprovement",
+      "legacy_default_literal": "0",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 263,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "conditional-mismatch",
+        "reason": "Legacy minimum improvement compares a candidate against the existing residence; current minimum share is an absolute floor."
+      }
+    },
+    {
+      "legacy_key": "residencyDistricts",
+      "legacy_default_literal": "{}",
+      "value_kind": "selection_table",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 263,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-selection",
+        "reason": "Legacy district allowlist cannot map to the current single selected district without losing candidate selection intent."
+      }
+    },
+    {
+      "legacy_key": "stationMinHome",
+      "legacy_default_literal": "2",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 264,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "station.custom.minHome"
+      }
+    },
+    {
+      "legacy_key": "stationMaxStationed",
+      "legacy_default_literal": "8",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 264,
+      "migration": {
+        "status": "direct-nondefault-alias",
+        "target": "station.custom.maxStationed",
+        "condition": "0-45 inclusive; counts replicated and checkpoint-owned uncertain deployments. No attempts or activation imported. Old Residency.outlook cap preserved."
+      }
+    },
+    {
+      "legacy_key": "stationSignificantHpPercent",
+      "legacy_default_literal": "50",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 264,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-constraint",
+        "reason": "The legacy significant-health threshold for station choices has no current explicit-member stationing field."
+      }
+    },
+    {
+      "legacy_key": "stationMove",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 265,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "separate-permission",
+        "reason": "Legacy automatic Crew movement combines recall and transfer; import cannot choose destinations or enable either action."
+      }
+    },
+    {
+      "legacy_key": "stationTrainRotation",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 265,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "separate-permission",
+        "reason": "Legacy training rotation can recall and redeploy Crew; it is not current explicit station or recall permission."
+      }
+    },
+    {
+      "legacy_key": "stationMoveMinDeficit",
+      "legacy_default_literal": "3",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 265,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "conditional-mismatch",
+        "reason": "Legacy minimum destination defender deficit is not the current minimum retained garrison; their comparison and scope differ."
+      }
+    },
+    {
+      "legacy_key": "stationCombatRecovery",
+      "legacy_default_literal": "false",
+      "value_kind": "boolean",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 266,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "separate-permission",
+        "reason": "Legacy automatic combat-recovery recall cannot enable the current explicit Crew recall action."
+      }
+    },
+    {
+      "legacy_key": "stationRecoveryHealth",
+      "legacy_default_literal": "50",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 266,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "unsupported-constraint",
+        "reason": "The legacy health-triggered recovery threshold has no current explicit-recall field; no threshold is silently discarded."
+      }
+    },
+    {
+      "legacy_key": "stationMinSourceDefenders",
+      "legacy_default_literal": "2",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 267,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "conditional-mismatch",
+        "reason": "Legacy retained defenders constrained automatic moves; mapping it to every current explicit recall would change its scope."
+      }
+    },
+    {
+      "legacy_key": "stationMoveCooldownMinutes",
+      "legacy_default_literal": "30",
+      "value_kind": "number",
+      "disposition": "merge_policy_or_useful_override",
+      "rule": "Preserve the capability/user constraint through a simple policy or a small useful Custom override. Native facts become automatic. Disclose any non-default legacy intent that cannot map faithfully; do not recreate this key as a control by default.",
+      "source_line": 267,
+      "migration": {
+        "status": "deliberately-excluded-nondefault",
+        "exclusion_kind": "owned-timing",
+        "reason": "Legacy automatic-move cooldown has no current explicit-station/recall profile equivalent; elapsed time cannot release unknown custody."
+      }
+    }
+  ],
+  "literal_control_ids": [
+    {
+      "legacy_control_id": "run_",
+      "kind": "Toggle",
+      "source_line": 132
+    },
+    {
+      "legacy_control_id": "dashboard_details",
+      "kind": "Toggle",
+      "source_line": 158
+    },
+    {
+      "legacy_control_id": "limit_",
+      "kind": "Toggle",
+      "source_line": 203
+    },
+    {
+      "legacy_control_id": "setting_",
+      "kind": "Dropdown",
+      "source_line": 267
+    },
+    {
+      "legacy_control_id": "crate_luck_only",
+      "kind": "Toggle",
+      "source_line": 283
+    },
+    {
+      "legacy_control_id": "job_city",
+      "kind": "Dropdown",
+      "source_line": 368
+    },
+    {
+      "legacy_control_id": "job_choice",
+      "kind": "Dropdown",
+      "source_line": 373
+    },
+    {
+      "legacy_control_id": "setting_safehouseCap",
+      "kind": "Dropdown",
+      "source_line": 432
+    },
+    {
+      "legacy_control_id": "edit_favor_rewards",
+      "kind": "Toggle",
+      "source_line": 483
+    },
+    {
+      "legacy_control_id": "auto_sabotage",
+      "kind": "Toggle",
+      "source_line": 493
+    },
+    {
+      "legacy_control_id": "combat_consent",
+      "kind": "Toggle",
+      "source_line": 500
+    },
+    {
+      "legacy_control_id": "combat_takedown",
+      "kind": "Toggle",
+      "source_line": 504
+    },
+    {
+      "legacy_control_id": "combat_takedown_strategy",
+      "kind": "Dropdown",
+      "source_line": 511
+    },
+    {
+      "legacy_control_id": "combat_takedown_priority",
+      "kind": "Toggle",
+      "source_line": 517
+    },
+    {
+      "legacy_control_id": "combat_high_enabled",
+      "kind": "Toggle",
+      "source_line": 523
+    },
+    {
+      "legacy_control_id": "edit_combat_tuning",
+      "kind": "Toggle",
+      "source_line": 542
+    },
+    {
+      "legacy_control_id": "combat_explore",
+      "kind": "Toggle",
+      "source_line": 550
+    },
+    {
+      "legacy_control_id": "combat_scout",
+      "kind": "Toggle",
+      "source_line": 556
+    },
+    {
+      "legacy_control_id": "combat_daily",
+      "kind": "Toggle",
+      "source_line": 562
+    },
+    {
+      "legacy_control_id": "edit_boss_limits",
+      "kind": "Toggle",
+      "source_line": 572
+    },
+    {
+      "legacy_control_id": "playtime_energy",
+      "kind": "Toggle",
+      "source_line": 607
+    },
+    {
+      "legacy_control_id": "briefcase_use_keys",
+      "kind": "Toggle",
+      "source_line": 614
+    },
+    {
+      "legacy_control_id": "contract_focus",
+      "kind": "Toggle",
+      "source_line": 619
+    },
+    {
+      "legacy_control_id": "auto_contracts",
+      "kind": "Toggle",
+      "source_line": 622
+    },
+    {
+      "legacy_control_id": "setting_contractObjectives",
+      "kind": "Dropdown",
+      "source_line": 646
+    },
+    {
+      "legacy_control_id": "trophy_focus",
+      "kind": "Toggle",
+      "source_line": 660
+    },
+    {
+      "legacy_control_id": "trophy_hunter_pick",
+      "kind": "Dropdown",
+      "source_line": 674
+    },
+    {
+      "legacy_control_id": "trophy_goal",
+      "kind": "Dropdown",
+      "source_line": 677
+    },
+    {
+      "legacy_control_id": "run_crewRoll",
+      "kind": "Toggle",
+      "source_line": 692
+    },
+    {
+      "legacy_control_id": "crew_roll_luck_only",
+      "kind": "Toggle",
+      "source_line": 708
+    },
+    {
+      "legacy_control_id": "replace_crew_below_min",
+      "kind": "Toggle",
+      "source_line": 710
+    },
+    {
+      "legacy_control_id": "replace_crew_weak_roll",
+      "kind": "Toggle",
+      "source_line": 714
+    },
+    {
+      "legacy_control_id": "shop_buy_all",
+      "kind": "Toggle",
+      "source_line": 761
+    },
+    {
+      "legacy_control_id": "shop_items",
+      "kind": "Dropdown",
+      "source_line": 773
+    },
+    {
+      "legacy_control_id": "shop_price_limit",
+      "kind": "Toggle",
+      "source_line": 779
+    },
+    {
+      "legacy_control_id": "shop_rarity_override",
+      "kind": "Toggle",
+      "source_line": 788
+    },
+    {
+      "legacy_control_id": "shop_override_rarities",
+      "kind": "Dropdown",
+      "source_line": 794
+    },
+    {
+      "legacy_control_id": "shop_use_bank",
+      "kind": "Toggle",
+      "source_line": 811
+    },
+    {
+      "legacy_control_id": "shop_gold",
+      "kind": "Toggle",
+      "source_line": 815
+    },
+    {
+      "legacy_control_id": "setting_",
+      "kind": "Dropdown",
+      "source_line": 860
+    },
+    {
+      "legacy_control_id": "edit_family_settings",
+      "kind": "Toggle",
+      "source_line": 986
+    },
+    {
+      "legacy_control_id": "setting_familyPerks",
+      "kind": "Dropdown",
+      "source_line": 993
+    },
+    {
+      "legacy_control_id": "setting_residencyKind",
+      "kind": "Dropdown",
+      "source_line": 1036
+    },
+    {
+      "legacy_control_id": "setting_residencyDistricts",
+      "kind": "Dropdown",
+      "source_line": 1054
+    },
+    {
+      "legacy_control_id": "config_saved",
+      "kind": "Dropdown",
+      "source_line": 1168
+    },
+    {
+      "legacy_control_id": "config_new_name",
+      "kind": "Input",
+      "source_line": 1188
+    },
+    {
+      "legacy_control_id": "theme",
+      "kind": "Dropdown",
+      "source_line": 1237
+    },
+    {
+      "legacy_control_id": "acrylic",
+      "kind": "Toggle",
+      "source_line": 1239
+    },
+    {
+      "legacy_control_id": "transparent",
+      "kind": "Toggle",
+      "source_line": 1241
+    },
+    {
+      "legacy_control_id": "bot_check_capture",
+      "kind": "Toggle",
+      "source_line": 1246
+    },
+    {
+      "legacy_control_id": "anti_afk",
+      "kind": "Toggle",
+      "source_line": 1255
+    },
+    {
+      "legacy_control_id": "skipConfirmation",
+      "kind": "Toggle",
+      "source_line": 1267
+    }
+  ],
+  "coverage_note": "All231 recorded default controls have reviewed import dispositions:146 direct/conditional reviewed mappings,84 deliberate non-default exclusions,one schema marker. Six separately observed saved extensions have scoped typed dispositions; they are not added to the231 default-key baseline. Historical ledger custody/allowances and current-server outcomes remain separate gates.",
+  "ui_requirement": "Preserve functions with substantially fewer controls; this is not the new settings schema.",
+  "migration_evidence": {
+    "source": "src/storage/LegacySettings.luau",
+    "tests": "test_legacy_profile_preview.py52;test_legacy_market_preferences.py11;test_legacy_restorative_preferences.py16;test_legacy_family_preferences.py12;test_legacy_remaining_preferences.py9;test_legacy_heist_favor_preferences.py5;test_legacy_dispositions.py4;additional floor fan-out cases in test_boss_resource_floors.py32;test_shop_legacy.py5;scoped Bank extensions included in test_legacy_remaining_preferences.py",
+    "defaults_recognized": 231,
+    "automatic_activation": false,
+    "historical_runtime_ledger_migration": false,
+    "default_policy": "Unchanged defaults are disclosed/current-reviewed unless explicit legacy targeting, restorative, Boss or absolute-margin semantics require exact preservation. Explicit net margin10 is preserved instead of current2. Senders and new permissions remain off; unsupported nondefault intent prevents staging.",
+    "translated_label_keys": 9,
+    "inspectable_review": true,
+    "declared_preference_targets": 127,
+    "high_value_rule_preferences": 4,
+    "shared_market_consumer_keys": 5,
+    "conditional_restorative_mode_keys": 3,
+    "single_family_perk_map": true,
+    "legacy_import_tests": 116,
+    "multi_family_perk_map": true,
+    "exact_family_stamina_amounts": [
+      1,
+      5
+    ],
+    "per_pool_restoratives": true,
+    "remaining_preference_tests": 9,
+    "chest_total_allowance": true,
+    "resource_floor_fanout": true,
+    "resource_floor_tests": 32,
+    "boss_level_bounds": true,
+    "boss_selection": true,
+    "global_boss_preferences": true,
+    "global_boss_preferences_and_provider_tests": 44,
+    "city_confirmed_limits_acceptance_pending": false,
+    "city_confirmed_preferences_tests": 20,
+    "heist_favor_selection": true,
+    "heist_favor_preference_tests": 5,
+    "reviewed_control_dispositions": 231,
+    "supported_preference_keys": 146,
+    "deliberately_excluded_keys": 84,
+    "schema_markers": 1,
+    "absolute_net_margin": true,
+    "disposition_tests": 4,
+    "cash_shop_group": true,
+    "scoped_bank_extensions": true,
+    "declared_target_count_definition": "Entries in the explicit targets and savedFundingTargets tables; not a unique-destination or whole-capability count.",
+    "cash_shop_import_tests": 5
+  },
+  "additional_saved_fields": {
+    "keys": [
+      "heistsUseBank",
+      "operationsUseBank",
+      "propertiesUseBank",
+      "safehouseUseBank",
+      "shopBuyAll",
+      "shopSelected"
+    ],
+    "accepted_as_baseline_defaults": false,
+    "disposition": "Four exact Bank booleans map to their own permissions without enabling withdrawal. shopBuyAll selects All cash items or Selected cash items; shopSelected is a strict boolean item-ID map converted to selectedIds in that group. Missing mode with nonempty selection refuses; empty standalone selection is a visible inactive exclusion. Invalid groups are atomic and never partially applied.",
+    "evidence": "Current saved six key names were inspected2026-11-04. Same logical account remains private; no credentials or account identifier recorded."
+  }
+}

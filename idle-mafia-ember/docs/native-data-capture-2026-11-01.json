@@ -1,0 +1,156 @@
+{
+  "date": "2026-11-01",
+  "placeId": "73897506680154",
+  "placeVersion": 648,
+  "configVersion": "0.26.635",
+  "scope": "Focused missing-contract acquisition requested by user; sanitized facts and public client source only. No mutations or private values retained in this snapshot.",
+  "readChecks": {
+    "GetHitList": {
+      "ok": true,
+      "warSummaryPresent": false,
+      "warTargets": 0
+    },
+    "HeistAction_board": {
+      "ok": true,
+      "minePresent": false,
+      "resultPresent": false,
+      "highwaterExposed": false,
+      "meaning": "No top-level owned mine or result at this read; native board-state helper reads those top-level fields. Earlier observations may differ; this is not a global controller-clear proof."
+    },
+    "FamilyBossAction_state": {
+      "ok": true,
+      "inFamily": true,
+      "familyIdType": "string",
+      "claims": 0,
+      "prospectiveDamageBoundExposed": false
+    },
+    "monthlyCalendarEnabled": false,
+    "xpBoostInitiallyActive": false,
+    "GetHitList_warStatus": {
+      "ok": true,
+      "replyKeys": {
+        "ok": "boolean",
+        "warStatus": "table"
+      },
+      "warSummaryPresent": false,
+      "warTargets": 0,
+      "sameDay": true,
+      "ownWarType": "nil",
+      "query": "GetHitList:InvokeServer(\"warStatus\")",
+      "scope": "Native read-only reply shape checked; integrated hub reader is locally tested, not live-executed."
+    }
+  },
+  "publicControllerExports": {
+    "HeistsTab": [
+      "init",
+      "onShow"
+    ],
+    "CrewRecall": [
+      "busy",
+      "confirm",
+      "init",
+      "isPending",
+      "onChanged",
+      "start",
+      "targets"
+    ],
+    "PrestigeModal": [
+      "init",
+      "open"
+    ]
+  },
+  "missingInterfaces": [
+    "Heists/Favors native shared allocator/abort/lease with bounded retry",
+    "Recall shared allocator/abort/lease with bounded retry",
+    "Prospective Family hit-back maximum or exact server calculation"
+  ],
+  "rewardReadiness": {
+    "readyKinds": [
+      "energy",
+      "stamina",
+      "seals"
+    ],
+    "cashRung": {
+      "index": 1,
+      "claimed": true,
+      "minutesOfIncome": 60
+    },
+    "xpRung": {
+      "index": 5,
+      "claimed": false,
+      "minutes": 30
+    },
+    "sourceCall": "ClaimLadder:InvokeServer(index)",
+    "mysteryUsesSeparateNativePresentation": true
+  },
+  "userSetupAnswers": {
+    "activeWarClient": "Unavailable",
+    "familylessHistoricalClaimClient": "Unavailable",
+    "xpStacking": "Keep guarded; no boost consumed for a test"
+  },
+  "actionsPerformed": {
+    "readOnlyNativeQueries": 4,
+    "gameplayMutations": 0,
+    "staminaSpent": 0,
+    "nativeHooksOrPrivateFlagsChanged": false,
+    "publicSourceCaptures": 2
+  },
+  "remainingAcquisition": "Active-war roster/profile and correlated scoring/cap/result transitions remain unobserved; actual war Scout/target policy/native ownership/dispatch/lifecycle remains blocked. Family-less historical setup unavailable; XP stacking stays guarded by user choice. Heist/Recall supported allocator/abort/lease, prospective Family hit-back bound and reward/residency formulas remain missing in inspected sources.",
+  "offlineImplementation": {
+    "fightClose": "Exact source-owned settled terminal receipt is saved before graceful unload even without a newer Sync; normal broker confirmation still requires a newer Sync. Reentrant/yielding close is fenced; failed or uncertain saves retain checkpoint custody. Abrupt process death before persistence remains uncertain.",
+    "warExclusion": "Ordinary read reuses current hit-list warStatus; native summary.enemyId/first roster familyId must be unambiguous, match own ID domain, differ from own Family and agree with active native state and any native enemyId. Conflicting same-user ordinary/war Family metadata leaves selection unavailable. Queued work rechecks captured exclusion. No separate war action mapping.",
+    "warReadView": "Separate mode in existing query owner, exact native warStatus call, independent warRosterProof and source generation/highwater, ten-second cache, same shared lane/budget, explicit war switch only. Read-only state view preserves source-backed per-target and own caps without manufacturing missing values, friendship, stats or permission. Disable/unload, yielded/negative/pending/challenged reads, caller-proof stripping and conflicts are covered through actual App. Separate Attack/Scout mapping, scoring/cap transitions, ownership and receipt acceptance remain unavailable.",
+    "crossQueryExclusion": "A separately current owned war roster can only remove ordinary permission. Contradictory status/enemy identity or same-user Family membership invalidates ordinary war proof for planning and queued dispatch. It never populates ordinary targets or triggers an extra refetch loop.",
+    "warProfile": "Existing PlayerProfileQuery reused with a separate war-roster-bound cache/read source. Only exact current active enemy rows with native canScore and positive remaining/attack/pair allowance are profiled; capped/unknown rows make no RPC/friendship call. Missing ordinary shield field permits only a read, with explicit unknown/clear/shielded output from native shieldLeft. Target scope/membership/eligibility rechecked before and after friendship lookup and on commit. Read-only war view exposes matching fresh profile data, never hidden power or inferred friendship. No war Scout evidence or action mapping is connected.",
+    "warProfileEfficiency": "Source uses existing fair budget and target cursor; rejected first targets do not starve later ones. Unchanged target identity reuses profile/friendship observations across roster/resource refreshes; native capped/unscorable rows are skipped before profile calls. No additional background loop or new module."
+  },
+  "warSourceContract": {
+    "nativeRead": "GetHitList:InvokeServer(\"warStatus\")",
+    "ordinaryRead": "GetHitList(false) continues to carry ordinary war exclusions without an added ordinary RPC. The explicit war mode now has its own GetHitList(\"warStatus\") read on the same scheduler, cached ten seconds.",
+    "enemyIdentity": "summary.enemyId, falling back to targets[1].familyId, as used by actual native EnemyButton profile callback",
+    "rowIdentity": "Native attack callback forwards row.userId and row.familyId",
+    "serverAcceptance": "No active summary or nonempty roster was observed. User has no active-war client available. Source-backed fixture coverage does not establish live war scoring or receipt/cap outcomes.",
+    "sourceFiles": [
+      {
+        "module": "MWClient.FamilyTab.WarRosterView",
+        "path": "docs/native-source/2026-11-01/WarRosterView.lua.txt",
+        "bytes": 38778,
+        "sha256": "8d5cce361710dd646190caabb718da74ad0fc61a33e7d4918aa827316e4c7684"
+      },
+      {
+        "module": "MWClient.FightTab.WarStatus",
+        "path": "docs/native-source/2026-11-01/WarStatus.lua.txt",
+        "bytes": 6367,
+        "sha256": "6c059c107c58d66d6c0573b7f83b52725b5d685b748885fa00482884700badc0"
+      }
+    ],
+    "targetAllowanceFields": [
+      "day",
+      "remaining",
+      "cap",
+      "attacksRemaining",
+      "attacksCap",
+      "pairRemaining",
+      "canScore"
+    ],
+    "ownSummaryFields": [
+      "ownRemaining",
+      "ownCap",
+      "canScore",
+      "eligibleAt",
+      "canFeed"
+    ],
+    "profileRead": "Existing native PlayerProfile:InvokeServer(userId), reused as read-only source with strict matching current war roster identity; no live active-war profile was observed in this continuation.",
+    "profileAcceptance": "20 focused local cases: 11 query/state and 9 actual App. Shared ordinary profile, ordinary planner, roster and complete tab-composition focused checks pass; review found no blocking issue and independently checked a cap change during suspended friendship lookup."
+  },
+  "monthlyCalendarFollowup": {
+    "observedOn": "2026-11-03",
+    "placeId": 73897506680154,
+    "placeVersion": 653,
+    "calendarType": "table",
+    "enabledType": "boolean",
+    "enabled": false,
+    "scope": "Read-only cached Config module field through Potassium fallback. No remote invocation, gameplay mutation, callback registration or private field change in probe.",
+    "limitation": "Other native contracts were not revalidated on build653. Integrated Ember acceptance remains zero."
+  }
+}

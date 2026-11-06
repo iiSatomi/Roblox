@@ -1,0 +1,82 @@
+{
+  "scope": "Scoped production adoption and release upgrade; original legacy usage/custody retained",
+  "implemented": {
+    "reviewedPreferenceExclusions": "App.PreviewImport(text,choices) requires explicit useCurrentDefault decisions for every known unresolved choice. Unknown/stale/partial decisions refuse. Original input retained; usage reconciliation separate.",
+    "files": [
+      "src/App.luau",
+      "src/storage/LegacySettings.luau",
+      "src/storage/StorageAssembly.luau"
+    ],
+    "focusedPassed": 118,
+    "newActualAppTests": 2,
+    "storageReceipt": "Exact account/place/release-scoped receipt hashes each retained legacy file and old checkpoint payload. Only version1 checkpoint with no records and no nonempty usage is acknowledged; changed files, pending records, nonempty usage, malformed/scope-mismatched review refuse without owner writes.",
+    "focusedStoragePassed": 44,
+    "newStorageTests": 10
+  },
+  "live": {
+    "operationsSent": 3,
+    "operationsConfirmed": 3,
+    "durableSlots": [
+      1,
+      2,
+      3
+    ],
+    "pendingAfter": 0,
+    "heistCollectionsSent": 0,
+    "heistBoardReads": 3,
+    "heistReason": "Current unqueried personal Heist board required",
+    "serverMovedAfterClosedRun": true,
+    "reviewedLegacyChoices": 23,
+    "remainingPreferenceChoices": 0,
+    "allStagedSwitchesOff": true,
+    "originalSettingsUnchanged": true,
+    "originalFavorUsageRetained": 5,
+    "stagedFile": "Isolated r18 acceptance directory/reviewed-preferences.json",
+    "historyAdopted": false,
+    "productionMigration": {
+      "phase": "real_file_passed",
+      "sourceRelease": "2b0cfcb3ea3eaa5900f7598b08a0e0a3f8e3f307",
+      "profile": "EmberMigration20261105",
+      "allSwitchesOff": true,
+      "pending": 0,
+      "profileSaveAutoloadReloadUnload": true,
+      "legacySourceFilesPreserved": true,
+      "oldCheckpointPreserved": true,
+      "gameplayRequestsForbidden": true,
+      "receiptRetained": true
+    },
+    "productionReleaseUpgrade": {
+      "release": "3a309d2521594cc6f6175fe1163c444c8e3411bd",
+      "build": 655,
+      "phase": "real_upgrade_passed",
+      "requestHighwaterBefore": 1,
+      "requestHighwaterAfter": 1,
+      "pending": 0,
+      "profile": "EmberMigrationBuild655",
+      "saveAutoloadReloadUnload": true,
+      "allSwitchesOff": true,
+      "legacyAndPreviousCheckpointPreserved": true,
+      "gameplayRPCs": 0
+    },
+    "ownedHeistStart": {
+      "confirmed": true,
+      "starts": 1,
+      "template": "heist_cornerstore",
+      "cash": 10000,
+      "energy": 25,
+      "resultCollection": "One matching owned result collected and confirmed in actual r20 Host; no start replay"
+    }
+  },
+  "olderProductionCheckpoint": {
+    "newestValidGeneration": 6,
+    "records": 0,
+    "olderGeneration": 5,
+    "olderRecords": 1,
+    "olderFeature": "jobs",
+    "familyClaimWeeks": 0,
+    "filesUnchanged": true
+  },
+  "authorization": "Latest user permits own carried Cash, Bank Cash, Heist/Operation collection and necessary completion testing. Prior Prestige/War/Family-less holds and uncertain-action custody remain.",
+  "next": "Inspect Family info native shape and correct remaining read failure; preserve held r19 Operation Cash200 record; finish candidate extracted verification.",
+  "published": false
+}

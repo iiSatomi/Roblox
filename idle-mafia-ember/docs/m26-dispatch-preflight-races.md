@@ -1,0 +1,5 @@
+# Yielded preflight and unload fences — October 28
+
+Coroutine tests exposed two real gaps before durable direct-emission hooks: Broker retained the timestamp from before a yielding selection guard, and an unloaded queued-unsent callback could rewrite an old checkpoint after a new owner saved another action. Broker now rechecks current time, state and owner after preflight callbacks and fences unsent cleanup after stop. NativeDispatchAdapter also rechecks its lease after the guard, preserving a newer owner. Post-write/pre-send and returned scheduling paths stop if ownership changed.
+
+Three new tests prove stale resumed preflight sends nothing, unloaded cleanup preserves both saved records, and a guard resumed after lease expiry cannot invoke or release its replacement owner. Full **1191 run, 1190 passed, one external official-analyzer skip**, 30.042 seconds. Source inventory remains **271 modules**. No live client, Stamina use, spending, commit or publication. Original sent/unconfirmed 45-second behavior remains; an unloaded owner's saved uncertainty is retained for reconciliation.

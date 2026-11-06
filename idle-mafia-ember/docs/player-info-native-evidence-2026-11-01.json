@@ -1,0 +1,98 @@
+{
+  "date": "2026-11-01",
+  "placeId": "73897506680154",
+  "placeVersion": 648,
+  "scope": "User-authorized read-only own-player replicated/native-source inspection. No gameplay call, spending, hook, private flag or native challenge modification.",
+  "identityReference": "https://create.roblox.com/docs/reference/engine/classes/Player",
+  "nativeFacts": {
+    "attack": "State.latest().derived.statBreakdown.atk.total",
+    "defense": "State.latest().derived.statBreakdown.def.total",
+    "resources": "State.latest().pools plus effective/native maxima",
+    "propertyBaseCashPerHour": "State.latest().derived.incomePerHour",
+    "effectivePropertyCashPerHour": "derived.incomePerHour * Config.fightIncomeMult(native.raidDebuff, native.winStreak, native.serverNow)",
+    "propertySourceExcerpt": "local v175 = (p171.derived or {}).incomePerHour or 0; local v176 = Config.fightIncomeMult(p171.raidDebuff, p171.winStreak, v172); u27.incomeValue.Text = u4.Util.money(v175 * v176) .. \"/hr\";",
+    "propertyPortfolio": "Native properties[id].owned and dense native lots array; GameData.PROPERTIES supplies native IDs/names/base income. Current catalog includes 11 Gold-only rows among 36. Gold-only rows legitimately omit Cash income, following the existing reviewed NativePropertyCatalog convention.",
+    "powerComponents": [
+      "base",
+      "gear",
+      "equipment",
+      "recruits",
+      "crewBonus",
+      "prestigeMult",
+      "skillMult",
+      "safehouseMult",
+      "familyBonus",
+      "territoryBonus",
+      "collection",
+      "trophies",
+      "trophyBonus",
+      "background",
+      "border",
+      "totalBonus",
+      "total"
+    ]
+  },
+  "trustInspection": {
+    "requestContext": "User-provided October 23 update screenshot mentions player trust score and native bot checks. This is feature context, not a numeric data contract.",
+    "rootDerivedStatsFieldsChecked": true,
+    "playerAndMWTrustAttributesFound": false,
+    "additionalBranches": [
+      "acc",
+      "analytics",
+      "derived",
+      "stats",
+      "territoryPresence",
+      "marketPresence",
+      "tot"
+    ],
+    "boundedDepth": 2,
+    "tableVisits": 30,
+    "relevantTerritoryPresenceSourceChecked": true,
+    "trustCandidatesFound": 0,
+    "conclusion": "No trust value exposed in the checked client data/source paths. Do not infer a score, server-side storage location or exact rule from bot-check frequency.",
+    "sourceAvailabilityCheck": [
+      {
+        "module": "TerritoryPresence",
+        "trustMention": false,
+        "present": true,
+        "sourceAvailable": true
+      },
+      {
+        "module": "TerritoryNetwork",
+        "present": false
+      },
+      {
+        "module": "TerritoryTab",
+        "trustMention": false,
+        "present": true,
+        "sourceAvailable": true
+      }
+    ]
+  },
+  "latestReadOnlyProviderCheck": {
+    "sourceAvailable": true,
+    "identityMatches": true,
+    "attackKnown": true,
+    "defenseKnown": true,
+    "propertyIncomeKnown": true,
+    "propertyBreakdownKnown": true,
+    "ownedPropertyKindsObserved": 2,
+    "trustExposed": false,
+    "gameplayCalls": 0
+  },
+  "mugRateScope": {
+    "source": "New ordinary confirmed PlayerFightLedger receipts since the local observation baseline; no bank/Cash balance-delta attribution.",
+    "warmupSeconds": 60,
+    "denominator": "Local elapsed observation seconds, including idle time.",
+    "excludes": [
+      "Prior sessions/history",
+      "War payouts",
+      "Manual fights not recorded by this hub",
+      "Unknown/rejected/canceled outcomes",
+      "Cash losses, purchases, other income"
+    ],
+    "incompleteHistory": "No rate published when bounded history cannot cover the count delta or counters regress.",
+    "combinedRate": "Current native property rate plus observed hub gross mug payouts/hour; an estimate, not guaranteed net cash gain."
+  },
+  "verificationBoundary": "Native provider/data reads checked in the connected client. Full new Ember tab/navigation remains locally tested, not in-game UI/gameplay acceptance. No client IDs, account names/user IDs or private values retained."
+}

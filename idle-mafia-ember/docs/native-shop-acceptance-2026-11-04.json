@@ -1,0 +1,160 @@
+{
+  "date": "2026-11-04",
+  "build": 654,
+  "gameVersion": "0.26.645.1",
+  "sourceCommit": "c599ab528c7da8a042a6c8c21e360c5ea28ea8d3",
+  "entryCommit": "670a1680839d8dbf9c8862b8e0e6b2e94be15f90",
+  "authorization": "One Rare Capo Strongbox purchase capped at75000000 game Cash; no Gold, Robux, Stamina, crate opening or replay.",
+  "authorizationConsumed": true,
+  "phase": "confirmed",
+  "purchases": 1,
+  "nativeContract": {
+    "module": "MWClient ShopTab",
+    "sha256": "9c89bcbeb6203b2f4e8953fdaa2dee2171d748f7f4ee65624bc228213042e2e4",
+    "observedState": "Native purchase rotation was older than the current stock/clock slot. Native UI treats missing or different purchase rotation as not bought in the current rotation.",
+    "verificationLimit": "Targeted rotation predicate inspected locally; no native source included in this evidence or distribution."
+  },
+  "implementation": {
+    "files": [
+      "src/engine/ShopQuoteProducer.luau",
+      "src/game/ShopState.luau",
+      "src/features/ShopBuyEvidence.luau",
+      "src/storage/PendingAction.luau"
+    ],
+    "behavior": "Accept absent/older purchase history with fresh native stock/quotes; reject future or malformed history. Retain old raw history for exact rejection and saved recovery. Current purchase flags, exact Cash debit, item origins, independent caps and uncertain custody remain required.",
+    "baselineCompatibility": "Existing current-rotation baseline schema remains byte-compatible; older/absent history adds bounded prior-rotation evidence only when needed."
+  },
+  "localVerification": {
+    "reproduced": "Seven actual App cases failed before correction; no purchase could dispatch from absent/older native purchase history.",
+    "focused": {
+      "run": 65,
+      "passed": 65,
+      "skipped": 0,
+      "newActualAppTests": 10
+    },
+    "full": {
+      "run": 3401,
+      "passed": 3401,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 137.706
+    },
+    "compileFiles": 309,
+    "catalogManifestPreview": "passed",
+    "preservedStorageLineEndings": true,
+    "extracted": {
+      "run": 3401,
+      "passed": 3322,
+      "skipped": 79,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 139.051,
+      "skipReasons": {
+        "Private native contract capture is intentionally excluded from this package": 12,
+        "Private native Recall capture excluded from distributable archive": 67
+      },
+      "skipReason": "Private native captures excluded; these cases passed in the original source workspace."
+    }
+  },
+  "live": {
+    "source": "Isolated actual App/RuntimeDriver with real-file redundant checkpoint and one-use authorization marker",
+    "testRoot": "IdleMafiaEmberShopAcceptance_R14_20261104",
+    "purchases": 1,
+    "otherGameplayCalls": 0,
+    "pending": 0,
+    "appClosed": true,
+    "latestObservedStock": true,
+    "approvedPriceCap": 75000000,
+    "allowanceAttempted": 1,
+    "allowanceSpent": 75000000,
+    "supervisedUnusedResume": 1,
+    "finalReadback": {
+      "purchases": 1,
+      "attempts": 1,
+      "authorizedCashSpent": 75000000,
+      "pending": 0,
+      "appClosed": true,
+      "unusedApproval": false,
+      "markerReadback": true,
+      "closedUnusedMarker": false,
+      "crateOpened": false,
+      "otherGameplayCalls": 0,
+      "bankWithdrawals": 0,
+      "journalGeneration": 5
+    },
+    "testGlobalRemoved": true,
+    "readOnlyRotationWatchClosed": true,
+    "bankWithdrawals": 0,
+    "preparedHarnessSha256": "ca41014129a61882e1154260f799ae5b86bc820c534fd6f709efa25e70a562fe",
+    "confirmedSnapshot": {
+      "source": "Actual App terminal observation from the native Sync after the single owned purchase",
+      "reply": {
+        "ok": true
+      },
+      "cashDelta": -75000000,
+      "itemDelta": 1,
+      "itemId": "crate_rare",
+      "outcome": "confirmed",
+      "pending": 0,
+      "approvedCash": 75000000,
+      "limits": "Reply only contains ok; exact debit came from the correlated native snapshot. Later passive income changes the wallet; this terminal observation is retained."
+    },
+    "diskReadback": {
+      "generation": 5,
+      "realFileReadback": true,
+      "pending": 0,
+      "attempted": 1,
+      "spent": 75000000,
+      "markerConsumed": true,
+      "scope": "Fresh Checkpoint owner loaded from the isolated redundant on-disk journal; no mutation"
+    },
+    "consumedMarkerRetained": true
+  },
+  "naturalTransfer": {
+    "observed": true,
+    "testClosed": true,
+    "purchases": 0,
+    "pending": 0,
+    "newClientGuardVerifiedUnused": true,
+    "automaticReplay": false,
+    "verificationLimit": "Actual isolated App harness shutdown observed; this is not a sent-action transfer or full production RuntimeHost transfer acceptance."
+  },
+  "earlierHarnessCorrections": "No calls sent while the private harness was changed to production RuntimeDriver event handling and actual Sync startup. One failed preparation was cleaned up before reuse.",
+  "productionMigrationBypassed": false,
+  "nextExecutableTask": "Shop purchase is confirmed and its approval consumed; do not replay or open the crate. Bank withdrawals remain forbidden. Follow tasks/todo.md for current non-held work; the subsequent free Cash reward and log review are recorded separately.",
+  "limits": "One current-source positive Shop purchase and durable pending clearance are confirmed. Rejection, mixed gameplay and historical allowance carryover are not established by this single success. Production activation/publication gates remain.",
+  "currentCashPermission": {
+    "cashOnHandAllowed": true,
+    "bankWithdrawalsAllowed": true,
+    "scope": "Latest completion-test authorization supersedes carried-Cash-only restriction;preserve scoped native actions,Stamina/items/challenges and no real-money purchases."
+  },
+  "nativeUiContextCorrection": {
+    "reproducedLive": [
+      "Native State.onChanged invokes the App from a restricted UI context",
+      "Calling native Shop clock/calculations in the owner thread also removes UI capability",
+      "getthreadidentity returns8 in both allowed and restricted contexts; plain coroutine isolation does not protect the parent"
+    ],
+    "implementation": [
+      "State.onChanged only observes; the owned timer coalesces changed bursts and steps App",
+      "NativeExecutorCapabilities.readNative runs read-only Shop calculations in engine task.spawn; errors/yields refuse and yielded reads are canceled",
+      "Current-client Host requires the owned native read capability",
+      "EmberAdapter preserves the original getter error instead of reporting true"
+    ],
+    "files": {
+      "src/transport/RuntimeDriver.luau": "97fcb1ab8e16f9af2c6e5203f2b1603dd5fc458d2fbe8c2aac0cd58c288cff78",
+      "src/ui/EmberAdapter.luau": "62756e87b3cf9b436cfe61503ebf06718bb7eadcbed1006a436e333cea4a0236",
+      "src/transport/NativeExecutorCapabilities.luau": "8b058edd8b76d74e40b1fc209068a68e8bdb9a3e6142f3833ce43b187da79667",
+      "src/tabs/shop/NativeQuoteSource.luau": "eaea054d35d49eee1e3a5606e17a8412c91d5773cf2de8142784e09df4180f31",
+      "src/transport/RuntimeHost.luau": "821ac5e43e869365c8324ea26e59748fa32ab66993fe95fc1dd8cc6a24dd195f"
+    },
+    "focused": {
+      "run": 90,
+      "passed": 90,
+      "skipped": 0,
+      "newRegressionTests": 8
+    },
+    "live": "Corrected actual App completed the authorized single purchase from the current source after a supervised unused-approval server transfer. No UI error; exact75M Cash debit and one crate grant, confirmed with zero pending. Native engine-task isolation preserves caller UI access.",
+    "limits": "One positive purchase and exact Cash/crate effect confirmed;no whole-feature rejection/mixed/historical migration or publication acceptance claimed. No native identity override or challenge bypass."
+  }
+}

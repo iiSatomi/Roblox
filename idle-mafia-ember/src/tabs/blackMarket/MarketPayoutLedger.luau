@@ -95,7 +95,7 @@ function Methods:Record(data, after)
         if #nextState.recent == 32 then table.remove(nextState.recent, 1) end
         nextState.recent[#nextState.recent + 1] = row
         nextState = copy(nextState, self.scope)
-        if not nextState or self.storage:Write(self.key, nextState) == false then return false end
+        if not nextState or self.storage:Write(self.key, nextState) ~= true then return false end
         self.state, self.expected = nextState, copy(nextState, self.scope)
         return not self.closed
     end)

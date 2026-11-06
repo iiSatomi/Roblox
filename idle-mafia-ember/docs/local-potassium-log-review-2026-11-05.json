@@ -1,0 +1,119 @@
+{
+  "dateUtc": "2026-11-05",
+  "scope": "Read-only search of user-requested local Potassium workspace, followed by targeted newer connected-client diagnostics; no gameplay, log changes or migration.",
+  "local": {
+    "root": "C:/Users/asato/AppData/Local/Potassium/workspace",
+    "accountPathRedacted": "IdleMafiaFluent/73897506680154/<account>/",
+    "files": 458,
+    "diagnosticsRead": 435,
+    "journalSnapshotsRead": 436,
+    "journalRowObservations": 43600,
+    "jsonErrors": 0,
+    "oldestJournalId": 1061,
+    "newestJournalId": 311384,
+    "newestNextId": 311385,
+    "newestModifiedUtc": "2026-10-17T11:09:39.745327+00:00",
+    "journalSha256": "317919ad35469af7ee3646411abe7ad192ed281ee464848acdac8da2a11883e0",
+    "newestDiagnostic": "diagnostic-1792234414.json",
+    "migrationBackup": "Settings/configs only; no action journal/receipts.",
+    "otherApplicationFolders": "Tauri data folders contain no matching application log/journal candidates outside WebView data, which was excluded."
+  },
+  "connected": {
+    "sameAccountAsLocal": true,
+    "diagnostics": 619,
+    "latestDiagnostic": "diagnostic-1793798165.json",
+    "latestDiagnosticNextId": 351933,
+    "detailedDiagnostic": "diagnostic-1793701509.json",
+    "detailedDiagnosticNextId": 351877,
+    "retainedJournalNextId": 352448,
+    "retainedJournalSha256": "683de74c08ed51e87750f72896a3f5d8152ec550af3580a2465cf0a6b8dced7b",
+    "retainedRows": 100,
+    "stateLabels": {
+      "confirmed": 56,
+      "response_received": 44
+    },
+    "otherNonterminalStates": 0,
+    "bytesRecheckedUnchanged": true,
+    "responseIdMin": 352348,
+    "responseIdMax": 352446,
+    "localIdOverlap": 0
+  },
+  "correction": {
+    "previousInterpretation": "44 response_received feature labels were incorrectly described as unresolved Heist collections, Family reward claims and Family Stamina contributions.",
+    "finding": "All44 current response_received rows match the legacy zero-cost board/info/state refresh paths. Feature labels identify the owning automation, not the actual request verb. They are not44 unresolved gameplay mutations.",
+    "verifiedQueries": [
+      {
+        "feature": "heistCollect",
+        "remote": "HeistAction",
+        "verb": "board",
+        "count": 27,
+        "identity": "14:1925672266",
+        "details": "Refresh personal heist state"
+      },
+      {
+        "feature": "familyBossClaims",
+        "remote": "FamilyBossAction",
+        "verb": "state",
+        "count": 9,
+        "identity": "14:500960700",
+        "details": "Refresh weekly Family Takedown state"
+      },
+      {
+        "feature": "familyStamina",
+        "remote": "FamilyAction",
+        "verb": "info",
+        "count": 8,
+        "identity": "13:515461034",
+        "details": "Refresh Family status"
+      }
+    ],
+    "diagnosticRequestVerbs": {
+      "heistCollect|HeistAction|board": 13,
+      "familyBossClaims|FamilyBossAction|state": 4,
+      "familyStamina|FamilyAction|info": 4,
+      "familyStamina|FamilyAction|contribute": 1
+    },
+    "diagnosticDistinction": "The contribution is separately logged with family_confirmed; it is not an info-read response. Exact raw arguments are represented with string-index keys in the diagnostic JSON.",
+    "sourceRule": "Legacy Actions writes response_received for readOnly, familyRead or heistKind=board; request emitters name the exact zero-cost queries above.",
+    "identityLimit": "Digest matching is corroboration, not collision-free proof or permission to adopt state. Classification also uses recorded arguments, human-readable details and the legacy emitter/finish paths."
+  },
+  "sourceEvidence": [
+    {
+      "file": "mafia/ActionJournal.lua",
+      "sha256": "13ddc601673b6a466b6b4696236086ad0ef51eb6e93371fe26746e5f3885b753"
+    },
+    {
+      "file": "mafia/Heists.lua",
+      "sha256": "78c058bd9b666dc6826816645fdadae9e6d1af55e3fc661d7c58b56ba39b3e77"
+    },
+    {
+      "file": "mafia/Family.lua",
+      "sha256": "a49ddd3ba5255a40148ee9ee80c02571f56966ed9a6b6e57e8c866e6478e8e75"
+    },
+    {
+      "file": "mafia/FamilyBoss.lua",
+      "sha256": "49d686539adb2ffc6d8ffc30d5c4e791093c0fa547ac2a8cccae9979e57c44a6"
+    },
+    {
+      "file": "mafia/runtime/Actions.inc.lua",
+      "sha256": "90df201e361bf64eab8feb4a76fe94283bda5a0fb0c97f681536dd1436d469b6"
+    }
+  ],
+  "remainingLimits": [
+    "Legacy confirmed labels were not independently reverified as gameplay outcomes.",
+    "The100-row journal is incomplete history; this audit does not reconstruct all prior consumption.",
+    "Known older-release Ember custody and real-file release migration remain separate; no unknown pending action was cleared.",
+    "No user reconstruction of44 missing transaction receipts is required for these read-only rows."
+  ],
+  "filesModifiedInPotassium": false,
+  "scriptCodeChanged": false,
+  "testsRun": "None: evidence/checkpoint-only correction. r17 tested runtime payload unchanged.",
+  "privacy": "No account names, credentials, webhook values, full diagnostics/settings, native private source or full balances copied.",
+  "legacyAllowanceSemanticsReview": {
+    "reviewedSource": "Existing local Fluent source,not server evidence",
+    "favor": "mafia/Heists.lua:26-28 reads confirmed count;mafia/runtime/Actions.inc.lua:1080-1086 increments on confirmed labels,including legacy bypassed responses. It is not a durable attempted-action ledger.",
+    "sabotage": "mafia/Heists.lua:84-87 uses max(confirmed,attempted) for the same server UTC day;mafia/runtime/Actions.inc.lua:904-908 increments attempts before dispatch.",
+    "newContract": "src/storage/Checkpoint.luau:475-483 validates attempted usage<=5. Observed retained Favor count30 cannot be copied or clamped into that schema as trusted attempts.",
+    "remaining": "Exact outstanding legacy Favor attempts/outcomes and explicit source-compatible allowance conversion remain unavailable. Original counters/files remain unchanged;no new allowance or unknown resolution is inferred."
+  }
+}
