@@ -8,6 +8,18 @@ local pages = {
     "contracts", "trophies", "skills", "rewards", "events",
 }
 
+local function closeTabs(tabs)
+    for index = #tabs, 1, -1 do
+        local tab = tabs[index]
+        if type(tab.Close) == "function" then pcall(tab.Close, tab) end
+    end
+end
+
+local function errorDetail(value)
+    local firstLine = tostring(value):match("^[^\r\n]+") or "Unknown constructor error"
+    return (firstLine:match("^.-:%d+:%s*(.+)$") or firstLine):sub(1, 120)
+end
+
 function RuntimeAssembly.compose(deps)
     if type(deps) ~= "table" or type(deps.Catalog) ~= "table"
         or type(deps.FeatureRegistry) ~= "table"
@@ -21,34 +33,46 @@ function RuntimeAssembly.compose(deps)
             .. string.sub(page, 2) .. "Tab"
         local module = deps[name]
         if type(module) ~= "table" or type(module.new) ~= "function" then
+            closeTabs(tabs)
             return nil, "Missing required tab module: " .. page
         end
         local ok, tab = pcall(module.new, deps)
         if not ok or type(tab) ~= "table" or tab.id ~= page then
-            return nil, "Invalid tab module: " .. page
+            if ok and type(tab) == "table" then tabs[#tabs + 1] = tab end
+            closeTabs(tabs)
+            return nil, "Invalid tab module: " .. page .. (not ok and (": " .. errorDetail(tab)) or "")
         end
         tabs[#tabs + 1] = tab
     end
-    return deps.TabComposition.build(tabs, deps.Catalog,
+    local ok, composed, reason = pcall(deps.TabComposition.build, tabs, deps.Catalog,
         deps.FeatureRegistry, deps.TabSnapshotAssembler, pages)
+    if not ok or type(composed) ~= "table" then
+        closeTabs(tabs)
+        return nil, ok and reason or ("Tab composition failed: " .. errorDetail(composed))
+    end
+    return composed, reason
 end
 
 function RuntimeAssembly.start(deps)
     local composed, reason = RuntimeAssembly.compose(deps)
     if not composed then return nil, reason end
+    local function fail(message)
+        closeTabs(composed.tabs or {})
+        return nil, message
+    end
     if type(deps.AutomationRuntime) ~= "table"
         or type(deps.AutomationRuntime.new) ~= "function"
         or type(deps.identity) ~= "table"
         or type(deps.clock) ~= "table"
         or type(deps.transport) ~= "table"
         or type(deps.storage) ~= "table" then
-        return nil, "Missing runtime environment"
+        return fail("Missing runtime environment")
     end
     local sources, readSpecs, reservationSources = {}, {}, {}
     for _, tab in ipairs(composed.tabs or {}) do
         if type(tab.ReservationSources) == "function" then
             local made, rows = pcall(tab.ReservationSources, tab)
-            if not made or type(rows) ~= "table" then return nil, "Tab reservation sources unavailable" end
+            if not made or type(rows) ~= "table" then return fail("Tab reservation sources unavailable") end
             for _, source in ipairs(rows) do reservationSources[#reservationSources + 1] = source end
         end
     end
@@ -58,7 +82,7 @@ function RuntimeAssembly.start(deps)
         for _, tab in ipairs(composed.tabs or {}) do
             if type(tab.ReadSources) == "function" then
                 local made, rows = pcall(tab.ReadSources, tab, deps.nativeReader)
-                if not made or type(rows) ~= "table" then return nil, "Tab read sources unavailable" end
+                if not made or type(rows) ~= "table" then return fail("Tab read sources unavailable") end
                 for _, source in ipairs(rows) do
                     sources[#sources + 1] = source
                     readSpecs[#readSpecs + 1] = {id = source.id, interval = source.interval}
@@ -74,7 +98,7 @@ function RuntimeAssembly.start(deps)
                 sources = sources, currentSnapshot = function() return deps.nativeReader:Capture() end,
                 borrowLease = function(feature) return deps.transport:ReadLease(feature) end})
         end)
-        if not built then return nil, "Shared read coordinator construction failed" end
+        if not built then return fail("Shared read coordinator construction failed") end
         reads = value
     end
     local ok, runtime = pcall(deps.AutomationRuntime.new, {
@@ -87,15 +111,11 @@ function RuntimeAssembly.start(deps)
         reservationSources = reservationSources,
     })
     if not ok or type(runtime) ~= "table" then
-        if reads then reads:Close() end
+        if reads and type(reads.Close) == "function" then pcall(reads.Close, reads) end
         if not ok then
-            local firstLine = tostring(runtime):match("^[^\r\n]+")
-                or "Unknown constructor error"
-            local detail = firstLine:match("^.-:%d+:%s*(.+)$")
-                or firstLine
-            return nil, "Runtime: " .. detail:sub(1, 75)
+            return fail("Runtime: " .. errorDetail(runtime))
         end
-        return nil, "Runtime startup failed"
+        return fail("Runtime startup failed")
     end
     return runtime, nil
 end
