@@ -25,10 +25,16 @@ function FamilyBossAttacks.propose(view, settings, reservations)
     if settings.enabled ~= true then
         return nil, "Free Family attacks disabled"
     end
+    local unknown = view.hitBackKnown == false
+    if unknown and (settings.allowUncalculatedHitBack ~= true or view.nativePreflight ~= true
+        or view.health ~= view.maxHealth or view.usageHits ~= 0 or not integer(view.hospitalHealth, 1)
+        or view.health < view.hospitalHealth) then
+        return nil, "Unknown Takedown damage needs explicit permission, full health and an unused weekly attempt"
+    end
     if view.status ~= "known" or view.inFamily ~= true
         or not integer(view.week, 1)
         or not familyId(view.famId)
-        or not integer(view.stage, 1) or view.stage > 5
+        or not integer(view.stage, 1) or view.stage > 6
         or not timestamp(view.serverNow, 0)
         or not timestamp(view.resetAt, view.serverNow + 1)
         or not integer(view.free, 1)
@@ -39,7 +45,7 @@ function FamilyBossAttacks.propose(view, settings, reservations)
         or not integer(view.maxHealth, 1)
         or not integer(view.stamina, 0)
         or not integer(view.staminaCost, 1)
-        or not integer(view.hitBackMax, 1)
+        or not unknown and not integer(view.hitBackMax, 1)
         or not integer(view.usageHits, 0)
         or not timestamp(view.lastServerNow, 0)
         or not integer(reservations.stamina or 0, 0)
@@ -53,14 +59,15 @@ function FamilyBossAttacks.propose(view, settings, reservations)
         and view.serverNow < view.lastServerNow + 5 then
         return nil, "Family hit spacing"
     end
-    if view.health - view.hitBackMax
+    if (not unknown and view.health - view.hitBackMax
             < math.max(20, view.maxHealth * 0.5)
+        )
         or view.stamina - view.staminaCost
             - (reservations.stamina or 0)
             - (reservations.uncertainStamina or 0) < 1 then
         return nil, "Family health or stamina reserve"
     end
-    return { session = view.session, account = view.account,
+    local proposal = { session = view.session, account = view.account,
         place = view.place, release = view.release,
         revision = view.revision, feature = "familyBossAttacks",
         actionKey = "familyBossAttacks:" .. tostring(view.week)
@@ -75,7 +82,13 @@ function FamilyBossAttacks.propose(view, settings, reservations)
             mineDamageBefore = view.myDmg,
             freeUsedBefore = view.freeUsed,
             expectedStaminaCost = view.staminaCost,
-            expectedHitBackMax = view.hitBackMax } }, nil
+            expectedHitBackMax = not unknown and view.hitBackMax or nil } }
+    if unknown then
+        proposal.intent.uncalculatedHitBack = true
+        proposal.intent.allowUncalculatedHitBack = true
+        proposal.intent.attackSourceKey = view.attackSourceKey
+    end
+    return proposal, nil
 end
 
 return FamilyBossAttacks

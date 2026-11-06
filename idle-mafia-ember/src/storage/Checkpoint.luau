@@ -470,7 +470,7 @@ function Methods:Load(account, place, release)
         or not familyId(familyAttack.famId)
         or not integer(familyAttack.hits, 0)
         or familyAttack.hits > 25
-        or not integer(familyAttack.lastServerNow, 0)) then
+        or not timestamp(familyAttack.lastServerNow)) then
         self.fault = "Corrupt checkpoint"
         return nil, self.fault
     end
@@ -1096,11 +1096,16 @@ function Methods:Save(raw, before, baseline)
             or not integer(week, 1)
             or not familyId(famId)
             or not integer(intent.stage, 1)
-            or intent.stage > 5
+            or intent.stage > 6
             or not integer(hits, 0)
-            or not integer(last, 0)
-            or not integer(now, 0)
+            or not timestamp(last)
+            or not timestamp(now)
             or not integer(intent.expectedStaminaCost, 1)
+            or (intent.uncalculatedHitBack ~= nil and (intent.uncalculatedHitBack ~= true
+                or intent.allowUncalculatedHitBack ~= true or hits ~= 0 or intent.expectedHitBackMax ~= nil
+                or type(intent.attackSourceKey) ~= "string" or #intent.attackSourceKey ~= 64
+                or not intent.attackSourceKey:match("^[%x]+$")))
+            or (intent.allowUncalculatedHitBack ~= nil and intent.uncalculatedHitBack ~= true)
             or (familyAttackUsage
                 and (week < familyAttackUsage.week
                     or (week == familyAttackUsage.week
@@ -1143,6 +1148,7 @@ function Methods:Resolve(actionKey, outcome)
     local stationAttempts = self.stationAttempts
     local residencyAttempts = self.residencyAttempts
     local prestigeAttempts = self.prestigeAttempts
+    local familyAttackUsage = self.familyAttackUsage
     local marketRentUsage = self.marketRentUsage
     for _, record in ipairs(self.records) do
         if record.actionKey == actionKey then
@@ -1171,6 +1177,19 @@ function Methods:Resolve(actionKey, outcome)
                 globalAttackUsage = replaceGlobalUsage(globalAttackUsage, {runKey = intent.runKey, hits = intent.hitsBefore,
                     lastServerNow = intent.lastServerNowBefore})
                 if not globalAttackUsage then return false, "Global Boss unsent history unavailable" end
+            end
+            if outcome == "schedule_failed" and record.feature == "familyBossAttacks" and record.recovery then
+                local data = self.pendingModule and self.pendingModule.Decode(record.recovery, record)
+                local intent = data and data.proposal.intent
+                if not intent or intent.kind ~= "familyBossAttack" or data.reply ~= nil
+                    or not integer(intent.hitsBefore, 0) or not timestamp(intent.lastServerNowBefore)
+                    or not familyAttackUsage or familyAttackUsage.week ~= intent.week
+                    or familyAttackUsage.famId ~= intent.famId or familyAttackUsage.hits ~= intent.hitsBefore + 1
+                    or familyAttackUsage.lastServerNow ~= intent.serverNow then
+                    return false, "Family unsent attack proof changed"
+                end
+                familyAttackUsage = {week = intent.week, famId = intent.famId,
+                    hits = intent.hitsBefore, lastServerNow = intent.lastServerNowBefore}
             end
             if outcome == "schedule_failed" and record.feature == "familyBossClaims" and record.recovery then
                 local data = self.pendingModule and self.pendingModule.Decode(record.recovery, record)
@@ -1290,7 +1309,7 @@ function Methods:Resolve(actionKey, outcome)
     return self:Commit(records, self.favorUsage,
         bossUsage, self.sabotageUsage,
         globalClaimUsage, globalAttackUsage,
-        familyClaimUsage, self.familyAttackUsage,
+        familyClaimUsage, familyAttackUsage,
         bossShopUsage, familyContributionUsage, eventShopUsage, nil, marketRentUsage,crewHireUsage,stationAttempts,residencyAttempts,playerFightUsage,prestigeAttempts)
 end
 

@@ -83,8 +83,10 @@ function MarketWatchOpportunity.assess(browse, listingId, rap,
     if not id(listingId)
         or not finite(now, 0, 9007199254740991)
         or not fresh(browse, now, 15)
-        or browse.kind ~= "all" or browse.arg ~= nil
+        or not (browse.kind == "all" and browse.arg == nil
+            or browse.kind == "item" and type(item) == "table" and browse.arg == item.id)
         or browse.more ~= false
+        or browse.stale == true or browse.small == true
         or not fresh(rap, now, 120)
         or not fresh(history, now, 120)
         or type(item) ~= "table"

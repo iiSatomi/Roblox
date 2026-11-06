@@ -1,4 +1,4 @@
--- Merge sequential item browse pages before using visible supply in quotes.
+-- One native cumulative browse observation; never merge independent replies.
 local MarketBrowsePages = {}
 local Methods = {}
 Methods.__index = Methods
@@ -30,14 +30,6 @@ local function copy(row)
         sellerName = row.sellerName }
 end
 
-local function unchanged(a, b)
-    for _, key in ipairs({ "id", "item", "qty", "price", "mine",
-        "t", "sellerId", "sellerName" }) do
-        if a[key] ~= b[key] then return false end
-    end
-    return true
-end
-
 function MarketBrowsePages.new(maxPages, maxRows)
     assert(integer(maxPages, 1, 5)
         and integer(maxRows, 1, 500),
@@ -59,81 +51,47 @@ function Methods:Begin(kind, arg)
     else
         return nil, "Unsupported Market browse scope"
     end
-    self.current = { kind = kind, arg = arg,
-        nextPage = 1, rows = {}, byId = {}, firstAt = nil,
-        lastAt = nil }
-    return { kind = kind, arg = arg, page = 1 }, nil
+    self.current = { kind = kind, arg = arg, page = self.maxPages }
+    return { kind = kind, arg = arg, page = self.maxPages }, nil
 end
 
 function Methods:Accept(result)
     local current = self.current
     if self.closed or not current then
-        return nil, nil, "Market page sequence unavailable"
+        return nil, nil, "Market browse observation unavailable"
     end
+    self.current = nil
     if type(result) ~= "table"
         or result.kind ~= current.kind or result.arg ~= current.arg
-        or result.page ~= current.nextPage
+        or result.page ~= current.page or not integer(result.pages, 1, current.page)
         or type(result.more) ~= "boolean"
+        or type(result.stale) ~= "boolean" or type(result.small) ~= "boolean"
         or not timestamp(result.capturedAt)
-        or (current.lastAt and result.capturedAt < current.lastAt)
-        or (current.firstAt and result.capturedAt - current.firstAt > 10)
         or type(result.rows) ~= "table"
         or #result.rows > self.maxRows then
-        self.current = nil
-        return nil, nil, "Market page sequence changed or stale"
+        return nil, nil, "Market browse observation changed or invalid"
     end
-    local firstAt = current.firstAt or result.capturedAt
-    local count = 0
+    local count, rows, seen = 0, {}, {}
     for index, row in ipairs(result.rows) do
-        if not listing(row) then
-            self.current = nil
-            return nil, nil, "Invalid Market page listing"
+        if not listing(row) or (current.kind == "item" and row.item ~= current.arg)
+            or seen[tostring(row.id)] then
+            return nil, nil, "Invalid or duplicate Market browse listing"
         end
         count = index
-        local key = tostring(row.id)
-        local old = current.byId[key]
-        if old then
-            if not unchanged(old, row) then
-                self.current = nil
-                return nil, nil, "Market listing changed across pages"
-            end
-        else
-            if #current.rows >= self.maxRows then
-                self.current = nil
-                return nil, nil, "Market row cap reached"
-            end
-            local saved = copy(row)
-            current.rows[#current.rows + 1] = saved
-            current.byId[key] = saved
-        end
+        rows[index], seen[tostring(row.id)] = copy(row), true
     end
     if count ~= #result.rows then
-        self.current = nil
-        return nil, nil, "Sparse Market page"
+        return nil, nil, "Sparse Market browse"
     end
     for key in pairs(result.rows) do
         if not integer(key, 1, count) then
-            self.current = nil
-            return nil, nil, "Sparse Market page"
+            return nil, nil, "Sparse Market browse"
         end
     end
-    current.firstAt = firstAt
-    current.lastAt = result.capturedAt
-    if result.more then
-        if current.nextPage >= self.maxPages then
-            self.current = nil
-            return nil, nil, "Market page cap reached"
-        end
-        current.nextPage = current.nextPage + 1
-        return { kind = current.kind, arg = current.arg,
-            page = current.nextPage }, nil, nil
-    end
-    self.current = nil
-    local rows = {}
-    for index, row in ipairs(current.rows) do rows[index] = copy(row) end
     return nil, { kind = current.kind, arg = current.arg,
-        page = current.nextPage, pages = current.nextPage,
-        capturedAt = current.lastAt, more = false, rows = rows }, nil
+        page = current.page, pages = result.pages,
+        capturedAt = result.capturedAt, more = result.more,
+        stale = result.stale, small = result.small, rows = rows }, nil
 end
 
 function Methods:Close()

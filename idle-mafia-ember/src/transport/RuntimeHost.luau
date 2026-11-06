@@ -97,6 +97,7 @@ function RuntimeHost.start(deps)
     local currentCrateLuck = deps.currentCrateLuck
     local currentGlobalBoss = deps.currentGlobalBoss
     local currentEventShop = deps.currentEventShop
+    local currentBriefcases = deps.currentBriefcases
     local currentTerritorySeason = deps.currentTerritorySeason
     local currentDailyBuffRules = deps.currentDailyBuffRules
     local groupLookup = deps.groupLookup
@@ -105,7 +106,7 @@ function RuntimeHost.start(deps)
     if currentClient then
         local bound, bindings = pcall(deps.NativeClientBindings.read,
             deps.clientGame, deps.clientRequire, deps.executorEnv and deps.executorEnv.getupvalues,
-            deps.NativeHeistController, deps.NativeRecallController)
+            deps.NativeHeistController, deps.NativeRecallController, deps.NativeFamilyBossController)
         if not bound or type(bindings) ~= "table"
             or bindings.remotesFolder == nil
             or bindings.uiParent == nil
@@ -130,6 +131,7 @@ function RuntimeHost.start(deps)
         currentCrateLuck = bindings.currentCrateLuck
         currentGlobalBoss = bindings.currentGlobalBoss
         currentEventShop = bindings.currentEventShop
+        currentBriefcases = bindings.currentBriefcases
         currentTerritorySeason = bindings.currentTerritorySeason
         currentDailyBuffRules = bindings.currentDailyBuffRules
         groupLookup = bindings.groupLookup
@@ -238,6 +240,9 @@ function RuntimeHost.start(deps)
     local recallController = currentClient and clientBindings.currentRecallController
         or not currentClient and deps.nativeRecallController or nil
     local recallBusy = type(recallController) == "table" and recallController.Busy
+    local familyBossController = currentClient and clientBindings.currentFamilyBossController
+        or not currentClient and deps.nativeFamilyBossController or nil
+    local familyBossBusy = type(familyBossController) == "table" and familyBossController.Busy
     runtimeCaps.nativeExecutor.InFlight = function()
         if heistController then
             if type(heistBusy) ~= "function" or heistController.Busy ~= heistBusy then return true end
@@ -247,6 +252,11 @@ function RuntimeHost.start(deps)
         if recallController then
             if type(recallBusy) ~= "function" or recallController.Busy ~= recallBusy then return true end
             local ok, busy = pcall(recallBusy)
+            if not ok or busy ~= false then return true end
+        end
+        if familyBossController then
+            if type(familyBossBusy) ~= "function" or familyBossController.Busy ~= familyBossBusy then return true end
+            local ok, busy = pcall(familyBossBusy)
             if not ok or busy ~= false then return true end
         end
         return resolver:InFlight()
@@ -289,6 +299,7 @@ function RuntimeHost.start(deps)
     end
     appDeps.nativeHeistController = heistController
     appDeps.nativeRecallController = recallController
+    appDeps.nativeFamilyBossController = familyBossController
     appDeps.nativeUserId = currentClient and clientBindings.userId or not currentClient and deps.nativeUserId or nil
     appDeps.playerInfoSource = currentClient and clientBindings.currentPlayerInfo or not currentClient and deps.playerInfoSource or nil
     appDeps.nativePrestigeController = currentClient and clientBindings.currentPrestigeController
@@ -309,6 +320,23 @@ function RuntimeHost.start(deps)
         return ok and current == true
     end}
     local nativeFrame = type(notifications) == "table" and notifications.CombatFrame
+    local familyBossCurrent = type(familyBossController) == "table" and familyBossController.Current
+    local familyBossRead = type(familyBossController) == "table" and familyBossController.Read
+    appDeps.nativeReadSource.FamilyBossFrame = function(_, native)
+        if type(familyBossCurrent) ~= "function" or type(familyBossRead) ~= "function"
+            or familyBossController.Current ~= familyBossCurrent or familyBossController.Read ~= familyBossRead
+            or resolver.Current ~= resolverCurrent then return nil end
+        local checked, current = pcall(resolverCurrent, resolver, "FamilyBossAction")
+        local bound, active = pcall(familyBossCurrent)
+        if not checked or current ~= true or not bound or active ~= true then return nil end
+        local ok, frame = pcall(familyBossRead, native)
+        checked, current = pcall(resolverCurrent, resolver, "FamilyBossAction")
+        bound, active = pcall(familyBossCurrent)
+        if not ok or type(frame) ~= "table" or not checked or current ~= true or not bound or active ~= true
+            or familyBossController.Current ~= familyBossCurrent or familyBossController.Read ~= familyBossRead
+            or resolver.Current ~= resolverCurrent then return nil end
+        return frame
+    end
     appDeps.nativeReadSource.CombatFrame = function(_, native, targets)
         if type(nativeFrame) ~= "function" or notifications.CombatFrame ~= nativeFrame
             or not appDeps.nativeReadSource:Current("GetHitList") then return nil end
@@ -354,6 +382,7 @@ function RuntimeHost.start(deps)
     appDeps.crateLuckSource = nil
     appDeps.globalBossSource = nil
     appDeps.eventShopSource = nil
+    appDeps.briefcaseSource = nil
     appDeps.territorySeasonSource = nil
     if type(currentTerritorySeason) == "table" and type(deps.TerritorySeasonSource) == "table"
         and type(deps.TerritorySeasonSource.new) == "function" then
@@ -370,6 +399,14 @@ function RuntimeHost.start(deps)
         if ok and type(source) == "table" and type(source.Enrich) == "function"
             and type(source.Close) == "function" and source.release == deps.release
             and source.sourceKey == deps.fingerprint:lower() then appDeps.eventShopSource = source end
+    end
+    if type(currentBriefcases) == "table" and type(deps.NativeBriefcaseSource) == "table"
+        and type(deps.NativeBriefcaseSource.new) == "function" then
+        local ok, source = pcall(deps.NativeBriefcaseSource.new, currentBriefcases.definition,
+            currentBriefcases.readCurrent, deps.fingerprint, deps.release, deps.FreeBriefcasesState)
+        if ok and type(source) == "table" and type(source.Enrich) == "function"
+            and type(source.Close) == "function" and source.sourceKey == deps.fingerprint:lower()
+            and source.release == deps.release then appDeps.briefcaseSource = source end
     end
     if type(currentGlobalBoss) == "table" and type(deps.NativeGlobalBossSource) == "table"
         and type(deps.NativeGlobalBossSource.new) == "function" and type(deps.GlobalBossState) == "table" then
@@ -425,7 +462,7 @@ function RuntimeHost.start(deps)
     end
     local function closeSources()
         for _, key in ipairs({ "shopQuoteSource", "globalBossSource", "eventShopSource", "territorySeasonSource",
-            "rewardsSource", "fightReceipts", "nativePrestigeController", "nativeHeistController", "nativeRecallController" }) do
+            "rewardsSource", "fightReceipts", "nativePrestigeController", "nativeHeistController", "nativeRecallController", "nativeFamilyBossController", "briefcaseSource" }) do
             local source = appDeps[key]
             if type(source) == "table"
                 and type(source.Close) == "function" then

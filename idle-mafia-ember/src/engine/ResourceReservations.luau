@@ -92,6 +92,21 @@ function ResourceReservations.ForProposal(proposal, raw)
         if not integer(intent.hitBackMax) then return nil, "Boss health exposure unavailable" end
         claims.funds.health = intent.hitBackMax
     end
+    if proposal.feature == "familyBossAttacks" and kind == "familyBossAttack" then
+        if intent.uncalculatedHitBack == true then
+            local health = type(native.pools) == "table" and native.pools.health
+            local maximum = type(native.stats) == "table" and native.stats.maxHealth
+            if not number(health) or not integer(maximum) or maximum < 1 or health ~= maximum then
+                return nil, "Unknown Takedown damage requires full Health custody"
+            end
+            claims.funds.health = health -- Unknown damage keeps all Health held until exact reconciliation.
+        else
+            if not integer(intent.expectedHitBackMax) or intent.expectedHitBackMax < 1 then
+                return nil, "Family hit-back exposure unavailable"
+            end
+            claims.funds.health = intent.expectedHitBackMax
+        end
+    end
     if kind == "crewReplacementDismiss" or kind == "crewReplacementHire" then
         if not number(intent.cost) then return nil, "Funded hire custody unavailable" end
         claims.funds.cash = intent.cost
@@ -301,6 +316,10 @@ function ResourceReservations.new(identity, records, providers)
         if not requested then return nil, reason end
         local held, heldReason = heldClaims(raw, proposal)
         if not held then return nil, heldReason end
+        if (proposal.feature == "combat" or proposal.feature == "warCombat")
+            and proposal.intent.kind == "playerAttack" and (held.funds.health or 0) > 0 then
+            return nil, "Player Health is held by another unresolved action"
+        end
         if requested.allCrew or next(requested.members) ~= nil then
             for slot, row in pairs(raw.native.crew or {}) do
                 if type(row) ~= "table" then return nil, "Native member custody invalid" end
@@ -360,6 +379,12 @@ function ResourceReservations.new(identity, records, providers)
                 floor = maxHealth * 0.75
             elseif proposal.feature == "bosses" and key == "stamina" then
                 floor = 1
+            elseif proposal.feature == "familyBossAttacks" and key == "stamina" then
+                floor = 1
+            elseif proposal.feature == "familyBossAttacks" and key == "health" and proposal.intent.uncalculatedHitBack ~= true then
+                local maximum = type(raw.native.stats) == "table" and raw.native.stats.maxHealth
+                if not number(maximum) or maximum < 1 then return nil, "Family health reserve unavailable" end
+                floor = math.max(20, maximum * 0.5)
             elseif proposal.feature == "bosses" and key == "health" then
                 local maxHealth = type(raw.native.stats) == "table" and raw.native.stats.maxHealth
                 if not number(maxHealth) or maxHealth < 1 then return nil, "Boss health reserve unavailable" end

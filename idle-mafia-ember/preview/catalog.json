@@ -2340,9 +2340,16 @@
       "id": "familyBossAttacks",
       "page": "combat",
       "label": "Use free Takedown attacks",
-      "description": "Free charges only, with Ticket protection and current hit-back safety.",
+      "description": "Free charges only. The optional unknown-damage mode allows one attack per Family week from full health.",
       "policies": [],
-      "custom": [],
+      "custom": [
+        {
+          "id": "allowUncalculatedHitBack",
+          "label": "Allow unknown damage: one attack per Family week",
+          "type": "boolean",
+          "value": false
+        }
+      ],
       "combat": true
     },
     {

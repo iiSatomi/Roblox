@@ -159,7 +159,7 @@ function NativeCallPlan.describe(proposal)
         and intent.kind == "familyBossAttack"
         and integer(intent.week, 1, 1000000000)
         and integer(intent.famId, 1, 9007199254740991)
-        and integer(intent.stage, 1, 5) then
+        and integer(intent.stage, 1, 6) then
         return { remote = "FamilyBossAction", method = "InvokeServer",
             arity = 1, args = { "attack" },
             source = "saved FamilyBossView attack" }, nil

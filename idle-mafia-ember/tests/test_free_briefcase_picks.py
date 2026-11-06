@@ -109,6 +109,38 @@ class FreeBriefcasePickTests(unittest.TestCase):
             self.raw(2), lua_table(self.h.lua, {"ok": False}), baseline),
             "rejected")
 
+    def test_native_cleared_reply_and_exact_next_empty_board_confirm_a_free_pick(self):
+        before = self.raw()
+        proposal, _ = self.proposal(before)
+        baseline, _ = self.evidence.capture(proposal, before)
+        header, _ = self.h.contracts.validateSnapshot(before, lua_table(self.h.lua, self.h.session))
+        after = self.raw(2, free=1, board=4, opened={})
+        reply = lua_table(self.h.lua, {"ok": True, "source": "free", "cleared": True,
+                                     "board": 3, "prize": "golden"})
+        self.assertEqual(self.evidence.evaluate(proposal, header, after, reply, baseline), "confirmed")
+        for change in ({"board": 2}, {"cleared": False}, {"source": "key"}, {"prize": ""}):
+            with self.subTest(change=change):
+                bad = lua_table(self.h.lua, {"ok": True, "source": "free", "cleared": True,
+                    "board": 3, "prize": "golden", **change})
+                self.assertEqual(self.evidence.evaluate(proposal, header, after, bad, baseline), "pending")
+        self.assertEqual(self.evidence.evaluate(proposal, header,
+            self.raw(2, free=1, board=5, opened={}), reply, baseline), "pending")
+
+    def test_pending_and_transient_callbacks_cannot_confirm_or_terminally_reject(self):
+        before = self.raw()
+        proposal, _ = self.proposal(before)
+        baseline, _ = self.evidence.capture(proposal, before)
+        header, _ = self.h.contracts.validateSnapshot(before, lua_table(self.h.lua, self.h.session))
+        reveal = self.raw(2, free=1, opened={"c1": {"p": "cash2"}, "c2": {"p": "gold3"}})
+        cleared = self.raw(2, free=1, board=4, opened={})
+        for signal in ({"pending": True}, {"code": "rate_limited"}, {"code": "busy"}, {"code": "presence"}):
+            for ok in (True, False):
+                for observed, state in ((reveal, "revealed"), (cleared, "cleared"), (self.raw(2), "unchanged")):
+                    with self.subTest(signal=signal, ok=ok, state=state):
+                        reply = lua_table(self.h.lua, {"ok": ok, "source": "free", "cleared": True,
+                            "board": 3, "prize": "golden", **signal})
+                        self.assertEqual(self.evidence.evaluate(proposal, header, observed, reply, baseline), "pending")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -115,7 +115,7 @@ local recoveryFields = {
     contracts = {catalogKey = true, contractConfig = true},
     bonuses = {catalogKey = true, contractConfig = true, contractBonusConfig = true},
     trophies = {catalogKey = true, trophyCatalog = true},
-    briefcases = {catalogKey = true, caseEvent = true, briefcaseRules = true},
+    briefcases = {catalogKey = true, caseEvent = true, briefcaseRules = true, briefcaseProof = true},
     skills = {catalogKey = true, skillRules = true},
     marketSell = {}, marketFlip = {}, marketManage = {},
     marketRent = {marketRentTermsProof = true, marketRentUsageProof = true},

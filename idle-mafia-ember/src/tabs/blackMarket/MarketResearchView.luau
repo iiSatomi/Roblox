@@ -1,4 +1,4 @@
--- Bounded, read-only explanation of a complete Market browse result.
+-- Bounded, read-only explanation; incomplete native replies never yield quotes.
 local MarketResearchView = {}
 
 local function finite(value)
@@ -8,8 +8,12 @@ end
 
 function MarketResearchView.assess(browse, rapByItem,
     historyByItem, itemsById, termsByItem, settings, now, watch)
-    if type(browse) ~= "table" or browse.kind ~= "all"
-        or browse.arg ~= nil or browse.more ~= false
+    if type(browse) ~= "table"
+        or not (browse.kind == "all" and browse.arg == nil
+            or browse.kind == "item" and type(browse.arg) == "string" and #browse.arg > 0 and #browse.arg <= 120)
+        or type(browse.more) ~= "boolean"
+        or (browse.stale ~= nil and type(browse.stale) ~= "boolean")
+        or (browse.small ~= nil and type(browse.small) ~= "boolean")
         or type(browse.rows) ~= "table" or #browse.rows > 500
         or not finite(browse.capturedAt)
         or not finite(now) or browse.capturedAt > now + 1
@@ -35,20 +39,25 @@ function MarketResearchView.assess(browse, rapByItem,
         return nil, "Sparse Market research rows"
     end
     local accepted, rejected, seen = {}, {}, {}
+    local complete = browse.more == false and browse.stale ~= true and browse.small ~= true
     local evaluated = math.min(#browse.rows, 100)
     for index = 1, evaluated do
         local row = browse.rows[index]
         if type(row) ~= "table"
             or type(row.item) ~= "string"
             or #row.item == 0 or #row.item > 120
+            or (browse.kind == "item" and row.item ~= browse.arg)
             or row.id == nil or seen[tostring(row.id)] then
             return nil, "Invalid Market research listing"
         end
         seen[tostring(row.id)] = true
         local id = row.item
-        local quote, reason = watch.assess(browse, row.id,
-            rapByItem[id], historyByItem[id], itemsById[id],
-            termsByItem[id], settings, now)
+        local quote, reason
+        if complete then
+            quote, reason = watch.assess(browse, row.id,
+                rapByItem[id], historyByItem[id], itemsById[id],
+                termsByItem[id], settings, now)
+        else reason = "Market browse is incomplete; quotes withheld" end
         if quote then
             accepted[#accepted + 1] = {
                 listingId = quote.listingId, itemId = quote.itemId,
@@ -71,10 +80,10 @@ function MarketResearchView.assess(browse, rapByItem,
     for index = 1, math.min(#rejected, 50) do
         refused[index] = rejected[index]
     end
-    return { readOnly = true, paginationComplete = true,
+    return { readOnly = true, paginationComplete = complete,
         capturedAt = browse.capturedAt,
         totalRows = #browse.rows, evaluated = evaluated,
-        truncated = #browse.rows > evaluated
+        truncated = not complete or #browse.rows > evaluated
             or #accepted > #shown or #rejected > #refused,
         opportunities = shown, rejected = refused,
         opportunityCount = #accepted,

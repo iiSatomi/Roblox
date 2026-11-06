@@ -23,7 +23,8 @@ class MarketWatchIntegrationTests(unittest.TestCase):
         self.sources = self.tab.ReadSources(self.tab)
         self.lane = h.load('src/engine/RequestLane.luau').new(h.clock)
         h.lua.globals().watchLane = self.lane
-        self.executor = h.lua.execute("""return {queued={},calls={},conflict=false,
+        self.executor = h.lua.execute("""return {queued={},calls={},conflict=false,latency=0,
+            more=false,stale=false,small=false,responsePages=5,
             Schedule=function(self,fn) self.queued[#self.queued+1]=fn;return true end,
             InFlight=function() return false end,
             InvokeOwned=function(self,token,remote,method,...)
@@ -32,13 +33,12 @@ class MarketWatchIntegrationTests(unittest.TestCase):
                 assert(remote=='MarketAction' and method=='InvokeServer' and args.n==4)
                 assert(args[1]=='browse' or args[1]=='rap' or args[1]=='prices','Watch cannot trade')
                 self.calls[#self.calls+1]=args
+                testNow=testNow+self.latency
                 if args[1]=='browse' then
-                    assert(args[2]=='all' and args[3]==nil)
-                    if args[4]==1 then return {ok=true,pages=2,more=true,rows={
-                        {id='cheap',item='item_a',qty=1,price=50,mine=false,sellerId=99}}} end
-                    local rows={{id='competitor',item='item_a',qty=1,price=100,mine=false,sellerId=100}}
-                    if self.conflict then rows[2]={id='cheap',item='item_a',qty=1,price=51,mine=false,sellerId=99} end
-                    return {ok=true,pages=2,more=false,rows=rows}
+                    local rows={{id='cheap',item='item_a',qty=1,price=50,mine=false,sellerId=99},
+                        {id='competitor',item='item_a',qty=1,price=100,mine=false,sellerId=100}}
+                    if self.conflict then rows[3]={id='cheap',item='item_a',qty=1,price=51,mine=false,sellerId=99} end
+                    return {ok=true,pages=self.responsePages,more=self.more,stale=self.stale,small=self.small,rows=rows}
                 elseif args[1]=='rap' then
                     return {ok=true,values={item_a={quantity=20,sales=10,average=100,available=true}}}
                 end
@@ -68,10 +68,11 @@ class MarketWatchIntegrationTests(unittest.TestCase):
             'reservationSources':self.tab.ReservationSources(self.tab)}))
         self.runtime.Resume(self.runtime)
 
-    def step(self, at, drain=True):
+    def step(self, at, drain=True, sync_at=None):
         h = self.h
         h.at(at)
-        self.raw.revision,self.raw.capturedAt,self.raw.native.serverNow = at+1,at,101+at
+        sync_at = at if sync_at is None else sync_at
+        self.raw.revision,self.raw.capturedAt,self.raw.native.serverNow = sync_at+1,sync_at,101+sync_at
         self.raw.native.cash = 1000
         self.raw.native.pools = lua_table(h.lua,{'energy':20})
         h.lua.globals().watchRaw = self.raw
@@ -86,9 +87,8 @@ class MarketWatchIntegrationTests(unittest.TestCase):
         self.assertIsNone(reason)
         return status,view
 
-    def test_complete_owned_pages_rap_and_prices_produce_visible_read_only_report(self):
+    def test_complete_cumulative_reply_rap_and_prices_produce_visible_read_only_report(self):
         self.step(0)
-        self.assertIsNone(self.tab.research.View(self.tab.research,self.raw,self.raw)[0])
         for at in (1,2,3): self.step(at)
         status = self.step(4)
         view,reason = self.tab.research.View(self.tab.research,self.raw,self.raw)
@@ -99,7 +99,8 @@ class MarketWatchIntegrationTests(unittest.TestCase):
         candidate = view.research.opportunities[1]
         self.assertEqual((candidate.listingId,candidate.buy,candidate.ask,candidate.margin),('cheap',50,99,45))
         self.assertIn('2 listings; 1 research candidates; prices ready 1/1',status.reasons.marketWatch)
-        self.assertEqual([call[1] for call in self.executor.calls.values()],['browse','browse','rap','prices'])
+        self.assertEqual([call[1] for call in self.executor.calls.values()],['browse','rap','prices'])
+        self.assertEqual([self.executor.calls[1][i] for i in range(1,5)],['browse','item','item_a',5])
         self.assertEqual(len(self.h.transport.sent),0)
         self.assertEqual(len(self.runtime.checkpoint.Records(self.runtime.checkpoint)),0)
         self.assertIsNone(self.tab.transactions.Active(self.tab.transactions))
@@ -116,13 +117,64 @@ class MarketWatchIntegrationTests(unittest.TestCase):
         self.assertIsNone(self.tab.research.View(self.tab.research,self.raw,self.raw)[0])
         self.assertEqual(len(self.h.transport.sent),0)
 
-    def test_changed_listing_between_pages_never_becomes_a_complete_report(self):
+    def test_duplicate_listing_in_cumulative_reply_never_becomes_a_report(self):
         self.executor.conflict = True
         self.step(0)
         self.step(1)
         view,reason = self.tab.research.View(self.tab.research,self.raw,self.raw)
         self.assertIsNone(view)
         self.assertIn('complete',reason)
+        self.assertEqual(len(self.h.transport.sent),0)
+
+    def test_real_fifteen_second_sync_cadence_finishes_without_cross_frame_page_merge(self):
+        self.settings.marketWatch.scope='All eligible items'
+        self.executor.latency=1.3
+        self.step(0)
+        initial,reason=self.tab.research.View(self.tab.research,self.raw,self.raw)
+        self.assertIsNone(reason)
+        self.assertEqual((initial.research.totalRows,initial.researchedItems),(2,0))
+        # Only authentic Sync frames refresh the header. A stale frame admits no reads.
+        self.step(8,sync_at=0)
+        self.assertEqual(len(self.executor.calls),1)
+        for at in (15,30,45): self.step(at)
+        view,reason=self.tab.research.View(self.tab.research,self.raw,self.raw)
+        self.assertIsNone(reason)
+        self.assertEqual((view.researchedItems,view.research.opportunityCount),(1,1))
+        browse=[call for call in self.executor.calls.values() if call[1]=='browse']
+        self.assertEqual([[call[i] for i in range(1,5)] for call in browse],
+                         [['browse','all',None,5],['browse','all',None,5]])
+        self.assertEqual(len(self.h.transport.sent),0)
+
+    def test_bounded_partial_report_never_offers_a_trade_quote(self):
+        for flag in ('more','stale','small'):
+            with self.subTest(flag=flag):
+                self.setUp()
+                setattr(self.executor,flag,True)
+                status,view=self.complete()
+                self.assertFalse(view.research.paginationComplete)
+                self.assertTrue(view.research.truncated)
+                self.assertEqual((view.research.totalRows,view.research.opportunityCount),(2,0))
+                self.assertIn('bounded partial coverage',status.reasons.marketWatch)
+                self.assertEqual(len(self.h.transport.sent),0)
+
+    def test_selected_scope_change_rejects_old_owned_reply_before_cache_attachment(self):
+        source=next(s for s in self.sources.values() if s.id=='marketBrowse')
+        self.assertTrue(source.enabled(self.settings))
+        request=source.prepare(self.raw)[0]
+        self.settings.marketWatch.selectedItemId='item_b'
+        self.assertTrue(source.enabled(self.settings))
+        reply=lua_table(self.h.lua,{'ok':True,'pages':1,'more':False,'rows':[
+            {'id':'old','item':'item_a','qty':1,'price':50}]})
+        self.assertIsNone(source.accept(self.raw,request,reply))
+        self.assertIsNone(self.tab.research.View(self.tab.research,self.raw,self.raw)[0])
+        replacement=source.prepare(self.raw)[0]
+        self.assertEqual([replacement.args[i] for i in range(1,5)],['browse','item','item_b',5])
+
+    def test_reply_outside_owned_sync_window_cannot_attach_even_a_complete_cumulative_result(self):
+        self.executor.latency=2.1
+        self.step(0)
+        self.assertEqual(len(self.executor.calls),1)
+        self.assertIsNone(self.tab.research.View(self.tab.research,self.raw,self.raw)[0])
         self.assertEqual(len(self.h.transport.sent),0)
 
     def test_mutation_lease_then_close_fences_queued_watch_callback(self):

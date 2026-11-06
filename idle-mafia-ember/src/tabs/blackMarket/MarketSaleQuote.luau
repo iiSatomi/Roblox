@@ -100,6 +100,7 @@ function MarketSaleQuote.assess(custody, rap, history, browse,
         or history.itemId ~= custody.itemId
         or browse.kind ~= "item" or browse.arg ~= custody.itemId
         or browse.more ~= false
+        or browse.stale == true or browse.small == true
         or type(terms) ~= "table"
         or terms.release ~= custody.release
         or not integer(terms.minPrice, 2, 9999999)

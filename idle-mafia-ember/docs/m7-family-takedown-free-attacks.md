@@ -1,30 +1,11 @@
-# Free-charge-only Family Takedown attacks: offline slice
+# Free-charge Family Takedown attacks
 
-`FamilyBossAttackState`, `FamilyBossAttacks` and
-`FamilyBossAttacksEvidence` add a separate opt-in intent for the
-saved `FamilyBossAction:InvokeServer("attack")` call. It requires a
-complete current-week, same-Family stage view, **zero held Tickets**,
-at least one free charge, known native health/stamina, and a
-positive conservative stage hit-back bound from a future adapter.
-The planner keeps at least 50% maximum health and the saved native
-hospital floor of 20 health after that bound, plus one stamina in
-reserve. These are local safety rules; the current server hit-back
-calculation remains unverified.
+The ordinary bounded mode still requires a positive, proven hit-back bound. The reviewed current client exposes no damage estimator, so its native path cannot supply that bound.
 
-The checkpoint writes at most 25 sent hits per week/Family and five
-native-server seconds between sends with the unresolved action
-before dispatch. Unconfirmed sends count. Preflight repeats the
-exact week, Family, stage, zero-Ticket and resource checks. A
-positive reply confirms only after a newer same-week personal
-damage increase of at least the reply damage and an increase in
-free-charge use, with Tickets still zero. This slice never spends a
-Ticket or buys a refill. The common 45-second unconfirmed/skipped
-deadline and feature cooldown apply; a skip does not cancel a
-server action. Confirmation also works when the hit advances to a
-new stage and the completed stage no longer has an attack quote.
+A separate **Allow unknown damage: one attack per Family week** option defaults off. When enabled, it permits one free attack for that Family week only at full maximum health, with zero Tickets, a current free charge, and at least one Stamina left after the native cost. Damage is unknown; this mode makes no promise about health after the hit. Its unresolved action reserves all current health and the exact Stamina cost. Confirmed, rejected, and uncertain sends consume the weekly attempt; only a proven unsent action refunds its own exact charge.
 
-Offline evidence: 316 Python/Lupa tests, 12 Node tests, catalog
-check and changed Luau compilation/analysis pass. The registry has
-23 fake-adapter descriptors. Default Ember 0.1.1 remains inert;
-native transport, actual response shape and live outcome are
-unverified.
+The reviewed version-654 `FamilyBossView` controller is observed without invoking its UI handlers or changing native identities or flags. Its current context, remote wrapper, cost, hospital threshold, busy/cooldown flags, module identities and State resource values must match. `Combat` stamps the proof from that controller and its owned Family state query; caller attack proofs are discarded. The final queued guard repeats controller/resource checks and the explicit permission after persistence.
+
+The native client allows overtime stage 6 while selecting its stage-5 configuration. Both ordinary and overtime stages retain free-only, membership, week, Ticket, resource and usage guards. A successful reply needs newer same-week personal damage of at least the returned damage plus an increased free-charge use and zero Tickets. Pending and transient replies never confirm or release custody. A saved success can reconcile after a new session from its original validated baseline without another attack.
+
+`test_native_family_boss_controller.py`, `test_family_takedown_attacks.py` and `test_family_attack_composition.py` cover the controller, planner/evidence, full tab/engine/broker/native-adapter flow, queued permission revocation, native busy changes, exact unsent rollback, fractional native timestamps, callback uncertainty, saved-reply restart and retained weekly allowance. Live attack acceptance remains open until the manager records a current native result. No Tickets are purchased or spent by this path.

@@ -25,11 +25,11 @@ function MarketResearchController.new(deps)
     end
     local clock = deps.clock
     local catalog = deps.NativeMarketCatalog.new(deps.config, deps.fingerprint, deps.release)
-    local browse = deps.MarketBrowse.new(5, clock)
-    local pages = deps.MarketBrowsePages.new(5, 500)
+    local browse = deps.MarketBrowse.new(catalog.maxPages, clock)
+    local pages = deps.MarketBrowsePages.new(catalog.maxPages, 500)
     local rap, prices = deps.MarketRap.new(clock), deps.MarketPrices.new(clock)
     local function saleReaders()
-        return deps.MarketBrowse.new(5, clock), deps.MarketBrowsePages.new(5, 500),
+        return deps.MarketBrowse.new(catalog.maxPages, clock), deps.MarketBrowsePages.new(catalog.maxPages, 500),
             deps.MarketRap.new(clock), deps.MarketPrices.new(clock)
     end
     local saleBrowse, salePages, saleRap, salePrices = saleReaders()
@@ -172,6 +172,15 @@ function MarketResearchController.new(deps)
         for _, id in ipairs(selectedIds()) do if not prices:Get(id) then return id end end
         return nil
     end
+    local function researchScope(options)
+        local selection = options and options.selection
+        if selection and selection.scope == "Selected item" then return "item", selection.selectedItemId end
+        return "all", nil
+    end
+    local function currentResearchScope(value)
+        local kind, arg = researchScope(state.options)
+        return type(value) == "table" and value.kind == kind and value.arg == arg
+    end
     function owner:Sources()
         local sources = {}
         for _, kindName in ipairs({"browse", "rap", "prices"}) do
@@ -184,6 +193,10 @@ function MarketResearchController.new(deps)
                         state.nextPage, state.browse, state.nextBrowseAt, state.ownedItems = nil, nil, 0, {}
                         return false
                     end
+                    if state.browse and not currentResearchScope(state.browse)
+                        or state.nextPage and not currentResearchScope(state.nextPage) then
+                        state.nextPage, state.browse, state.nextBrowseAt = nil, nil, 0
+                    end
                     if kind == "browse" then return state.nextPage ~= nil or clock:Now() >= state.nextBrowseAt end
                     if kind == "rap" then return #missingRap() > 0 end
                     return missingPrice() ~= nil
@@ -191,13 +204,17 @@ function MarketResearchController.new(deps)
                 prepare = function(raw)
                     if state.closed or not state.options or not scoped(raw) then return nil, "Current Market research Sync required" end
                     if kind == "browse" then
-                        if not state.nextPage then state.nextPage = pages:Begin("all", nil) end
+                        if not state.nextPage then
+                            local scope, arg = researchScope(state.options)
+                            state.nextPage = pages:Begin(scope, arg)
+                        end
                         return browse:Prepare(state.nextPage)
                     elseif kind == "rap" then return rap:Prepare(missingRap()) end
                     return prices:Prepare(missingPrice())
                 end,
                 accept = function(raw, request, reply)
                     if state.closed or not state.options or not scoped(raw) then return nil end
+                    if kind == "browse" and not currentResearchScope(request) then return nil end
                     local query = kind == "browse" and browse or kind == "rap" and rap or prices
                     return query:Accept(request, reply)
                 end,
@@ -210,7 +227,7 @@ function MarketResearchController.new(deps)
                             state.browse, state.nextBrowseAt = nil, clock:Now() + 5
                             return false
                         end
-                        if completed then
+                        if completed and currentResearchScope(completed) then
                             state.browse, state.nextBrowseAt = completed, clock:Now() + 10
                         end
                     end
@@ -298,6 +315,7 @@ function MarketResearchController.new(deps)
             saleRap:Get(id), salePrices:Get(id)
         if type(browseResult) ~= "table" or browseResult.kind ~= "item"
             or browseResult.arg ~= id or browseResult.more ~= false
+            or browseResult.stale == true or browseResult.small == true
             or clock:Now() - browseResult.capturedAt > 15
             or not rapResult or not priceResult then
             return nil, "Waiting for complete current item browse, RAP and history"
@@ -490,7 +508,8 @@ function MarketResearchController.new(deps)
         if state.closed then return nil, "Market reader closed" end
         if not state.options then return nil, state.preferenceReason or "Market watch disabled" end
         if not scoped(raw, context) then return nil, "Market research snapshot changed or stale" end
-        if not state.browse or clock:Now() - state.browse.capturedAt > 15 then return nil, "Waiting for complete fresh Market pages" end
+        if not state.browse or not currentResearchScope(state.browse)
+            or clock:Now() - state.browse.capturedAt > 15 then return nil, "Waiting for complete fresh Market pages" end
         local listings = deps.MarketListingsState.read(raw, context)
         state.ownedItems = {}
         if listings then for _, row in pairs(listings.listings) do state.ownedItems[row.item] = true end end

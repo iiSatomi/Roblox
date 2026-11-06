@@ -196,6 +196,23 @@ class RuntimeEntryIntegrationTests(unittest.TestCase):
         self.assertEqual(self.h.lua.globals().nativeCalls, 0)
         self.assertEqual(len(self.h.lua.globals().scheduled), 0)
 
+    def test_current_client_host_installs_and_retires_optional_native_briefcase_source(self):
+        self.h.lua.execute("""
+            fixtureBindings.currentBriefcases={definition={CASES=12,VERSION=17},
+                readCurrent=function() return {serverNow=100} end}
+        """)
+        host = self.start()
+        events = next(tab for tab in host.app.automationRuntime.tabInstances.values() if tab.id == "events")
+        source = events.briefcaseSource
+        self.assertIsNotNone(source)
+        raw, reason = host.driver.reader.Capture(host.driver.reader)
+        self.assertIsNone(reason)
+        enriched, reason = source.Enrich(source, raw)
+        self.assertIsNone(reason)
+        self.assertFalse(enriched.briefcaseProof.active)
+        host.Destroy(host)
+        self.assertIsNone(source.Enrich(source, raw)[0])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -20,7 +20,7 @@ class MarketSellRuntimeTests(unittest.TestCase):
                 ('MarketRap','features'),('MarketReadRuntime','features')]:
             deps[name]=self.h.load('src/'+folder+'/'+name+'.luau')
         deps['gameData']={'ITEMS_BY_ID':{'item_a':{'kind':'consumable','rarity':1,'tradable':True}}}
-        deps['config']={'MARKET':{'minLevel':1,'slots':5,'maxSlots':5,'rentPerPeriod':2,
+        deps['config']={'MARKET':{'maxPages':5,'minLevel':1,'slots':5,'maxSlots':5,'rentPerPeriod':2,
             'rentPeriodHours':24,'rentMaxDays':30,'feePct':0.1,'permanentFeePct':0.05,
             'minFee':1,'minPrice':2,'maxPrice':9999999,'maxQuantity':999,'minPriceByRarity':{}}}
         self.deps=lua_table(self.h.lua,deps)
