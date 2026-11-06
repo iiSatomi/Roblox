@@ -4,8 +4,8 @@ local reviewedBuilds = {
     [655] = {version="0.26.646.1", fingerprint="610c43e492f5fbb12e9dd38665031fefe3b6584b3a336de0203cea2e68b1bc08"},
 }
 local reviewed = assert(reviewedBuilds[game.PlaceVersion], "Unreviewed Idle Mafia build")
-local sourceCommit = "30cf3832142a0cf32802273ea962808e76a4ceda"
-local manifestCommit = "53d36160cf41ea1711248efbc9384cce6ebf5687"
+local sourceCommit = "e3ba6caa213d6af0819445206b6d4435c12e28e4"
+local manifestCommit = "bc99488784f14e8438818c918609a02dd2c5b42d"
 local root = "https://raw.githubusercontent.com/iiSatomi/Roblox/"
 local project = "/idle-mafia-ember/"
 local hashApi = crypt or (syn and syn.crypt)
@@ -37,15 +37,15 @@ local function pinnedModule(path, digest)
 end
 
 local manifestBytes = fetch(root .. manifestCommit .. project .. "manifest.json",
-    "b49a097682a5fc79f55db1f7215242b5d4b6a7ba33ddd5440e5faae21e80df51", "manifest")
+    "b7271cc1ca28ea57460ce0f00646da56904663857bdeaf62214cc93f88167862", "manifest")
 local manifest = game:GetService("HttpService"):JSONDecode(manifestBytes)
 assert(manifest.releaseCommit == sourceCommit, "Manifest pin mismatch")
 
 local Loader = pinnedModule("Loader.luau", "2bd90f28042eccb649fb02d2617ff2d5770f2c74cba97b4968bbac629340fbb4")
 local Manifest = pinnedModule("src/loader/Manifest.luau", "4f6209df6e75fba086626d7ad466222b292b39e84be170d20d67fa12ca447cf4")
-local Bootstrap = pinnedModule("Bootstrap.luau", "eadcf238369e422f402754dd5569f7945fd5e7ffaf1ce028e5d3102e6ddaa954")
+local Bootstrap = pinnedModule("Bootstrap.luau", "e3ea74b5d8dc3f26a5add5aa597a591ed5ed7ebb655a23fe8f4e381507d9f6d8")
 local ReleaseAdapters = pinnedModule("ReleaseAdapters.luau", "83e94688a7b2262e43e764ea36ef1271afda91d8f9f7808fd1aa347622eb4b3c")
-local ExecutorEntry = pinnedModule("ExecutorEntry.luau", "43b4fde4740ee56e488d4731f87dc85d5d5a9345bffdc4da04c0031833e6f44e")
+local ExecutorEntry = pinnedModule("ExecutorEntry.luau", "34a7439bb1c28cc1d9b775c4c1686eb6ca5823016670dbcb355909807aafd35a")
 
 -- Official Ember URL is mutable. Reject an update until its bytes are reviewed.
 local emberBytes = fetch("https://rbx.lol/ember.lua",
