@@ -4,6 +4,12 @@ These observations come from the manager-owned Potassium session. Offline tests
 do not substitute for a feature's live outcome. Development payloads are private
 and are not published release pins.
 
+Confirmed live paths now cover **17 of 55 feature switches (31%, rounded)**,
+up from the **0 of 55** recovery baseline. This counts switches with a confirmed
+path; other modes, lifecycle checks and unmet prerequisites remain open. The
+integrated development source was pushed as
+`491ca8967867a50b4170ccd852da6257f4777ab8`; final manifest/entry packaging is separate.
+
 ## Observed
 
 - Jobs: exactly one `DoJob("j_watch")` returned `ok=true`, 3 XP and 89 Cash.
@@ -60,6 +66,14 @@ and are not published release pins.
   returned success and advanced the selected perk progress from 32446 to 32447.
   Exact resource, personal counter and perk evidence confirmed the action under
   a one-Stamina/one-attempt limit. No uncertainty or storage fault remained.
+- Family Gold: one `FamilyAction("donategold", 1, nil, nil)` returned success
+  with `allowNativeGoldPool=true`, amount 1, total reserve 438, run budget 1 and
+  maximum one attempt. Loose Gold stayed 415; bound Gold decreased from 24 to 23,
+  making the combined balance decrease exactly from 439 to 438. The personal
+  `donatedGold` counter increased from zero to one. The runtime confirmed the
+  exact receipt and newer state, retaining one attempted donation with zero
+  uncertainty and no storage fault. This observed debit does not establish a
+  general server payment priority; the loose-only default remains unchanged.
 - Market earnings: one `MarketAction("collect")` returned 95 Gold. Earnings
   became zero; loose Gold increased from 320 to 415 and bound Gold stayed 24.
   The runtime confirmed the exact payout, with zero uncertainty and no fault.
@@ -76,6 +90,16 @@ and are not published release pins.
   one-attempt limit and minimum garrison 31. The initial reply was pending;
   status-only resolution and newer roster state subsequently confirmed it.
   The member returned home. No uncertainty or storage fault remained.
+- Territory Watch: a coherent report was sampled across 60 seconds with accepted
+  native map/district reads and zero mutations. It showed 15 of 112 city districts
+  held, Family capacity 15 of 15, season 2 in preparation, and selected-district
+  garrison 59 of 200 with bonuses and shield data. No fault or uncertainty remained.
+- Restoratives: one `UseConsumable("con_medkit_large", true, 111)` returned
+  success with gain 67 and Health 300 of 300. Newer native state showed Health
+  rising from 233 to 300, bound Medkits decreasing from four to three and
+  consumable sequence advancing from 111 to 112. The bounded test enabled only
+  Health recovery with minimum useful gain 10; one attempt confirmed with no
+  uncertainty or storage fault.
 - Anti-idle 1.0.0 was installed in Potassium autoexec. Sixty-four input
   pulses succeeded with zero failures. A later check reached 96 successful pulses.
   This is observed activity, not a guarantee
@@ -102,7 +126,7 @@ and are not published release pins.
 4. Recall startup assumed the persisted account name was a numeric user ID.
    The current client now supplies its verified numeric ID separately while
    retaining the existing account-name storage keys. The patched runtime
-   booted successfully; mutation verification remains open.
+   booted successfully and the bounded Recall subsequently confirmed.
 5. Territory map requests use native city IDs, while district catalog entries
    use display names. The adapter now resolves IDs through the native CityMaps
    lookup. Territory capacity's native `checkedAt` ordering marker was also
@@ -124,6 +148,17 @@ The integrated frozen source passed 913 Python tests and 465 subtests, with one
 optional analyzer skip. All 298 source modules plus Bootstrap and Loader compiled
 and passed their development SHA-256 checks in Potassium (300 files). These checks
 do not replace the remaining live gameplay outcomes.
+
+The 17 switches with a confirmed live path are Jobs, Operation start, Operation
+collection, Playtime, Bank, Favors, Contracts, Market rental, Family Cash, Family
+Stamina, Market earnings, City Bosses, Boss Shop, Station/Recall, Family Gold,
+Territory Watch and Restoratives.
+The other **38 of 55** remain unverified live; no partial or blocked result is
+counted as another completed switch.
+
+Market Watch remains unverified: real browse replies succeeded, but pagination
+restarted before a complete current report became available. The manager is
+capturing the read timeline; no trade was sent by this watch probe.
 
 Remaining per-feature successful action/receipt/new-state validation, broader
 live lifecycle/restart checks, and publication of the integrated feature changes.

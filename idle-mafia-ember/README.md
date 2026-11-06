@@ -9,8 +9,10 @@ This is an actively tested development build. Registration, syntax compilation
 and offline tests do not establish gameplay completion. The coordinating agent
 owns the current-client integration and bounded live-test queue; unavailable
 account, war, event or seasonal prerequisites remain explicit open items.
-Ordinary Jobs has now produced a confirmed live action with an exact reply and
-newer native progress. See the coordinating agent's [live validation ledger](docs/live-validation-2026-11-06.md) for current outcomes and unmet prerequisites.
+Confirmed live paths cover **17 of 55 feature switches (31%, rounded)**, up from
+**0 of 55** at recovery. Other modes and the remaining 38 switches still need
+live acceptance. See the [live validation ledger](docs/live-validation-2026-11-06.md)
+for exact outcomes and unmet prerequisites.
 
 Current repairs include composed Contract/Trophy goal routing, independently
 bounded war Combat with authoritative enemy-roster checks, and contract-owned

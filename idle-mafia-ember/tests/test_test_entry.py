@@ -2,14 +2,22 @@
 import hashlib
 import json
 from pathlib import Path
-import subprocess
 import unittest
 from urllib.parse import urlsplit
+from functools import lru_cache
 
 from engine_harness import Harness, lua_table
+from test_entry_release_pins import EMBER_SHA256, git
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+@lru_cache(maxsize=512)
+def committed_blob(commit, path):
+    return git("show", commit + ":" + path).decode("utf-8")
+
+
 class TestEntryTests(unittest.TestCase):
     def start_entry(self, tamper_path=None):
         h = Harness()
@@ -31,15 +39,13 @@ class TestEntryTests(unittest.TestCase):
             self.assertNotIn("..", path.split("/"))
             # Resolve the requested commit as GitHub does. Checkout files may
             # be newer and may contain Windows line endings.
-            blob = subprocess.check_output([
-                "git", "show", commit + ":" + path,
-            ], cwd=ROOT).decode("utf-8")
+            blob = committed_blob(commit, path)
             if path == tamper_path:
                 blob += "\nerror('tampered module executed')\n"
             return blob
         h.lua.globals().pyget = fetch
         h.lua.globals().pyhash = lambda value, algorithm: (
-            "c6ec2ad2ad732a2ed704d044fd068b685d7e6c2613f60a07c39316666576390a"
+            EMBER_SHA256
             if value == ember_bytes else hashlib.sha256(value.encode("utf-8")).hexdigest())
         h.lua.globals().pydecode = lambda raw: lua_table(h.lua, json.loads(raw))
         h.lua.globals().emberDouble = h.load("tests/ember_double.lua")
@@ -69,7 +75,7 @@ class TestEntryTests(unittest.TestCase):
         self.assertTrue(app.model.paused)
         self.assertIsNone(app.automationRuntime)
         self.assertIsNone(app.profileStore)
-        self.assertEqual(len(app.ui.window.sections), 25)
+        self.assertEqual(len(app.ui.window.sections), 26)
 
     def test_tampered_pinned_module_is_rejected_before_execution(self):
         with self.assertRaisesRegex(Exception, "SHA-256 mismatch: Loader.luau"):
