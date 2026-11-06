@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "30cf3832142a0cf32802273ea962808e76a4ceda",
+  "releaseCommit": "e3ba6caa213d6af0819445206b6d4435c12e28e4",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -11,7 +11,7 @@
     {
       "id": "AutomationRuntime",
       "path": "src/engine/AutomationRuntime.luau",
-      "sha256": "bd2b9fb26f2a98ebffe001488394fd15970c0ef98879316ce67673682e4872d9",
+      "sha256": "828176044411cc2ae55ee9144fb036a33047ed74559ec10d9916a485c2d934a5",
       "deps": []
     },
     {
@@ -41,7 +41,7 @@
     {
       "id": "FeatureRegistry",
       "path": "src/engine/FeatureRegistry.luau",
-      "sha256": "256cd647e575a6c6a21fe1e89bb6d9b6345ecada3f7da52459dfb0274cd90223",
+      "sha256": "2e7e4895df03acd7388fc3866978d161cd362a02c077a5f574b3919de9b3e2a6",
       "deps": []
     },
     {
@@ -77,7 +77,7 @@
     {
       "id": "ResourceReservations",
       "path": "src/engine/ResourceReservations.luau",
-      "sha256": "0ffd315069d6036d6e04c110564ab74e1d0838643c70d77dd27f12d7165db86d",
+      "sha256": "db639c2e9e720a90fe8b5cd4ac33e087fdb9091e950805fd8c7454f4e154f56c",
       "deps": []
     },
     {
@@ -89,7 +89,7 @@
     {
       "id": "RuntimeAssembly",
       "path": "src/engine/RuntimeAssembly.luau",
-      "sha256": "e63976c4326414920c76fe0f0943c9ba01bf1c3d30bc78ddf69ea8281e6ed961",
+      "sha256": "f6a308be156e23e1d1acffe25563440d1914a418a1b35821a1a5411962267a77",
       "deps": []
     },
     {
@@ -131,7 +131,7 @@
     {
       "id": "BossShopBuyEvidence",
       "path": "src/features/BossShopBuyEvidence.luau",
-      "sha256": "0fbae591a3957a5c5c65e1394bf4f611cae85a0c115a403f84a5138d42dcfb78",
+      "sha256": "7b839032f4e838154b9637421c86533c4446cc87915a3959973db61629d02b1a",
       "deps": []
     },
     {
@@ -143,7 +143,7 @@
     {
       "id": "BossesEvidence",
       "path": "src/features/BossesEvidence.luau",
-      "sha256": "6cea58f50d5c78467a2079f786977fc635b6be668df6baabd17d82d9c52d9f05",
+      "sha256": "b4a1c12e430aa28223b4b21db381530c8e93b6cf248a778c3355c213b4c66446",
       "deps": []
     },
     {
@@ -155,7 +155,7 @@
     {
       "id": "ContractBonusesEvidence",
       "path": "src/features/ContractBonusesEvidence.luau",
-      "sha256": "cae816786ac66abcd6665cfed2968a05e0f6b1067cd00d8123c23b80c4d28f7c",
+      "sha256": "66e150cc062c6e82ba3208be68c1d83c461a2ffea4a9e1640df93b3a16b9b415",
       "deps": []
     },
     {
@@ -167,7 +167,7 @@
     {
       "id": "ContractEntriesEvidence",
       "path": "src/features/ContractEntriesEvidence.luau",
-      "sha256": "25d70e09118e03ae06f824daf734552c1b53e5de52b8d4218a9a3b5613154301",
+      "sha256": "dbc0a49f1eb9313826c0d987580021c7717bd74966d083ed0f7c7941d6375b86",
       "deps": []
     },
     {
@@ -179,7 +179,7 @@
     {
       "id": "EarnedTrophiesEvidence",
       "path": "src/features/EarnedTrophiesEvidence.luau",
-      "sha256": "8f41f483b9189e6a835648fd5fdb985154782728c4c62ccc4e7a6cb7910f0aca",
+      "sha256": "fd1945e023744a1b603df544655f259c53c37860ac979dfc70fc46431ba2964e",
       "deps": []
     },
     {
@@ -209,7 +209,7 @@
     {
       "id": "FamilyBossClaimsEvidence",
       "path": "src/features/FamilyBossClaimsEvidence.luau",
-      "sha256": "8f81813c0769b4f90aa166f7410e00b8cfc19c16e86b9c49dbb1c6cede852b6a",
+      "sha256": "4fbc289e80c5d942ed777d45b00c0bea9d53a17ec53fc2decd31a48dbe37f176",
       "deps": []
     },
     {
@@ -245,7 +245,7 @@
     {
       "id": "GlobalBossAttackEvidence",
       "path": "src/features/GlobalBossAttackEvidence.luau",
-      "sha256": "dfb368c1d9a6b0fc2db12907d26b22c3129e5282791b4446fa9664c8605dd837",
+      "sha256": "e0809651acdd598895239e8d11ba5087545ce389279925c07ddbcad5f549a37a",
       "deps": []
     },
     {
@@ -257,7 +257,7 @@
     {
       "id": "GlobalBossClaimEvidence",
       "path": "src/features/GlobalBossClaimEvidence.luau",
-      "sha256": "7c5397fe4aa62210b3226b968a608a7ac2d5f25aab868683cd20acf3045dc374",
+      "sha256": "d6e9b82dfabe379a211b0b81c4ee7ad3841526607c43645b991328c98608b29e",
       "deps": []
     },
     {
@@ -269,7 +269,7 @@
     {
       "id": "GroupBonusEvidence",
       "path": "src/features/GroupBonusEvidence.luau",
-      "sha256": "28eb56445aec54dbada9ff823edeb6d2a89ac0223318a33f1fc84d674c781e55",
+      "sha256": "52d33f3d02f6ac3d0e2f9560a06f8a495c95dd427c9dba211093b1ac99b8e79f",
       "deps": []
     },
     {
@@ -317,7 +317,7 @@
     {
       "id": "MarketBrowse",
       "path": "src/features/MarketBrowse.luau",
-      "sha256": "d5b3841a24398e2ca3691ca44807c4da5fee2035598e0bb02445a7fb169c82c5",
+      "sha256": "adf13ec562c79bd6b968d99749d14feffe34ce7619d11946178f50b581360797",
       "deps": []
     },
     {
@@ -359,7 +359,7 @@
     {
       "id": "MonthlyRewardsEvidence",
       "path": "src/features/MonthlyRewardsEvidence.luau",
-      "sha256": "6a569e39aeced5e84f9c3a4680c4ed25bcd73c98ca4fa0232870b153e209deef",
+      "sha256": "3c434ac7f303e5c3186e5df65b0fe478e3019e0208e3958a3949df69cd0a986f",
       "deps": []
     },
     {
@@ -377,7 +377,7 @@
     {
       "id": "OperationsEvidence",
       "path": "src/features/OperationsEvidence.luau",
-      "sha256": "f5e7d1d7503e25e53ca740b9709b4997904d93cc8c0b13fa537de935dd32cbd8",
+      "sha256": "7fe72dbd038d971e0a701368b8f67d4cf731d3ef2525baa7a8b206871dff9083",
       "deps": []
     },
     {
@@ -413,7 +413,7 @@
     {
       "id": "PropertiesEvidence",
       "path": "src/features/PropertiesEvidence.luau",
-      "sha256": "237fa19ad8700f94c17495701ab2c91e719412492f5ef5121e90ad2cff73839e",
+      "sha256": "9e819b56ae5a5ddf65c0711d75ca998eea1d72a1d515afb0fb947662b684e1b1",
       "deps": []
     },
     {
@@ -449,7 +449,7 @@
     {
       "id": "SafehouseUpgradesEvidence",
       "path": "src/features/SafehouseUpgradesEvidence.luau",
-      "sha256": "ed111cf5e7e5b3818881fb217c2aa7fa680b11c2d9740417357c3bae1af10695",
+      "sha256": "e5a2e6c439ad0f2f3284399cc1a2be66d57531babd3b91ba17ab8a5f7c1a5faf",
       "deps": []
     },
     {
@@ -461,7 +461,7 @@
     {
       "id": "ShopBuyEvidence",
       "path": "src/features/ShopBuyEvidence.luau",
-      "sha256": "40ef03d9b615e0589d5757e37ce37d5030316eeb9b6e08f0bbcba5c0c8ceecba",
+      "sha256": "11fa676e902c9f288f4319b1b389e7c4c9d3850a4e5fe5def53edccaf0be799e",
       "deps": []
     },
     {
@@ -473,7 +473,7 @@
     {
       "id": "SkillsEvidence",
       "path": "src/features/SkillsEvidence.luau",
-      "sha256": "ffd71fbad34143fc7aab5875746d3c3a58877c749172f281c297711be41e530f",
+      "sha256": "f2f81bb477d687ba5c9a28489dde7f463cbd003a6a79e389e26143bff9e0caee",
       "deps": []
     },
     {
@@ -695,13 +695,19 @@
     {
       "id": "Checkpoint",
       "path": "src/storage/Checkpoint.luau",
-      "sha256": "156a091f17c2f1359115edefe4443c87a7f9ff99e905dfa2cd7b77b18ef6831f",
+      "sha256": "7dc4fd30b54c3100d09b1c09b8eec26c74c9bf751aef52cc2dbb41c1c7180101",
       "deps": []
     },
     {
       "id": "ExecutorStorageAdapter",
       "path": "src/storage/ExecutorStorageAdapter.luau",
-      "sha256": "75ece65b91168513e5831faad6c6c54df450a1c9605f46f5978c25fdb8d3c165",
+      "sha256": "8b72561fca37a616fdcd351e6fa7ad0e1f9fc8c372ac84a895da0011665a8e7a",
+      "deps": []
+    },
+    {
+      "id": "LegacyCompletionReceipts",
+      "path": "src/storage/LegacyCompletionReceipts.luau",
+      "sha256": "0c2ec76bc497990e473bc16ec9a56b2acbe9eebc60911d8bc040d23a34e8bfe4",
       "deps": []
     },
     {
@@ -713,7 +719,7 @@
     {
       "id": "PendingAction",
       "path": "src/storage/PendingAction.luau",
-      "sha256": "37630199f797cc15c45f47d0827c8567fc8b7b842f138889c68f0c7270d382a4",
+      "sha256": "f6157e6f4eca1d9afad09732019a2cc15330b86678500d880b51fa56b6fc4df4",
       "deps": []
     },
     {
@@ -743,7 +749,19 @@
     {
       "id": "StorageAssembly",
       "path": "src/storage/StorageAssembly.luau",
-      "sha256": "4d446cf3fd41a983f22f735221bcafd6e9709657f19c10771f5362756ef14848",
+      "sha256": "550b1effc18f3b21098e79a05047e26f37fbe907469ce61fd12dfe9f82901dd1",
+      "deps": []
+    },
+    {
+      "id": "StorageUpgrade",
+      "path": "src/storage/StorageUpgrade.luau",
+      "sha256": "6af7732a4bc74d52fc9737593df166757310be931d6f1ec89b4b6c4b0a30591c",
+      "deps": []
+    },
+    {
+      "id": "StorageUsageCarry",
+      "path": "src/storage/StorageUsageCarry.luau",
+      "sha256": "571bdb9bf69d5cb952210c214fda9a730f0c213b58e09c9f448afe5c1b3e4bcd",
       "deps": []
     },
     {
@@ -797,7 +815,7 @@
     {
       "id": "MarketBrowsePages",
       "path": "src/tabs/blackMarket/MarketBrowsePages.luau",
-      "sha256": "594a830ab056e9dddcd42ccc9ce4204b294e499fad62dd0024bba1f18b8d4a5e",
+      "sha256": "28c55837d4a12b3056166e494be26bab18d885ce111fc5c097c10e997cb1a354",
       "deps": []
     },
     {
@@ -887,13 +905,13 @@
     {
       "id": "MarketResearchController",
       "path": "src/tabs/blackMarket/MarketResearchController.luau",
-      "sha256": "0611a73b5cb4fe4a3299d86f1480d2eec2dac34cdaf22d7208c0d1387fa1adca",
+      "sha256": "a9162c99b4d021800c8b12b05e36683da10008981096159e5cd357f62ae0b7fd",
       "deps": []
     },
     {
       "id": "MarketResearchView",
       "path": "src/tabs/blackMarket/MarketResearchView.luau",
-      "sha256": "6acb9397604ff6aa28215f78971a4b77f7f62791abb55ebefd51605fbdc50b07",
+      "sha256": "a6c8fecc50ab0a5357d0ea1665989e8fc45659c895e0fe02c6113dd9caa10549",
       "deps": []
     },
     {
@@ -905,7 +923,7 @@
     {
       "id": "MarketSaleQuote",
       "path": "src/tabs/blackMarket/MarketSaleQuote.luau",
-      "sha256": "9d7d2a807bb9cbbaefe081084315c41363db94b6bca8015f61ac0ac5c775af67",
+      "sha256": "890933cc2c404179292ec1f494c1416ab3b109b9d2f95a62a296c2b020d5d4e6",
       "deps": []
     },
     {
@@ -941,7 +959,7 @@
     {
       "id": "MarketWatchOpportunity",
       "path": "src/tabs/blackMarket/MarketWatchOpportunity.luau",
-      "sha256": "c8289cc78bcb9dd228292b284b5fabf0741f84272aaed3299dadaf8240d3c83a",
+      "sha256": "b5eb3af9c6432a0e268b86c0a01800547005ae3b8143437ec49ffd4134c9e2dc",
       "deps": []
     },
     {
@@ -965,7 +983,7 @@
     {
       "id": "CollectionDonate",
       "path": "src/tabs/collection/CollectionDonate.luau",
-      "sha256": "dc1bb6a95ab543e74d402de39fc313b0ef88b3acd9bfa4f13aa7935c22052e21",
+      "sha256": "a9760638308eca59cfc04b96b6705a85523e51a9cf0ebd464b20f10d92584549",
       "deps": []
     },
     {
@@ -1025,7 +1043,7 @@
     {
       "id": "NativeBossCatalog",
       "path": "src/tabs/combat/NativeBossCatalog.luau",
-      "sha256": "78499e781b72a41a921481103788acb3b6f8f6e09e5630c5254ad603c4c50a70",
+      "sha256": "a52a808683051a0a1bff8bf3d29fb8b531a82af299ba7087c47c1de02fe632a1",
       "deps": []
     },
     {
@@ -1127,7 +1145,7 @@
     {
       "id": "ContractsTab",
       "path": "src/tabs/contracts/Module.luau",
-      "sha256": "0dc939435a9e213f5dfb42033c0e2b272db6ed97b3954e7a2d80a593404316e4",
+      "sha256": "25bae56fe88cde12920a86cf51d8082ddcb4ee1856107e01039530af4c3625b2",
       "deps": []
     },
     {
@@ -1169,7 +1187,7 @@
     {
       "id": "CrewHire",
       "path": "src/tabs/crew/CrewHire.luau",
-      "sha256": "c41d8b395f83674f80be39a593fe94289ef66678f2c4c96101452da4fdb2f4cc",
+      "sha256": "4fc41c1aad3a1170337de83299c75896491fa33180c084740160009de4cd1655",
       "deps": []
     },
     {
@@ -1211,19 +1229,19 @@
     {
       "id": "CrewSort",
       "path": "src/tabs/crew/CrewSort.luau",
-      "sha256": "22aef15fd600e641d90b9e1407faf20274a200c0c94bb4d68af7625a93af67a3",
+      "sha256": "bd2e3612ac0de942923006a5bfb34baf65c171bb33b67600952606a80e17f741",
       "deps": []
     },
     {
       "id": "CrewTrain",
       "path": "src/tabs/crew/CrewTrain.luau",
-      "sha256": "844b7d5845c744f0f3a7f31f83a16328e7cbda5c59e5cd5f97887a99b984639b",
+      "sha256": "30b451820d46a999f902263c5b92320b474cac86e2b7f76e0b90076baa18a7ac",
       "deps": []
     },
     {
       "id": "CrewTab",
       "path": "src/tabs/crew/Module.luau",
-      "sha256": "55cf01af6e57054409d8190be6253597e2e3bed684750f529705f56cc9029287",
+      "sha256": "d0ae505c78ba65402d124d896c600e952c571b55b7e27b02145763bcf844254b",
       "deps": []
     },
     {
@@ -1236,6 +1254,12 @@
       "id": "NativeHireCatalog",
       "path": "src/tabs/crew/NativeHireCatalog.luau",
       "sha256": "d69f8f42b7694e361c25f21f576fb6be019c3c54ce9c59930af738ebf66d0472",
+      "deps": []
+    },
+    {
+      "id": "NativeHireQuoteSource",
+      "path": "src/tabs/crew/NativeHireQuoteSource.luau",
+      "sha256": "dcaedf22260f08d1a9941a0da62ceabd2d06663cf74f30e2938dce0b49b98ad4",
       "deps": []
     },
     {
@@ -1259,7 +1283,7 @@
     {
       "id": "EventShopBuyer",
       "path": "src/tabs/events/EventShopBuyer.luau",
-      "sha256": "8c5bd54a389fc0dfaf7916c39cd81b128131bc956de278971e48e6ef4c4c4a15",
+      "sha256": "c36b9bf67db55cd8d5dd0410c2fef1affb9791abb175a7ea4d9a9723a3a30a57",
       "deps": []
     },
     {
@@ -1295,7 +1319,7 @@
     {
       "id": "FamilyContributionEvidence",
       "path": "src/tabs/family/FamilyContributionEvidence.luau",
-      "sha256": "2924fe1b96928143350532adef63ebd03384f863713c67943503ebd3892f9ca0",
+      "sha256": "a0429a61194843ed73198bd12455e21eed2b72d5788c6c297360fb8ee535d7f9",
       "deps": []
     },
     {
@@ -1367,7 +1391,7 @@
     {
       "id": "NativeHeistLease",
       "path": "src/tabs/heists/NativeHeistLease.luau",
-      "sha256": "9717f83bc8cc1137c46db771bc41b6e0c3514fc60c5f8ac655875c0532515ea0",
+      "sha256": "2765995d3becdd7084daa446c63d933154fe8a2c2c6bfdb66386747ede4b82ee",
       "deps": []
     },
     {
@@ -1385,13 +1409,13 @@
     {
       "id": "Chests",
       "path": "src/tabs/inventory/Chests.luau",
-      "sha256": "49223c94cf2194011d04b8581077e566438f619d10e04fc153f99628e2526826",
+      "sha256": "aa167ca8d8786d3fe5a55731821dbe47020bab05848487cbb291c18c1650ced0",
       "deps": []
     },
     {
       "id": "Cosmetics",
       "path": "src/tabs/inventory/Cosmetics.luau",
-      "sha256": "bde5778a9308a4a61ebb1cbfeac893c23c87d59cf47a7817ba47e555411054ec",
+      "sha256": "47635514e18dd339f562166481cc0245d6dbe4578e5917994ae4dc292b63276c",
       "deps": []
     },
     {
@@ -1433,7 +1457,7 @@
     {
       "id": "Restoratives",
       "path": "src/tabs/inventory/Restoratives.luau",
-      "sha256": "1287303c7f3a03ceb538e3e38e5cefc03879a57acbb6080911309c2df52afd43",
+      "sha256": "2ab2b1772d881ee3cfcb2ce89c597dfdeef50c2be8a144dec3bed6afa119c79d",
       "deps": []
     },
     {
@@ -1493,13 +1517,13 @@
     {
       "id": "NativePrestigeLease",
       "path": "src/tabs/prestige/NativePrestigeLease.luau",
-      "sha256": "d8a7ffd68671b9849c86bfb31004d8a57c0bcd225cc24ea84d9a9afd3b334d7a",
+      "sha256": "01108f39d91587733c21afbe4df316afab33ff00497cf38af5a97034af9ba0c5",
       "deps": []
     },
     {
       "id": "PrestigeReset",
       "path": "src/tabs/prestige/PrestigeReset.luau",
-      "sha256": "6a18acf61c328e345e86d372ea89300901919ea9b196fbeee6b861a6d44725b6",
+      "sha256": "6d456390ed5794d5e44bfe7d32e0de7acb0510143d533dca80dbfbbf6b07a3c1",
       "deps": []
     },
     {
@@ -1523,7 +1547,7 @@
     {
       "id": "RewardsTab",
       "path": "src/tabs/rewards/Module.luau",
-      "sha256": "089ecb033047b617c330f32a652a2a4e8b318207882249e409e5d51ea18152cb",
+      "sha256": "605d9dbb0ee1060c56a80566d8260895d5168c6ecd3ff1eeaffe0915041a630a",
       "deps": []
     },
     {
@@ -1541,13 +1565,13 @@
     {
       "id": "RewardEffects",
       "path": "src/tabs/rewards/RewardEffects.luau",
-      "sha256": "f76fdf24b75a41eb7e31b702f60cd79f47f130ccec0a7e427eb2583d873d29b8",
+      "sha256": "ecf2c5aa030eed03b4419095db73eea8516394aa4725cfcbeac7f80149cb7495",
       "deps": []
     },
     {
       "id": "SafehouseTab",
       "path": "src/tabs/safehouse/Module.luau",
-      "sha256": "1f0738422ba7c4701f5280a62d1ba54b318acff70604f1adfbdce071218cc704",
+      "sha256": "d765a530fce70135a7ac57860c4ececb7a43215a409a8e15fd082a28bcfed817",
       "deps": []
     },
     {
@@ -1583,7 +1607,7 @@
     {
       "id": "SkillsTab",
       "path": "src/tabs/skills/Module.luau",
-      "sha256": "32ffaeafdf6667679bcc4cd199eb5cc4c94855055f3e46efdd8c2ea3f983986a",
+      "sha256": "ab3c31a4a73b039276a97aedf05ef07397018998e2cc6d98c1f0c3f31b4795b8",
       "deps": []
     },
     {
@@ -1613,7 +1637,7 @@
     {
       "id": "NativeRecallLease",
       "path": "src/tabs/territory/NativeRecallLease.luau",
-      "sha256": "1f1f620db2fe6237c5b91538f9c80bdbcdb45a60e69af140085cc7356ffd1e19",
+      "sha256": "68e86610aed164b8c7db6a5023f97e382daa15bb4ec03efe68f26dcd19fe80dd",
       "deps": []
     },
     {
@@ -1643,13 +1667,13 @@
     {
       "id": "ResidencyQuery",
       "path": "src/tabs/territory/ResidencyQuery.luau",
-      "sha256": "c180419f85b842ab4ed269a69047d6d4283dff1374ddebc1268052929d3d25ac",
+      "sha256": "d40f3e1a23c4aa0bc0b317887c19d57582147f5610779ffd8b9c5360e88c9334",
       "deps": []
     },
     {
       "id": "Stationing",
       "path": "src/tabs/territory/Stationing.luau",
-      "sha256": "1e0796e3839671889302cd6b32303052f01c5de1941aa1352cd211e38467f455",
+      "sha256": "3b87c0ff9aaf4b4b1cb98edb981e0a5a55b929db6d426f3547e88e5bae67a5bf",
       "deps": []
     },
     {
@@ -1685,7 +1709,7 @@
     {
       "id": "TerritoryReadSources",
       "path": "src/tabs/territory/TerritoryReadSources.luau",
-      "sha256": "af08bb9c76d75cf9434b95a07ad46a0c7a4582cf60f96f824c08457e97cef47f",
+      "sha256": "bca2bc98054d24a96599fa568ea6eec2ed21f725406fdce5a66fe55d910df1a8",
       "deps": []
     },
     {
@@ -1751,7 +1775,7 @@
     {
       "id": "NativeClientBindings",
       "path": "src/transport/NativeClientBindings.luau",
-      "sha256": "c63baa918d1919c2b7c42b9a10ed2f62c5d6b61021cf4397b7ebb5e120040f07",
+      "sha256": "bec3cbe30ccc90541be5ab7296ad1b1b53f4a983e83c8452457812f339412fc0",
       "deps": []
     },
     {
@@ -1793,7 +1817,7 @@
     {
       "id": "ReadCoordinator",
       "path": "src/transport/ReadCoordinator.luau",
-      "sha256": "24079d5308b8590bc20ec2a9d3fb3cdb64eeb19632af7ce6c484b82a2891aa8c",
+      "sha256": "69acf06c3549183e4cf8e18c9fc8c7f602ac6effd6cbe8398dfecab145d08fc9",
       "deps": []
     },
     {
@@ -1805,7 +1829,7 @@
     {
       "id": "RuntimeHost",
       "path": "src/transport/RuntimeHost.luau",
-      "sha256": "87a4e913f8d17fa86e08adb5036665270d900d6171bac5847490e56a73015b7b",
+      "sha256": "c6a3f457b7a40d7812ce9c940c16f5e2ceb346ae57328119f68c685e71384db5",
       "deps": []
     },
     {
@@ -1829,7 +1853,7 @@
     {
       "id": "App",
       "path": "src/App.luau",
-      "sha256": "7ba5814a549a58ee4e92dbc0a7413178414d11febf67271bf2ff8852d566717a",
+      "sha256": "d74277b39c689d2db42a5b67771f477d3659871e10ea426bfdc4db4aa81ff34e",
       "deps": []
     }
   ]
