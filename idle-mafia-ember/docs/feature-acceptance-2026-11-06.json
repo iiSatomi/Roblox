@@ -12,9 +12,9 @@
   "counts": {
     "features": 55,
     "pages": 27,
-    "current_merged_gameplay_confirmed_by_this_audit": 18,
+    "current_merged_gameplay_confirmed_by_this_audit": 19,
     "current_read_reports_confirmed": 4,
-    "features_with_current_bounded_observation": 38
+    "features_with_current_bounded_observation": 39
   },
   "global_invariants": [
     "Current genuine Sync; no fabricated full Sync from Changed projections.",
@@ -718,7 +718,7 @@
         "qualification": "Existing executable coverage; file presence is not a fresh pass or complete branch coverage."
       },
       "live": {
-        "current_merged_gameplay_confirmed": false,
+        "current_merged_gameplay_confirmed": true,
         "historical": [
           {
             "summary": "Older native Attack/Scout evidence; current merged controller/lease acceptance separate.",
@@ -728,12 +728,12 @@
         ],
         "observed_current_blocker": null,
         "current_read_report_confirmed": false,
-        "qualification": "Bounded working-build path evidence; not all branches or final published-release acceptance.",
-        "acceptance_status": "no_current_bounded_path_evidence"
+        "qualification": "Exact published e3ba6ca/cf6e9cb Scout request41 confirmed; Attack remains unaccepted. Latest 1e6b680 build awaits live startup.",
+        "acceptance_status": "confirmed_scout_path_only"
       },
       "remaining": [
-        "Current merged actual Host bounded eligible path and exact native outcome/report.",
-        "Disable/unload, ambiguous return and saved receipt/custody lifecycle for the chosen mode."
+        "Current merged Attack path with an eligible fresh target and exact owned outcome.",
+        "Normal saved Scout/Attack receipt recovery on the latest release; preserve nonzero ledgers and unresolved custody."
       ],
       "manager_test_recipe": {
         "read_first": "Capture a genuine fresh Sync; inspect this feature reader/planner reason and exact native quote/source without changing eligibility.",
@@ -4368,5 +4368,22 @@
       "eventShop"
     ],
     "qualification": "Rows supplied by owning agent; native read availability is separate from current gameplay outcomes."
+  },
+  "latest_feature_followup": {
+    "sourceRelease": "1e6b6805f7ddf0545d433396633072a3da2e159a",
+    "entryRelease": "2a90ea5e0c4f461ef2b5422af4001b5168f0f689",
+    "liveStatus": "awaiting responsive game connection",
+    "fixes": [
+      "Fresh native Heist controller epoch with historical receipt and usage retained",
+      "Income-Cash and active-XP Playtime claim disposition without invented award values",
+      "Exact upgraded-item Market research and loose-item trading with native base-family browse",
+      "Zero-history Market replies cached without invented pricing",
+      "Reviewed storage upgrade accepts typed canonical receipts and authenticates retained generations",
+      "Owned Crew Heal and Family claim settlement tolerates passive resource gains without claiming exact resource delivery",
+      "Global Boss claim capture preserves finite positive fractional participation",
+      "Ordinary pending callbacks retain custody across restart; exact Residency approval can complete an acknowledged request",
+      "Crew replacement and Market composite workflows retain transient callbacks without replay or release",
+      "Historical uncertain observed Market records preserve original custody and block continuation without rewriting saved state"
+    ]
   }
 }

@@ -11,6 +11,75 @@ merge and its immutable published pins. Its test totals and migration limitation
 are historical checkpoints. This continuation records subsequent work without
 replacing that history.
 
+## Latest feature completion pass
+
+The latest source is `1e6b680`; its manifest is `f01fff0` and entry is
+`2a90ea5`. These pins are published, but their new in-game startup and feature
+acceptance are **pending**: Potassium lists the client while neither console nor
+file heartbeat scripts execute. Roblox's recent log contains DNS failures;
+the precise cause of the stalled execution connection is not established.
+The previous runtime was paused and destroyed before staging. No new migration
+or gameplay action has been confirmed for this release.
+
+Implemented and independently reviewed:
+
+- Heist/Favor continuity can recognize a verified fresh native controller epoch
+  while retaining imported quotas and historical receipts. No counter is reset.
+- Playtime income-Cash and active-XP rewards can prove the exact claimed tier and
+  reset through owned terminal success and later native state. Exact income
+  payout and XP extension amounts remain unverified, rather than estimated.
+- Market research browses the native base-item family and preserves exact
+  upgraded IDs for pricing, demand, custody and listing. Loose upgraded copies
+  are supported; upgraded Collection withdrawal remains unsupported because
+  the native selector cannot prove exact origin. Zero-sales responses with no
+  average are cached and reported as insufficient history, never priced at zero.
+- Reviewed code upgrades retain typed Recall, Market and known-unsent records,
+  immutable historical receipts, generation integrity and unresolved Operations.
+
+The earlier full baseline passed **3,849 tests and 3,106 subtests**. The
+follow-up full run recorded **3,875 passing tests and 3,231 passing subtests**,
+but also seven failures: one Residency acknowledgement regression and six
+Crew replacement fixture assertions using an insufficient timeout. Those failures
+were corrected and rerun in focused groups; the entire suite was not rerun after
+the final corrections, so the follow-up full run is not reported as all passing.
+
+Fresh manager verification of final runtime, Residency, Crew replacement and
+Market compatibility changes passed **127 tests and 106 subtests**. Independent
+final Market review passed **50 tests and 46 subtests**. Final release pin and
+entry integration checks passed **16 tests and 59 subtests**. Counts overlap
+and must not be added. All **316 tracked Luau files compile**. Existing analyzer
+warnings are documented in the individual reviews; no new diagnostics were found.
+Private native-fixture requirements described below still apply.
+
+The cumulative ledger now records **19 of 55 controls (about 35%)** with at least
+one confirmed native path, plus four read/goal reports. This measures observed
+paths, not overall feature completion. The new nineteenth control is Combat
+**Scout** request41 on the previous published source, with one Scout attempt and
+zero Attack attempts. A subsequent Attack selection had no eligible target.
+The original unresolved Operation4 still holds 200 Cash.
+
+The follow-up audit also reproduced and fixed pending-callback custody gaps in
+Crew Heal, Crew replacement, Family Boss claims and Market composite transactions.
+Ordinary runtime adapters now retain explicit pending replies both live and after
+serialized restart; native lifecycle owners can still obtain an independent
+terminal status. Market pending replies cannot advance buy/withdraw/list stages,
+and Crew replacement cannot turn them into a dismissal or rehire completion.
+Crew Heal can confirm exact owned injury reduction despite noncontradictory
+Stamina regeneration. Family claims can confirm exact claim consumption and item
+awards despite surplus passive Cash; exact Cash delivery remains unverified.
+Global Boss claim capture now accepts the same finite positive participation
+values as its planner, preserving the exact fractional value and all other proof.
+
+Residency has a narrow acknowledgement contract: an owned successful request
+reply may remain pending while a later exact approved lease supplies completion
+evidence. Other pending callbacks remain held. Historical Market records that
+were incorrectly saved as observed with an unfinished callback retain their
+original bytes, stage, usage and reservations, including nested purchase origins;
+they cannot authorize continuation or cleanup.
+
+The remaining sections retain evidence for the preceding published release;
+their older suite totals and 18-control checkpoint are historical.
+
 ## Code and custody
 
 Reviewed storage-lineage activation preserves the original canonical data identity,
@@ -151,11 +220,11 @@ cases remain explicitly unaccepted; the report makes no full-completion claim.
 
 ## Release pins
 
-Source: [`e3ba6caa213d6af0819445206b6d4435c12e28e4`](https://github.com/iiSatomi/Roblox/tree/e3ba6caa213d6af0819445206b6d4435c12e28e4/idle-mafia-ember).
+Source: [`1e6b6805f7ddf0545d433396633072a3da2e159a`](https://github.com/iiSatomi/Roblox/tree/1e6b6805f7ddf0545d433396633072a3da2e159a/idle-mafia-ember).
 
-Manifest: [`bc99488784f14e8438818c918609a02dd2c5b42d`](https://github.com/iiSatomi/Roblox/blob/bc99488784f14e8438818c918609a02dd2c5b42d/idle-mafia-ember/manifest.json).
-Manifest SHA-256: `b7271cc1ca28ea57460ce0f00646da56904663857bdeaf62214cc93f88167862`.
+Manifest: [`f01fff0120543ca65a57b594fda01b957b6cd813`](https://github.com/iiSatomi/Roblox/blob/f01fff0120543ca65a57b594fda01b957b6cd813/idle-mafia-ember/manifest.json).
+Manifest SHA-256: `7aab1e4ce0c9ddd5fd5b87f6768b26b02bc7900d3e303a9dad9e4b548f1296cf`.
 
-Entry: [`cf6e9cb22e01a3bf66a564973384e76b55faa295`](https://github.com/iiSatomi/Roblox/tree/cf6e9cb22e01a3bf66a564973384e76b55faa295/idle-mafia-ember).
+Entry: [`2a90ea5e0c4f461ef2b5422af4001b5168f0f689`](https://github.com/iiSatomi/Roblox/tree/2a90ea5e0c4f461ef2b5422af4001b5168f0f689/idle-mafia-ember).
 The entry pins the immutable source and manifest commits above. These supersede
 the historical r35-merge pins without rewriting that recovery report.

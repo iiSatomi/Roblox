@@ -844,15 +844,45 @@
           "attempts": 0
         }
       ]
+    },
+    {
+      "feature": "combat",
+      "mode": "Scout",
+      "outcome": "confirmed",
+      "sourceRelease": "e3ba6caa213d6af0819445206b6d4435c12e28e4",
+      "entryRelease": "cf6e9cb22e01a3bf66a564973384e76b55faa295",
+      "requestHighwater": 41,
+      "attempts": 1,
+      "pending": [
+        {
+          "feature": "operations",
+          "requestId": 4,
+          "cashHeld": 200
+        }
+      ],
+      "reason": "No eligible player target with fresh required evidence",
+      "nativeUsage": {
+        "scout": {
+          "attempted": 1,
+          "spentAllowance": 5
+        },
+        "attack": {
+          "attempted": 0,
+          "spentAllowance": 0
+        }
+      },
+      "qualification": "Confirmed Scout only; a later bounded Attack selection made zero attempts. The 5-Stamina allowance is not a claim of exact native debit.",
+      "consoleSequence": 1546,
+      "capturedUtc": "2026-11-06T17:24:50.061Z"
     }
   ],
   "contentHash": "0d07b5006fedd69043c009ca0b2d68b41c9095b8297356a93bbd75e3029583c1",
   "schema": 2,
   "placeId": 73897506680154,
   "placeVersion": 654,
-  "captured_utc": "2026-11-06T17:03:00Z",
-  "scope": "Cumulative bounded path evidence from f5de, 901, fbf, 21c and 0d working builds, not all branches or final-release acceptance. Each mutation used a one-attempt manager gate. No account identifiers or native source.",
-  "confirmedGameplay": 18,
+  "captured_utc": "2026-11-06T17:24:50.061Z",
+  "scope": "Cumulative bounded path evidence from f5de, 901, fbf, 21c and 0d working builds, not all branches or final-release acceptance. Each mutation used a one-attempt manager gate. No account identifiers or native source. Subsequent exact published e3ba6ca/cf6e9cb Scout evidence is included separately; latest 1e6b680 source is not live-accepted.",
+  "confirmedGameplay": 19,
   "limitations": [
     "Original Operation request4 remains unresolved with200Cash held.",
     "Shop request27 recovered normally in fbf with zero second purchases; original375Cash allowance remains charged.",

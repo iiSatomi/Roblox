@@ -12,14 +12,14 @@ preserves the earlier baseline and its historical pins.
 Run the exact published runtime entry:
 
 ```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/iiSatomi/Roblox/cf6e9cb22e01a3bf66a564973384e76b55faa295/idle-mafia-ember/RuntimeEntry.luau"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/iiSatomi/Roblox/2a90ea5e0c4f461ef2b5422af4001b5168f0f689/idle-mafia-ember/RuntimeEntry.luau"))()
 ```
 
-For the inert UI entry, use [TestEntry at the same entry commit](https://raw.githubusercontent.com/iiSatomi/Roblox/cf6e9cb22e01a3bf66a564973384e76b55faa295/idle-mafia-ember/TestEntry.luau).
+For the inert UI entry, use [TestEntry at the same entry commit](https://raw.githubusercontent.com/iiSatomi/Roblox/2a90ea5e0c4f461ef2b5422af4001b5168f0f689/idle-mafia-ember/TestEntry.luau).
 
-Published pins: [source e3ba6ca](https://github.com/iiSatomi/Roblox/tree/e3ba6caa213d6af0819445206b6d4435c12e28e4/idle-mafia-ember),
-[manifest bc99488](https://github.com/iiSatomi/Roblox/blob/bc99488784f14e8438818c918609a02dd2c5b42d/idle-mafia-ember/manifest.json),
-[entry cf6e9cb](https://github.com/iiSatomi/Roblox/tree/cf6e9cb22e01a3bf66a564973384e76b55faa295/idle-mafia-ember).
+Published pins: [source 1e6b680](https://github.com/iiSatomi/Roblox/tree/1e6b6805f7ddf0545d433396633072a3da2e159a/idle-mafia-ember),
+[manifest f01fff0](https://github.com/iiSatomi/Roblox/blob/f01fff0120543ca65a57b594fda01b957b6cd813/idle-mafia-ember/manifest.json),
+[entry 2a90ea5](https://github.com/iiSatomi/Roblox/tree/2a90ea5e0c4f461ef2b5422af4001b5168f0f689/idle-mafia-ember).
 
 `TestEntry.luau` starts the UI without gameplay automation. `RuntimeEntry.luau`
 allows all 55 independently configured controls across 27 pages. Every fresh
@@ -47,12 +47,14 @@ storage-lineage, runtime, and feature fixes, verification, and current limits.
 The [55-control acceptance matrix](docs/feature-acceptance-2026-11-06.json) and
 [bounded live ledger](docs/completion-live-2026-11-06.json) separate implementation
 and offline tests from confirmed native paths. Current working builds record
-18 confirmed mutation paths and four read/goal reports, including normal saved
+19 controls with a confirmed native path and four read/goal reports, including normal saved
 Shop recovery without a second purchase; this is not 100% gameplay acceptance.
 The coherent source, manifest, and entry pins above are published and remotely
-verified. Published-runtime startup, one bounded Recall branch, and normal
-restart passed while preserving original unresolved Operation custody. These
-checks do not certify all gameplay paths.
+verified. Latest-release in-game startup is pending because the connected
+client stopped executing even read-only heartbeat scripts. The preceding release
+passed startup, bounded Recall and Scout paths, and normal restart while
+preserving original unresolved Operation custody. These checks do not certify
+the new release or all gameplay paths.
 The recovery report above remains the earlier published-release checkpoint.
 
 ## Historical implementation notes

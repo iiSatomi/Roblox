@@ -45,3 +45,22 @@ Keep external prerequisites explicit instead of lowering the completion criteria
 Current first dependency: canonical saved Operation has a successful reply but an
 unresolved outcome and held Cash. Preserve it during migration; do not replay or
 clear it merely to start the new runtime. Other stored usage also remains binding.
+
+## Latest manager checkpoint
+
+- Published the Heist epoch, Playtime claim disposition, exact Market variant,
+  empty-history, and typed saved-state upgrade fixes in source `1e6b680`.
+- Confirmed Combat Scout request41 on the preceding published source. Current
+  cumulative live coverage is 19/55 controls with one confirmed path each; this
+  is separate from every-mode completion and from historical release counts.
+- Reproduced and repaired Crew Heal/Family Claim passive-resource settlement,
+  fractional Global Boss claim capture, ordinary pending-reply handling, and
+  pending custody in Market and Crew replacement composite workflows.
+- Final production edits passed focused verification and independent review.
+  The coherent source, manifest and entry pins are published and remotely verified.
+  Full-run failures and subsequent focused corrections are recorded explicitly in
+  the completion report; a new fully green full-suite run is not claimed.
+- Live execution is blocked by a nonresponsive Potassium/game connection. Only
+  read-only/file heartbeat and source-preview commands were queued; no latest
+  build migration or gameplay dispatch has been confirmed. Last known runtime
+  was paused and destroyed. Original Operation4/200 Cash remains unresolved.
