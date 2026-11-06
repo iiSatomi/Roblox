@@ -1,9 +1,10 @@
 # November 6 completion continuation
 
 All 55 catalog permissions remain available across 27 pages, with fresh switches
-off and explicit saved-profile autoload preserved. This is a working-tree and
-bounded-test progress report. **The 100% gameplay acceptance target is not yet
-met.** New source, manifest, and entry pins are still pending release verification.
+off and explicit saved-profile autoload preserved. The reviewed continuation is
+published with coherent source, manifest, and entry pins. **The 100% gameplay
+acceptance target is not yet met.** Bounded results remain separate from support
+for every advertised mode.
 
 The [recovery report](recovery-2026-11-06.md) describes the earlier recovered-r35
 merge and its immutable published pins. Its test totals and migration limitations
@@ -69,13 +70,16 @@ exact wallet debit, and the authorized quoted-spend allowance remains charged.
   build-653 function exactly after LF normalization. Its gate still retires on
   any subsequent build change. Private native captures remain unpublished.
 - These focused batches overlap and must not be added together. All submitted
-  followup slices have independent review. Final coherent source/manifest/entry
-  verification remains necessary before new release pins are published.
+  followup slices have independent review. Final pin/entry integration passed
+  **11 tests and 59 subtests**, and both published entry files compiled.
+  Remote branch bytes match the published entry commit; all 309 manifest modules
+  match the tested working source.
 
 ## Current live evidence and limits
 
 The [live ledger](completion-live-2026-11-06.json) records **18 confirmed mutation
-paths** and **four read/goal reports**, in 38 cumulative bounded observations.
+paths** and **four read/goal reports**, across 38 feature rows with prior
+observations retained.
 The newest confirmations are normal recovery of original Shop
 request 27 with zero new purchases, one 14-Token Boss Shop crate, and one
 1-Stamina Boss hit. The new 0d stage also confirmed Station request 36, one
@@ -84,7 +88,14 @@ attack used 1 Stamina, no tickets, and initially showed 31 Health lost before
 regeneration; this does not establish future damage or all attack modes.
 Reports cover Territory, Market variant pricing withheld,
 existing Trophy ownership, and Contracts waiting with borrowing off. This does not
-cover every advertised mode or constitute acceptance of a new published release.
+cover every advertised mode. The exact published RuntimeEntry subsequently loaded
+successfully: alive, paused, automation not requested, no storage fault, and the
+canonical request high-water remained 38 with only original Operation 4/200 Cash
+pending. Published Recall request40 then confirmed and returned the selected
+member home; request39 had cancelled before native invocation. A normal published
+restart remained alive, paused and not requested at high-water40, retaining only
+original Operation4/200Cash. This adds a verified Station branch, not another
+feature to the18count, and does not certify every gameplay path.
 The [55-control matrix](feature-acceptance-2026-11-06.json) separates implementation,
 offline coverage, historical results, current observations, and remaining cases.
 The [bounded acceptance recipes](acceptance-recipes-2026-11-06.md) describe exact
@@ -134,12 +145,17 @@ Remaining limits include:
   remain retained. New Property purchase 38 is accepted; Safehouse remains
   unaffordable, and live Hire/Training alternative acceptance is separate.
 
-The remaining release step is a coherent source/manifest/entry pin update with
-final blob and entry verification. Further bounded native acceptance requires
-real prerequisites. Inactive or unaffordable cases remain explicitly unaccepted;
-the report makes no full-completion claim.
+The release pins and entry checks are published and remotely verified. Further
+bounded native acceptance requires real prerequisites. Inactive or unaffordable
+cases remain explicitly unaccepted; the report makes no full-completion claim.
 
 ## Release pins
 
-Source commit: pending. Manifest commit/hash: pending. Entry commit: pending.
-The working-source snapshot is not an immutable published release pin.
+Source: [`e3ba6caa213d6af0819445206b6d4435c12e28e4`](https://github.com/iiSatomi/Roblox/tree/e3ba6caa213d6af0819445206b6d4435c12e28e4/idle-mafia-ember).
+
+Manifest: [`bc99488784f14e8438818c918609a02dd2c5b42d`](https://github.com/iiSatomi/Roblox/blob/bc99488784f14e8438818c918609a02dd2c5b42d/idle-mafia-ember/manifest.json).
+Manifest SHA-256: `b7271cc1ca28ea57460ce0f00646da56904663857bdeaf62214cc93f88167862`.
+
+Entry: [`cf6e9cb22e01a3bf66a564973384e76b55faa295`](https://github.com/iiSatomi/Roblox/tree/cf6e9cb22e01a3bf66a564973384e76b55faa295/idle-mafia-ember).
+The entry pins the immutable source and manifest commits above. These supersede
+the historical r35-merge pins without rewriting that recovery report.

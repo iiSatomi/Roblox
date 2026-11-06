@@ -1,0 +1,30 @@
+{
+  "sourceRelease": "e3ba6caa213d6af0819445206b6d4435c12e28e4",
+  "manifestRelease": "bc99488784f14e8438818c918609a02dd2c5b42d",
+  "entryRelease": "cf6e9cb22e01a3bf66a564973384e76b55faa295",
+  "entryHashVerified": true,
+  "recall": {
+    "initialRequest": 39,
+    "initialOutcome": "cancelled_unsent",
+    "initialCancellationCause": "Not established; no native invocation began",
+    "confirmedRequest": 40,
+    "confirmedOutcome": "confirmed",
+    "feature": "station",
+    "mode": "Recall",
+    "nativeAttemptsInConfirmedTest": 1,
+    "note": "Additional Station branch, not an additional feature count"
+  },
+  "normalReload": {
+    "alive": true,
+    "paused": true,
+    "requested": false,
+    "registeredFeatures": 55,
+    "requestHighwater": 40,
+    "brokerActive": false,
+    "storageFault": false,
+    "pending": [{"feature": "operations", "requestId": 4, "cashHeld": 200}],
+    "managerHarnessRemoved": true
+  },
+  "antiIdle": {"running": true, "attempts": 234, "successes": 234, "consecutiveFailures": 0},
+  "capturedUtc": "2026-11-06T17:18:38Z"
+}

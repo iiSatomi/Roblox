@@ -2,11 +2,24 @@
 
 Idle Mafia hub using Ember UI and separate Luau modules.
 
-## Current recovered release
+## Current published release
 
 The November 6 merge uses the recovered r35 source and retains the subsequent
-native fixes. See [the recovery report](docs/recovery-2026-11-06.md) for the
-baseline, verification, preserved history, and current limitations.
+native fixes. The [current completion report](docs/completion-2026-11-06.md)
+records validation and limits; the [recovery report](docs/recovery-2026-11-06.md)
+preserves the earlier baseline and its historical pins.
+
+Run the exact published runtime entry:
+
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/iiSatomi/Roblox/cf6e9cb22e01a3bf66a564973384e76b55faa295/idle-mafia-ember/RuntimeEntry.luau"))()
+```
+
+For the inert UI entry, use [TestEntry at the same entry commit](https://raw.githubusercontent.com/iiSatomi/Roblox/cf6e9cb22e01a3bf66a564973384e76b55faa295/idle-mafia-ember/TestEntry.luau).
+
+Published pins: [source e3ba6ca](https://github.com/iiSatomi/Roblox/tree/e3ba6caa213d6af0819445206b6d4435c12e28e4/idle-mafia-ember),
+[manifest bc99488](https://github.com/iiSatomi/Roblox/blob/bc99488784f14e8438818c918609a02dd2c5b42d/idle-mafia-ember/manifest.json),
+[entry cf6e9cb](https://github.com/iiSatomi/Roblox/tree/cf6e9cb22e01a3bf66a564973384e76b55faa295/idle-mafia-ember).
 
 `TestEntry.luau` starts the UI without gameplay automation. `RuntimeEntry.luau`
 allows all 55 independently configured controls across 27 pages. Every fresh
@@ -36,7 +49,10 @@ The [55-control acceptance matrix](docs/feature-acceptance-2026-11-06.json) and
 and offline tests from confirmed native paths. Current working builds record
 18 confirmed mutation paths and four read/goal reports, including normal saved
 Shop recovery without a second purchase; this is not 100% gameplay acceptance.
-Additional followup source, manifest, and entry pins are pending.
+The coherent source, manifest, and entry pins above are published and remotely
+verified. Published-runtime startup, one bounded Recall branch, and normal
+restart passed while preserving original unresolved Operation custody. These
+checks do not certify all gameplay paths.
 The recovery report above remains the earlier published-release checkpoint.
 
 ## Historical implementation notes

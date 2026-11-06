@@ -84,7 +84,7 @@
       "qualification": "Read-only prerequisites from real normal enriched snapshot. Quotes ignore enabled switch solely for inspection and do not assert dispatch allowance or gameplay success."
     },
     "latest_baseline_full_suite": "Manager reported3799 tests and2930 subtests passing before latest read-admission/passiveCash followups; current final combined rerun pending.",
-    "followup_review_state": "All submitted followups independently reviewed; final local combined3820/3047 passed and315Luau compiled. Coherent immutable source/manifest/entry pins remain pending.18bounded native paths+4reports, not all55gameplay acceptance.",
+    "followup_review_state": "All submitted followups independently reviewed; local3820/3047 passed,315Luau compiled, publishedpin/entry11/59 passed and exactremote entry startup/custody passed.18bounded paths+4reports; no all55gameplay acceptance.",
     "read_admission_independent_review": "Manager independently approved117 tests/50 subtests; frozen working-source hash0d07b5006fedd69043c009ca0b2d68b41c9095b8297356a93bbd75e3029583c1 stages all current fixes, not published release pins or live acceptance.",
     "latest_full_suite": {
       "tests_passed": 3820,
@@ -99,10 +99,60 @@
       "source": "Manager final compile"
     },
     "release_pins": {
-      "source_commit": "pending",
-      "manifest_commit": "pending",
-      "manifest_sha256": "pending",
-      "entry_commit": "pending"
+      "source_commit": "e3ba6caa213d6af0819445206b6d4435c12e28e4",
+      "manifest_commit": "bc99488784f14e8438818c918609a02dd2c5b42d",
+      "manifest_sha256": "b7271cc1ca28ea57460ce0f00646da56904663857bdeaf62214cc93f88167862",
+      "entry_commit": "cf6e9cb22e01a3bf66a564973384e76b55faa295"
+    },
+    "published_release_verification": {
+      "pin_entry_tests_passed": 11,
+      "pin_entry_subtests_passed": 59,
+      "both_entry_files_compile": true,
+      "remote_branch_entry_commit_verified": true,
+      "manifest_modules_matching_tested_source": 309,
+      "qualification": "Manager verified exact public entry bytes and remote manifest against tested working source; no all55gameplay claim."
+    },
+    "published_runtime_smoke": {
+      "outcome": "passed",
+      "entry_commit": "cf6e9cb22e01a3bf66a564973384e76b55faa295",
+      "alive": true,
+      "paused": true,
+      "requested": false,
+      "storage_fault": false,
+      "request_highwater": 38,
+      "pending": [
+        {
+          "feature": "operations",
+          "request_id": 4,
+          "cash_held": 200
+        }
+      ],
+      "qualification": "Exact publishedRuntimeEntry startup/custody check at highwater38; subsequent40Recallconfirmed and normalpublishedrestart highwater40 retained originalOperation4/200only."
+    },
+    "published_recall_check": {
+      "entry_commit": "cf6e9cb22e01a3bf66a564973384e76b55faa295",
+      "checkpoint_request_id": 40,
+      "status": "confirmed",
+      "native_invocation_began": true,
+      "outcome": "confirmed",
+      "selected_member_returned_home": true,
+      "previous_known_unsent_request_id": 39,
+      "qualification": "Exact published entry:39cancelled before native invocation;40admitted/sent/returned/confirmed and selectedmember duty cleared. Station branch alreadycounted; no featurecount increment."
+    },
+    "published_normal_restart": {
+      "entry_commit": "cf6e9cb22e01a3bf66a564973384e76b55faa295",
+      "alive": true,
+      "paused": true,
+      "requested": false,
+      "request_highwater": 40,
+      "pending": [
+        {
+          "feature": "operations",
+          "request_id": 4,
+          "cash_held": 200
+        }
+      ],
+      "qualification": "Normal publishedrestart after confirmed Recall preserves originalOperationcustody and requesthighwater; no replay."
     }
   },
   "features": [
@@ -3139,6 +3189,15 @@
               ]
             }
           ]
+        },
+        "published_recall_branch": {
+          "source": "Manager exactpublishedentry test and normalrestart",
+          "entry_commit": "cf6e9cb22e01a3bf66a564973384e76b55faa295",
+          "request_id": 40,
+          "outcome": "confirmed",
+          "selected_member_home": true,
+          "known_unsent_previous_request_id": 39,
+          "counts_as_new_feature": false
         }
       },
       "remaining": [
