@@ -1,0 +1,1225 @@
+{
+  "schema": 1,
+  "date": "2026-10-20",
+  "native_version": "0.26.487.1",
+  "place_sha256": "a45286db115f2696000b859e8435439620c853bb33179f66a7c78029a504bca6",
+  "evidence_type": "offline-inert-client-action-surface-audit",
+  "implementation_status": "planned-no-gameplay-implementation",
+  "live_verified": false,
+  "limitation": "Saved server implementations are unavailable. UI actions, rule code and release notes do not prove server outcomes, optimizer optimality or complete native automation coverage.",
+  "decisions": [
+    {
+      "id": "jobs",
+      "page": "jobs",
+      "decision": "owned-native-or-manual",
+      "native": "Paid Auto Jobs supports selected Job, mastery, XP or cash goals and a proportional energy reserve; ordinary Job execution is also exposed.",
+      "hub_role": "Delegate only when owned and the goal/reserve contract matches; otherwise schedule ordinary available Jobs.",
+      "gates": "An owned pass is not an active controller. Cross-feature priorities, absolute reserves and Contract goals still need hub coordination.",
+      "evidence": ["jobManual", "jobOwned", "jobRules"]
+    },
+    {
+      "id": "operations",
+      "page": "operations",
+      "decision": "plan-native-action",
+      "native": "Native Operation start and current reward/cost metadata.",
+      "hub_role": "Keep a compact goal, eligible-slot selection and spending policy.",
+      "gates": "No equivalent goal-driven auto-start controller found in the reviewed Ops UI. Instant completion is a separate paid/voucher action, not a replacement.",
+      "evidence": ["opStart", "opPaid"]
+    },
+    {
+      "id": "collect",
+      "page": "operations",
+      "decision": "plan-native-action",
+      "native": "Native per-slot Operation collection.",
+      "hub_role": "Collect only ready matching runs and verify each result.",
+      "gates": "Elapsed time alone is not proof; no blanket instant-complete or cancel.",
+      "evidence": ["opCollect"]
+    },
+    {
+      "id": "heists",
+      "page": "heists",
+      "decision": "plan-native-action",
+      "native": "Native catalog/board and personal start.",
+      "hub_role": "Choose eligible runs under the shared energy/stake policy.",
+      "gates": "Native action handles the game operation; the hub still owns selection, board freshness and uncertainty.",
+      "evidence": ["heistStart"]
+    },
+    {
+      "id": "heistCollect",
+      "page": "heists",
+      "decision": "plan-native-action",
+      "native": "Native ready-result collection.",
+      "hub_role": "Keep separate collection permission and exact run/reward reconciliation.",
+      "gates": "Do not infer collection from an empty panel or elapsed timer.",
+      "evidence": ["heistCollect"]
+    },
+    {
+      "id": "favors",
+      "page": "favors",
+      "decision": "plan-native-action",
+      "native": "Native help action and current board.",
+      "hub_role": "Apply relationship exclusions, daily cap and energy reserve.",
+      "gates": "No equivalent automatic helper found in the reviewed UI; preserve independent permission.",
+      "evidence": ["favor"]
+    },
+    {
+      "id": "sabotage",
+      "page": "heists",
+      "decision": "plan-native-action",
+      "native": "Native Heist sabotage action.",
+      "hub_role": "Retain explicit opt-in, exclusions, usage limits and result confirmation.",
+      "gates": "This does not authorize district sabotage, leadership actions or new live social actions.",
+      "evidence": ["sabotage"]
+    },
+    {
+      "id": "combat",
+      "page": "combat",
+      "decision": "plan-native-action",
+      "native": "Native hit list, player attack and target UI.",
+      "hub_role": "Keep one simple eligibility/evidence/ranking pipeline and native outcome observation.",
+      "gates": "No equivalent autonomous player-target selector found; player consent, shields, health, identity and day limits remain.",
+      "evidence": ["fight", "hitList"]
+    },
+    {
+      "id": "warCombat",
+      "page": "combat",
+      "decision": "plan-native-action",
+      "native": "Native fight and war context surfaces.",
+      "hub_role": "Use the common fight planner with verified active-war identity.",
+      "gates": "War roster and player hit-list identities are distinct. Native city Boss Auto is not a PvP or war controller.",
+      "evidence": ["fight"]
+    },
+    {
+      "id": "bosses",
+      "page": "combat",
+      "decision": "owned-native-or-manual",
+      "native": "Paid city Boss Auto exists, with stage progression and selectable consumable refills; ordinary city Boss attacks also exist.",
+      "hub_role": "Prefer observing an owned active run; use hub-managed ordinary eligible fights when native scope cannot honor the chosen policy.",
+      "gates": "Validate health/reserve/cap/refill compatibility before delegation. Ownership is separate from bossStage.auto; do not apply city Boss ownership to Global Boss or Takedown.",
+      "evidence": ["boss", "bossOwned", "bossActive"]
+    },
+    {
+      "id": "bossShop",
+      "page": "combat",
+      "decision": "plan-native-action",
+      "native": "Native Boss Token Shop purchases.",
+      "hub_role": "Choose item, quantity, token reserve and per-run cap.",
+      "gates": "Native purchase is sufficient as an operation, not as a budget-aware shopping policy.",
+      "evidence": ["bossShop"]
+    },
+    {
+      "id": "crew",
+      "page": "crew",
+      "decision": "reuse-native-operation",
+      "native": "Native Auto Equip covers player and available Crew; release notes explicitly add two- and three-piece set bonuses.",
+      "hub_role": "Use this as the default gear engine, triggered by relevant changes with no-op suppression and state proof.",
+      "gates": "No client pass gate is visible in the handler. Server optimization, collection effects and user exclusions are not inspectable here; validate custody before enabling.",
+      "evidence": ["gearUi", "gearScope", "gearNotes", "serverMissing"]
+    },
+    {
+      "id": "crewGear",
+      "page": "crew",
+      "decision": "custom-gap-unproven",
+      "native": "Native Auto Equip already claims set-aware strongest gear. No evidence establishes that the old custom optimizer beats it.",
+      "hub_role": "Retain optional constrained gear goals and comparison work; defer a second automatic optimizer until a concrete gap is demonstrated.",
+      "gates": "One loadout owner only. Multi-step swaps and Collection withdrawals require separate scope, exact proof and recovery; never silently override native results.",
+      "evidence": ["gearUi", "gearNotes", "sets", "serverMissing"]
+    },
+    {
+      "id": "crewRoll",
+      "page": "crew",
+      "decision": "owned-native-or-manual",
+      "native": "Paid Auto Roll can target empty slots or every slot below chosen rarity; ordinary hire/dismiss UI also exists.",
+      "hub_role": "Delegate only for an owned, compatible run; preserve an independent funded normal hire/replacement policy where ordinary actions are available.",
+      "gates": "Do not invoke paid rolling without ownership or imitate its ownership state. Trained/protected/stationed members and cash limits may make native broad scope unsuitable.",
+      "evidence": ["rollOwned", "rollScope", "hire", "dismiss"]
+    },
+    {
+      "id": "crewSort",
+      "page": "crew",
+      "decision": "reuse-native-operation",
+      "native": "Native Crew sort orders strongest first and reports pinned stationed/auto-rolling slots.",
+      "hub_role": "Use the native sort; schedule after meaningful roster changes.",
+      "gates": "Stable member identities must survive index changes; confirm final positions. Do not build a second sorting transaction.",
+      "evidence": ["sort"]
+    },
+    {
+      "id": "crewHeal",
+      "page": "crew",
+      "decision": "plan-native-action",
+      "native": "Native stamina-based Crew healing.",
+      "hub_role": "Select the exact injured member under a stamina reserve.",
+      "gates": "Separate from item healing; recheck injury and recall state. Native healing is not an automatic recovery policy.",
+      "evidence": ["heal"]
+    },
+    {
+      "id": "crewTrain",
+      "page": "crew",
+      "decision": "plan-native-action",
+      "native": "Native training and eligibility helpers.",
+      "hub_role": "Choose target level/cost and reserve available home Crew.",
+      "gates": "Use current costs/timers; no duplicate training request or trained-member dismissal.",
+      "evidence": ["train"]
+    },
+    {
+      "id": "crewHire",
+      "page": "crew",
+      "decision": "plan-native-action",
+      "native": "Native ordinary hire action.",
+      "hub_role": "Keep bounded Contract-owned empty-slot hiring.",
+      "gates": "A contract goal does not authorize dismissal, unlimited rolling or paid chance bonuses.",
+      "evidence": ["hire"]
+    },
+    {
+      "id": "crewHealItems",
+      "page": "crew",
+      "decision": "plan-native-action",
+      "native": "Native owned-item Crew healing.",
+      "hub_role": "Select permitted stacks and exact injury; use independent native Crew cooldown/sequence.",
+      "gates": "Tradable use stays separate and bound-first; do not replace with player item-use or stamina healing.",
+      "evidence": ["healItem"]
+    },
+    {
+      "id": "cosmetics",
+      "page": "inventory",
+      "decision": "plan-native-action",
+      "native": "Native background and border equip actions.",
+      "hub_role": "Keep purposeful cosmetic comparison unless native Auto Equip is proven to cover cosmetics and the requested objective.",
+      "gates": "Gear Auto Equip does not establish cosmetic coverage. Collection display/custody and protected copies still need checks.",
+      "evidence": ["cosmetics", "gearScope"]
+    },
+    {
+      "id": "collectionDonate",
+      "page": "collection",
+      "decision": "plan-native-action",
+      "native": "Native exact-amount transfers plus Deposit All and Withdraw All.",
+      "hub_role": "Use exact safe-surplus amounts after gear/Market reservations and checkpoint protection.",
+      "gates": "Do not replace surplus policy with Deposit All: the client gives no selected exclusion/reserve payload. Withdraw All explicitly removes Collection bonuses.",
+      "evidence": ["collection", "collectionAll"]
+    },
+    {
+      "id": "chests",
+      "page": "inventory",
+      "decision": "plan-native-action",
+      "native": "Native quantity-based crate opening and current luck helper.",
+      "hub_role": "Use supported batches for selected owned unbound chests under the chosen luck/cap policy.",
+      "gates": "No automatic purchases, bound opening or duplicated one-by-one loop when a validated batch is sufficient.",
+      "evidence": ["chests"]
+    },
+    {
+      "id": "restoratives",
+      "page": "inventory",
+      "decision": "plan-native-action",
+      "native": "Native consumable use and resource state.",
+      "hub_role": "Keep a compact resource/size/threshold policy using current native cooldowns.",
+      "gates": "Do not conflate city Boss Auto refill choices with permission to consume for unrelated work.",
+      "evidence": ["restoratives"]
+    },
+    {
+      "id": "bank",
+      "page": "money",
+      "decision": "plan-native-action",
+      "native": "Native amount-based deposits.",
+      "hub_role": "Keep cash-to-keep, purchase saving and purpose reservations.",
+      "gates": "No equivalent cross-feature banking planner found; no-fee pass benefits remain server entitlements.",
+      "evidence": ["bank", "passes"]
+    },
+    {
+      "id": "withdraw",
+      "page": "money",
+      "decision": "plan-native-action",
+      "native": "Native amount-based withdrawal.",
+      "hub_role": "Fund exact authorized shortfalls, confirm transfer, then replan purchase.",
+      "gates": "Never replace this with periodic full-bank withdrawal.",
+      "evidence": ["withdraw"]
+    },
+    {
+      "id": "properties",
+      "page": "property",
+      "decision": "plan-native-action",
+      "native": "Native property quote/buy/delete/move UI.",
+      "hub_role": "Keep one deterministic property-goal planner with spend/cash/selection limits.",
+      "gates": "Native Shop Auto Buy is not Property Auto Buy; income pass multipliers cannot be supplied by client automation. Replacement stays separate.",
+      "evidence": ["property", "passes"]
+    },
+    {
+      "id": "safehouse",
+      "page": "safehouse",
+      "decision": "plan-native-action",
+      "native": "Native next-tier Safehouse upgrade.",
+      "hub_role": "Check eligibility/budget and invoke the native upgrade operation.",
+      "gates": "No need to recreate upgrade application; do retain tier and spend limits and outcome proof.",
+      "evidence": ["safehouse"]
+    },
+    {
+      "id": "prestige",
+      "page": "prestige",
+      "decision": "plan-native-action",
+      "native": "Native prestige/reset action.",
+      "hub_role": "Expose clear eligibility/reset limits and keep an explicit switch.",
+      "gates": "Do not replace a guarded reset policy with automatic UI confirmation.",
+      "evidence": ["prestige"]
+    },
+    {
+      "id": "shop",
+      "page": "shop",
+      "decision": "owned-native-or-manual",
+      "native": "Paid Auto Buy already has item kinds, minimum rarity, only-new, currency, Gold reserve and out-of-funds behavior; ordinary Shop buys exist.",
+      "hub_role": "Offer owned-native delegation only when those rules meet the requested scope; otherwise plan ordinary permitted native purchases.",
+      "gates": "Gold reserve is not a cash reserve or total spend cap. Do not start broad native purchasing while claiming hub limits can constrain it.",
+      "evidence": ["shop", "shopOwned", "shopRules", "shopReserves"]
+    },
+    {
+      "id": "marketWatch",
+      "page": "blackMarket",
+      "decision": "plan-native-action",
+      "native": "Native listing browse and price surfaces.",
+      "hub_role": "Reuse native quotes/RAP rather than reconstruct price feeds; keep freshness and useful demand summaries.",
+      "gates": "No equivalent automatic opportunity/research policy found; read results are not sales.",
+      "evidence": ["marketBrowse", "marketPrices"]
+    },
+    {
+      "id": "marketSell",
+      "page": "blackMarket",
+      "decision": "plan-native-action",
+      "native": "Native exact-item listing.",
+      "hub_role": "Keep protected-copy selection, price/net-fee policy and per-listing proof.",
+      "gates": "Native listing UI is not safe-surplus automation; no destructive sales or bot-check bypass.",
+      "evidence": ["marketList"]
+    },
+    {
+      "id": "marketFlip",
+      "page": "blackMarket",
+      "decision": "plan-native-action",
+      "native": "Native purchase and listing operations.",
+      "hub_role": "Keep bounded buy-to-list planning, item/price identity, Gold budget and durable uncertainty.",
+      "gates": "No equivalent autonomous profit policy found; never buy/list merely because the native operation exists.",
+      "evidence": ["marketBuy", "marketList"]
+    },
+    {
+      "id": "marketRent",
+      "page": "blackMarket",
+      "decision": "plan-native-action",
+      "native": "Native timed Market rental using owned Gold, alongside the permanent Shop pass.",
+      "hub_role": "Prefer the ordinary rental option when desired and affordable, without requiring a pass purchase.",
+      "gates": "This costs in-game Gold and is not free or equivalent to permanent pass ownership; use current quote, reserve and attempted-rent cap.",
+      "evidence": ["marketRent", "passes"]
+    },
+    {
+      "id": "marketManage",
+      "page": "blackMarket",
+      "decision": "plan-native-action",
+      "native": "Native sold-earnings collection.",
+      "hub_role": "Collect eligible earnings and maintain a confirmed transaction ledger.",
+      "gates": "Collection is not confirmation of every historical sale; aging-listing reports do not authorize cancellation/repricing.",
+      "evidence": ["marketCollect"]
+    },
+    {
+      "id": "familyCash",
+      "page": "family",
+      "decision": "plan-native-action",
+      "native": "Native Family cash contribution.",
+      "hub_role": "Keep independent amount/reserve/session cap and contribution proof.",
+      "gates": "No new shared spending or leadership permission follows from native availability.",
+      "evidence": ["familyCash"]
+    },
+    {
+      "id": "familyStamina",
+      "page": "family",
+      "decision": "plan-native-action",
+      "native": "Native stamina perk contribution.",
+      "hub_role": "Choose permitted perk/condition/amount using current cap/cost facts.",
+      "gates": "Preserve separate consent and available-Crew/combat resource coordination.",
+      "evidence": ["familyStamina"]
+    },
+    {
+      "id": "familyGold",
+      "page": "family",
+      "decision": "plan-native-action",
+      "native": "Native Family Gold contribution.",
+      "hub_role": "Keep separate default-off/default-zero cap and exact contribution outcome.",
+      "gates": "Do not borrow Auto Buy Gold permissions or spend bound/tradable stacks interchangeably.",
+      "evidence": ["familyGold"]
+    },
+    {
+      "id": "familyBossAttacks",
+      "page": "combat",
+      "decision": "plan-native-action",
+      "native": "Native Family Takedown attack.",
+      "hub_role": "Keep free-charge eligibility, health/stamina/cap and weekly/stage checks.",
+      "gates": "Paid city Boss Auto does not cover this. Tickets and team effects need separate scope.",
+      "evidence": ["takedownAttack"]
+    },
+    {
+      "id": "familyBossClaims",
+      "page": "combat",
+      "decision": "plan-native-action",
+      "native": "Native exact week/stage Takedown claim.",
+      "hub_role": "Claim only ready matching rewards and reconcile replicated state.",
+      "gates": "No equivalent automatic settlement established for Family Takedown by the Global Boss release note.",
+      "evidence": ["takedownClaim"]
+    },
+    {
+      "id": "territoryWatch",
+      "page": "territory",
+      "decision": "plan-native-action",
+      "native": "Native map/status/bonus/capacity/season/decree/fortification displays and shared rules.",
+      "hub_role": "Reuse native context and add concise read-only advice.",
+      "gates": "Native read-only information is enough for facts; no separate simulator or new attack/leadership permissions.",
+      "evidence": ["territoryWatch"]
+    },
+    {
+      "id": "station",
+      "page": "territory",
+      "decision": "plan-native-action",
+      "native": "Native individual station, Station All and recall UI.",
+      "hub_role": "Use stable member selection to retain home defense, training and recovery limits.",
+      "gates": "Station All is not an equivalent to a policy that must retain some Crew at home.",
+      "evidence": ["station", "stationAll"]
+    },
+    {
+      "id": "residency",
+      "page": "territory",
+      "decision": "plan-native-action",
+      "native": "Native residency request/view and admission rules.",
+      "hub_role": "Keep own-residence bonus/rent/allowlist selection and exact acceptance/status proof.",
+      "gates": "A residency request is not immediate admission; no automatic acceptance of other residents or Family policy changes.",
+      "evidence": ["residency"]
+    },
+    {
+      "id": "contracts",
+      "page": "contracts",
+      "decision": "plan-native-action",
+      "native": "Native daily/weekly earned-entry claim actions and progress UI.",
+      "hub_role": "Keep exact entry eligibility and separate claim policy.",
+      "gates": "Readiness and native claim operation can be reused; no equivalent permitted-objective executor established.",
+      "evidence": ["contracts"]
+    },
+    {
+      "id": "bonuses",
+      "page": "contracts",
+      "decision": "plan-native-action",
+      "native": "Native completion bonus claim actions.",
+      "hub_role": "Claim after exact prerequisite completion; identify refills and awarded crates.",
+      "gates": "Claim permission does not authorize opening crates or spending in the Contracts shop.",
+      "evidence": ["contractBonus"]
+    },
+    {
+      "id": "trophies",
+      "page": "trophies",
+      "decision": "plan-native-action",
+      "native": "Native earned Trophy/cosmetic claims.",
+      "hub_role": "Keep readiness/ownership checks and supported ordinary claims.",
+      "gates": "Exclude set trade-ins that consume items; the common native Trophy page is not permission to consume a set.",
+      "evidence": ["trophies"]
+    },
+    {
+      "id": "skills",
+      "page": "skills",
+      "decision": "plan-native-action",
+      "native": "Native bulk skill allocation; the UI submits chunks of up to 100.",
+      "hub_role": "Use validated native batches for a selected stat and allocation limit.",
+      "gates": "Do not rebuild a one-point request loop or infer that the visible batch limit is a universal server contract.",
+      "evidence": ["skills"]
+    },
+    {
+      "id": "playtime",
+      "page": "rewards",
+      "decision": "plan-native-action",
+      "native": "Native earned ladder claims and reward-resolution helpers.",
+      "hub_role": "Claim eligible rungs with separate refill preference and current reward metadata.",
+      "gates": "No fake elapsed time, synthetic progress or assumed auto-claim.",
+      "evidence": ["playtime"]
+    },
+    {
+      "id": "groupBonus",
+      "page": "rewards",
+      "decision": "plan-native-action",
+      "native": "Native group-membership bonus claim.",
+      "hub_role": "Check existing membership/eligibility and claim once confirmed.",
+      "gates": "No group auto-join or invented claim entitlement.",
+      "evidence": ["group"]
+    },
+    {
+      "id": "monthlyRewards",
+      "page": "rewards",
+      "decision": "plan-native-action",
+      "native": "Native monthly claim and calendar state.",
+      "hub_role": "Use native UTC/month identity and earned eligibility.",
+      "gates": "A visible calendar is not proof that the server accepted a claim.",
+      "evidence": ["monthly"]
+    },
+    {
+      "id": "autoContracts",
+      "page": "contracts",
+      "decision": "plan-native-action",
+      "native": "Native Contract progress, claims and objective presentation.",
+      "hub_role": "Retain a small goal coordinator that requests work from the same permitted domain planners.",
+      "gates": "No automatic Contract executor found in the reviewed claim/shop surface; do not duplicate Jobs/Crew/etc. senders.",
+      "evidence": ["contracts", "contractBonus"]
+    },
+    {
+      "id": "trophyFocus",
+      "page": "trophies",
+      "decision": "plan-native-action",
+      "native": "Native Trophy ownership/claim and item data.",
+      "hub_role": "Retain supported goal advice and intent through common permitted planners.",
+      "gates": "No proof of a native autonomous Trophy goal executor; unsupported/consuming routes remain manual.",
+      "evidence": ["trophies"]
+    },
+    {
+      "id": "globalBossAttack",
+      "page": "combat",
+      "decision": "plan-native-action",
+      "native": "Native Global Boss board and individual attack.",
+      "hub_role": "Keep event/run identity, eligibility, health buffer, stamina and sent-attempt cap.",
+      "gates": "City Boss Auto access does not establish a Global Boss automation entitlement or controller.",
+      "evidence": ["globalAttack", "bossOwned"]
+    },
+    {
+      "id": "globalBossClaim",
+      "page": "combat",
+      "decision": "observe-native-settlement",
+      "native": "Release notes say unclaimed rewards settle at the next Boss start or event close; a manual claim still exists.",
+      "hub_role": "Observe native settlement first; keep an optional explicit early-claim action for eligible settled runs.",
+      "gates": "Do not race native settlement or retry a reward already claimed; manual claim and automatic settlement need matching-run state proof.",
+      "evidence": ["globalSettle", "globalClaim"]
+    },
+    {
+      "id": "briefcases",
+      "page": "events",
+      "decision": "plan-native-action",
+      "native": "Native Briefcase open action.",
+      "hub_role": "Choose an eligible unopened case; preserve separate free pick/owned-key limits.",
+      "gates": "No prize prediction, key purchase or free extra-pick entitlement.",
+      "evidence": ["briefcase"]
+    },
+    {
+      "id": "eventShop",
+      "page": "events",
+      "decision": "plan-native-action",
+      "native": "Native selected-item Event Shop purchase.",
+      "hub_role": "Use current medal price/origin/account restrictions and a separate budget.",
+      "gates": "No bypass of paid-origin, bound-currency or account eligibility rules.",
+      "evidence": ["eventShop"]
+    }
+  ],
+  "supporting_systems": [
+    {
+      "id": "idleProtection",
+      "decision": "prefer-native-refresh",
+      "native": "AFKSessionRefreshClient starts a refresh after the 1080-second idle threshold with a five-second stay countdown and teleport/retry flow.",
+      "hub_role": "Observe the game-owned flow, checkpoint unresolved work and revalidate on return. Defer an independent anti-idle sender unless a demonstrated gap needs an opt-in fallback.",
+      "gates": "A native session refresh does not prove the hub/loader survives or restarts across teleport. Do not force a refresh, suppress the stay choice, or fake input during this audit.",
+      "evidence": ["afk", "afkStay"]
+    },
+    {
+      "id": "nativeFacts",
+      "decision": "reuse-native-context",
+      "native": "Current shared rules and replicated derived state already describe economics, cooldowns, buffs, sets and eligibility.",
+      "hub_role": "Use validated contexts for planners; avoid parallel approximations and stale constants.",
+      "gates": "Client code is evidence, not an authoritative server result. Recheck build, shape and freshness.",
+      "evidence": [
+        "jobRules",
+        "shopRules",
+        "sets",
+        "nativeEconomy",
+        "nativeBuffs",
+        "nativeClock",
+        "nativeCooldown"
+      ]
+    },
+    {
+      "id": "marketResearch",
+      "decision": "reuse-native-data",
+      "native": "Native browse/price surfaces exist.",
+      "hub_role": "Keep bounded freshness, demand policy and a confirmed ledger rather than a second price-feed implementation.",
+      "gates": "No invented RAP or sale outcome from a quote.",
+      "evidence": ["marketBrowse", "marketPrices"]
+    },
+    {
+      "id": "profiles",
+      "decision": "hub-specific",
+      "native": "The game has its own preferences; these do not represent this hub configuration or release schema.",
+      "hub_role": "Keep typed settings, explicit import/activation, active-profile syncing and redacted diagnostics.",
+      "gates": "Do not overwrite native preferences to mimic hub profile ownership.",
+      "evidence": ["nativePrefs"]
+    },
+    {
+      "id": "requestReliability",
+      "decision": "hub-specific",
+      "native": "Native actions and owned controllers operate outside the hub sender.",
+      "hub_role": "Retain one hub request, 1s minimum send interval, 0.25s planner checks and exact 45s unconfirmed skip/cooldown. Attribute external changes separately.",
+      "gates": "Delegating a long-running native controller cannot honestly promise all its subsequent sends are capped by the hub broker or its budgets.",
+      "evidence": ["bossActive", "jobOwned", "shopOwned"]
+    },
+    {
+      "id": "combatMemory",
+      "decision": "extend-native-data",
+      "native": "Native hit-list/target/fight presentation exists.",
+      "hub_role": "Retain only useful per-account evidence freshness, saved target goals and reconciled history missing from native UI.",
+      "gates": "No duplicate attack attribution, invented win certainty or unnecessary recreation of native presentation.",
+      "evidence": ["fight", "hitList"]
+    }
+  ],
+  "observed_pass_keys": [
+    "vip",
+    "fourthSlot",
+    "regenEnergy",
+    "regenStamina",
+    "regenHealth",
+    "noBankFees",
+    "doubleJobIncome",
+    "doublePropertyIncome",
+    "luckyHire",
+    "autoRoll",
+    "offlineOperations",
+    "marketShop",
+    "autoBoss",
+    "autoJobs",
+    "autoBuy"
+  ],
+  "evidence": {
+    "gearUi": {
+      "source": "CrewTab",
+      "file": "CrewTab-1464f9ed2dd0.lua",
+      "sha256": "1464f9ed2dd0c6cfe5fdfd34a3396222cb886f9f3547565188f309786a9bf3e6",
+      "line": 4005,
+      "anchor": "AutoEquipCrew:InvokeServer()",
+      "kind": "client-ui"
+    },
+    "gearScope": {
+      "source": "CrewTab",
+      "file": "CrewTab-1464f9ed2dd0.lua",
+      "sha256": "1464f9ed2dd0c6cfe5fdfd34a3396222cb886f9f3547565188f309786a9bf3e6",
+      "line": 4015,
+      "anchor": "You and your available henchmen equipped your best available gear.",
+      "kind": "client-ui"
+    },
+    "gearNotes": {
+      "source": "UpdateNotes",
+      "file": "UpdateNotes-8fad17e5e008.lua",
+      "sha256": "8fad17e5e00866eebbf731d944f0f96943f40e5a51535e659cc8596b7f2a2332",
+      "line": 39,
+      "anchor": "counting 2 and 3 piece set bonuses",
+      "kind": "release-note"
+    },
+    "sort": {
+      "source": "CrewTab",
+      "file": "CrewTab-1464f9ed2dd0.lua",
+      "sha256": "1464f9ed2dd0c6cfe5fdfd34a3396222cb886f9f3547565188f309786a9bf3e6",
+      "line": 4045,
+      "anchor": "local u571 = \"sort\"",
+      "kind": "client-ui"
+    },
+    "sets": {
+      "source": "GearSets",
+      "file": "GearSets-184c669a0c2d.lua",
+      "sha256": "184c669a0c2d518467711d2c46748047412abcaf2b304c00e255efb2cf39955a",
+      "line": 232,
+      "anchor": "function u1.slotBonus",
+      "kind": "shared-rule"
+    },
+    "jobManual": {
+      "source": "JobsTab",
+      "file": "JobsTab-c0dacdf1aff6.lua",
+      "sha256": "c0dacdf1aff6344961d928c29c7834645c7e2ab72f4c56028174d426e013c65b",
+      "line": 428,
+      "anchor": "DoJob:InvokeServer",
+      "kind": "client-ui"
+    },
+    "jobOwned": {
+      "source": "JobsTab",
+      "file": "JobsTab-c0dacdf1aff6.lua",
+      "sha256": "c0dacdf1aff6344961d928c29c7834645c7e2ab72f4c56028174d426e013c65b",
+      "line": 2066,
+      "anchor": "v235 = (data.derived or {}).autoJobs == true",
+      "kind": "client-ui"
+    },
+    "jobRules": {
+      "source": "AutoJobRules",
+      "file": "AutoJobRules-37415d5c9cbe.lua",
+      "sha256": "37415d5c9cbed0a4e805c98283e85b94fdefe2d8b50c8c019a5cb416539208cd",
+      "line": 39,
+      "anchor": "function u3.pick",
+      "kind": "shared-rule"
+    },
+    "heistStart": {
+      "source": "HeistsTab",
+      "file": "HeistsTab-c32236a0206a.lua",
+      "sha256": "c32236a0206ae1effc84573ff745db3d6d494c5a70599e0412a38236c7ee67bb",
+      "line": 390,
+      "anchor": "act(\"start\",",
+      "kind": "client-ui"
+    },
+    "heistCollect": {
+      "source": "HeistsTab",
+      "file": "HeistsTab-c32236a0206a.lua",
+      "sha256": "c32236a0206ae1effc84573ff745db3d6d494c5a70599e0412a38236c7ee67bb",
+      "line": 1919,
+      "anchor": "act(\"collect\",",
+      "kind": "client-ui"
+    },
+    "favor": {
+      "source": "HeistsTab",
+      "file": "HeistsTab-c32236a0206a.lua",
+      "sha256": "c32236a0206ae1effc84573ff745db3d6d494c5a70599e0412a38236c7ee67bb",
+      "line": 1161,
+      "anchor": "act(\"help\",",
+      "kind": "client-ui"
+    },
+    "sabotage": {
+      "source": "HeistsTab",
+      "file": "HeistsTab-c32236a0206a.lua",
+      "sha256": "c32236a0206ae1effc84573ff745db3d6d494c5a70599e0412a38236c7ee67bb",
+      "line": 1196,
+      "anchor": "act(\"sabotage\",",
+      "kind": "client-ui"
+    },
+    "opStart": {
+      "source": "OpsTab",
+      "file": "OpsTab-a8a8dd7f8983.lua",
+      "sha256": "a8a8dd7f89833af4fd8e3f1cc1f384e279f08723bcf85bd889d309823d16a9fd",
+      "line": 376,
+      "anchor": "StartOperation:InvokeServer",
+      "kind": "client-ui"
+    },
+    "opCollect": {
+      "source": "OpsTab",
+      "file": "OpsTab-a8a8dd7f8983.lua",
+      "sha256": "a8a8dd7f89833af4fd8e3f1cc1f384e279f08723bcf85bd889d309823d16a9fd",
+      "line": 550,
+      "anchor": "CollectOperation:InvokeServer",
+      "kind": "client-ui"
+    },
+    "opPaid": {
+      "source": "OpsTab",
+      "file": "OpsTab-a8a8dd7f8983.lua",
+      "sha256": "a8a8dd7f89833af4fd8e3f1cc1f384e279f08723bcf85bd889d309823d16a9fd",
+      "line": 233,
+      "anchor": "InstantFinishAllOperations:InvokeServer",
+      "kind": "client-ui"
+    },
+    "fight": {
+      "source": "FightTab",
+      "file": "FightTab-1f8c36a4422a.lua",
+      "sha256": "1f8c36a4422a9b9b926db81680f32e4c664d151139d0517e58ef3dc9b3a90ac7",
+      "line": 1313,
+      "anchor": "Attack:InvokeServer",
+      "kind": "client-ui"
+    },
+    "hitList": {
+      "source": "FightTab",
+      "file": "FightTab-1f8c36a4422a.lua",
+      "sha256": "1f8c36a4422a9b9b926db81680f32e4c664d151139d0517e58ef3dc9b3a90ac7",
+      "line": 1761,
+      "anchor": "fetchTargets(u2.Remotes.GetHitList",
+      "kind": "client-ui"
+    },
+    "boss": {
+      "source": "BossTab",
+      "file": "BossTab-d7d6eed84b44.lua",
+      "sha256": "d7d6eed84b44ac5c1286f4620ff2ede160e437a7cc72951bdc80e3d3225798bf",
+      "line": 978,
+      "anchor": "local function attackOnce",
+      "kind": "client-ui"
+    },
+    "bossOwned": {
+      "source": "BossTab",
+      "file": "BossTab-d7d6eed84b44.lua",
+      "sha256": "d7d6eed84b44ac5c1286f4620ff2ede160e437a7cc72951bdc80e3d3225798bf",
+      "line": 401,
+      "anchor": "v88 = (data.derived or {}).autoBoss == true",
+      "kind": "client-ui"
+    },
+    "bossActive": {
+      "source": "BossTab",
+      "file": "BossTab-d7d6eed84b44.lua",
+      "sha256": "d7d6eed84b44ac5c1286f4620ff2ede160e437a7cc72951bdc80e3d3225798bf",
+      "line": 1980,
+      "anchor": "tonumber(data.bossStage.auto)",
+      "kind": "client-ui"
+    },
+    "bossShop": {
+      "source": "BossTab",
+      "file": "BossTab-d7d6eed84b44.lua",
+      "sha256": "d7d6eed84b44ac5c1286f4620ff2ede160e437a7cc72951bdc80e3d3225798bf",
+      "line": 1712,
+      "anchor": "BossAction:InvokeServer(\"shopBuy\"",
+      "kind": "client-ui"
+    },
+    "globalAttack": {
+      "source": "GlobalBossTab",
+      "file": "GlobalBossTab-b668eed91fa1.lua",
+      "sha256": "b668eed91fa14c561b0c24b2d47e092a7312d343d94e0adc43c574a1b776d671",
+      "line": 2127,
+      "anchor": "GlobalBossAction:InvokeServer(\"attack\"",
+      "kind": "client-ui"
+    },
+    "globalClaim": {
+      "source": "GlobalBossTab",
+      "file": "GlobalBossTab-b668eed91fa1.lua",
+      "sha256": "b668eed91fa14c561b0c24b2d47e092a7312d343d94e0adc43c574a1b776d671",
+      "line": 2177,
+      "anchor": "GlobalBossAction:InvokeServer(\"claim\"",
+      "kind": "client-ui"
+    },
+    "globalSettle": {
+      "source": "UpdateNotes",
+      "file": "UpdateNotes-8fad17e5e008.lua",
+      "sha256": "8fad17e5e00866eebbf731d944f0f96943f40e5a51535e659cc8596b7f2a2332",
+      "line": 45,
+      "anchor": "Global Boss rewards you have not claimed are auto claimed",
+      "kind": "release-note"
+    },
+    "rollOwned": {
+      "source": "CrewTab",
+      "file": "CrewTab-1464f9ed2dd0.lua",
+      "sha256": "1464f9ed2dd0c6cfe5fdfd34a3396222cb886f9f3547565188f309786a9bf3e6",
+      "line": 2871,
+      "anchor": "v406 = (data2.derived or {}).autoRoll == true",
+      "kind": "client-ui"
+    },
+    "rollScope": {
+      "source": "CrewTab",
+      "file": "CrewTab-1464f9ed2dd0.lua",
+      "sha256": "1464f9ed2dd0c6cfe5fdfd34a3396222cb886f9f3547565188f309786a9bf3e6",
+      "line": 1377,
+      "anchor": "local function autoRollTargets",
+      "kind": "client-ui"
+    },
+    "dismiss": {
+      "source": "CrewTab",
+      "file": "CrewTab-1464f9ed2dd0.lua",
+      "sha256": "1464f9ed2dd0c6cfe5fdfd34a3396222cb886f9f3547565188f309786a9bf3e6",
+      "line": 2718,
+      "anchor": "local u384 = \"dismiss\"",
+      "kind": "client-ui"
+    },
+    "hire": {
+      "source": "CrewTab",
+      "file": "CrewTab-1464f9ed2dd0.lua",
+      "sha256": "1464f9ed2dd0c6cfe5fdfd34a3396222cb886f9f3547565188f309786a9bf3e6",
+      "line": 3328,
+      "anchor": "local u495 = \"hire\"",
+      "kind": "client-ui"
+    },
+    "train": {
+      "source": "CrewTab",
+      "file": "CrewTab-1464f9ed2dd0.lua",
+      "sha256": "1464f9ed2dd0c6cfe5fdfd34a3396222cb886f9f3547565188f309786a9bf3e6",
+      "line": 2275,
+      "anchor": "local u334 = \"train\"",
+      "kind": "client-ui"
+    },
+    "heal": {
+      "source": "CrewHealModal",
+      "file": "CrewHealModal-b79981b394f3.lua",
+      "sha256": "b79981b394f3310d9464f26fbae77525bbb29083a50ec394eadb3370c71a7386",
+      "line": 483,
+      "anchor": "CrewAction:InvokeServer(\"heal\",",
+      "kind": "client-ui"
+    },
+    "healItem": {
+      "source": "CrewHealModal",
+      "file": "CrewHealModal-b79981b394f3.lua",
+      "sha256": "b79981b394f3310d9464f26fbae77525bbb29083a50ec394eadb3370c71a7386",
+      "line": 548,
+      "anchor": "CrewAction:InvokeServer(\"healitem\",",
+      "kind": "client-ui"
+    },
+    "cosmetics": {
+      "source": "InventoryTab",
+      "file": "InventoryTab-490170b15812.lua",
+      "sha256": "490170b15812f52204e64f35e73f83f8960a897e5db64d7af6f06412972a6b38",
+      "line": 4539,
+      "anchor": "\"EquipBackground\" or \"EquipBorder\"",
+      "kind": "client-ui"
+    },
+    "collection": {
+      "source": "CollectionTab",
+      "file": "CollectionTab-758ec86b5f45.lua",
+      "sha256": "758ec86b5f45159876b7fe4d3ce587cabd1d44662222db5b86fd0130f39d0b60",
+      "line": 466,
+      "anchor": "local function confirmAmount",
+      "kind": "client-ui"
+    },
+    "collectionAll": {
+      "source": "CollectionTab",
+      "file": "CollectionTab-758ec86b5f45.lua",
+      "sha256": "758ec86b5f45159876b7fe4d3ce587cabd1d44662222db5b86fd0130f39d0b60",
+      "line": 1257,
+      "anchor": "local u151 = \"depositall\"",
+      "kind": "client-ui"
+    },
+    "chests": {
+      "source": "InventoryTab",
+      "file": "InventoryTab-490170b15812.lua",
+      "sha256": "490170b15812f52204e64f35e73f83f8960a897e5db64d7af6f06412972a6b38",
+      "line": 2057,
+      "anchor": "OpenCrate:InvokeServer(u278.item.id",
+      "kind": "client-ui"
+    },
+    "restoratives": {
+      "source": "InventoryTab",
+      "file": "InventoryTab-490170b15812.lua",
+      "sha256": "490170b15812f52204e64f35e73f83f8960a897e5db64d7af6f06412972a6b38",
+      "line": 701,
+      "anchor": "\"UseConsumable\"):InvokeServer",
+      "kind": "client-ui"
+    },
+    "bank": {
+      "source": "BankTab",
+      "file": "BankTab-d92f12ba6e1d.lua",
+      "sha256": "d92f12ba6e1df067a47d7081fd80570d4811dbe9c568e726a0329502d2949ffb",
+      "line": 28,
+      "anchor": "BankDeposit:InvokeServer",
+      "kind": "client-ui"
+    },
+    "withdraw": {
+      "source": "BankTab",
+      "file": "BankTab-d92f12ba6e1d.lua",
+      "sha256": "d92f12ba6e1df067a47d7081fd80570d4811dbe9c568e726a0329502d2949ffb",
+      "line": 49,
+      "anchor": "Withdraw:InvokeServer",
+      "kind": "client-ui"
+    },
+    "property": {
+      "source": "PropertyBlock",
+      "file": "PropertyBlock-4b67c8ef5cc6.lua",
+      "sha256": "4b67c8ef5cc651b0415d1a3879d10b8f2a33936ecbc89b6ed32f7c8649689c26",
+      "line": 1169,
+      "anchor": "BuyProperty:InvokeServer",
+      "kind": "client-ui"
+    },
+    "safehouse": {
+      "source": "SafehouseTab",
+      "file": "SafehouseTab-b2b65fd46bcb.lua",
+      "sha256": "b2b65fd46bcbead98c16a66139b3a162e91011913c9eed28d60f95d7f2cc2894",
+      "line": 663,
+      "anchor": "UpgradeSafehouse:InvokeServer",
+      "kind": "client-ui"
+    },
+    "prestige": {
+      "source": "PrestigeModal",
+      "file": "PrestigeModal-d222227bd456.lua",
+      "sha256": "d222227bd45659d1b5133263890c1fe3ac636a10d410835859785740e7d9ce6a",
+      "line": 110,
+      "anchor": "PrestigeAction:InvokeServer(\"prestige\"",
+      "kind": "client-ui"
+    },
+    "shop": {
+      "source": "ShopTab",
+      "file": "ShopTab-c1083d41f0d3.lua",
+      "sha256": "c1083d41f0d31b94c518592455e0e29201f8acbae124430c0dd3845319a5746d",
+      "line": 1325,
+      "anchor": "BuyShopItem:InvokeServer",
+      "kind": "client-ui"
+    },
+    "shopOwned": {
+      "source": "AutoBuy",
+      "file": "AutoBuy-5555dc5b550e.lua",
+      "sha256": "5555dc5b550e6edf118a73aa5073f8cf6cb4ec4a753c2e5fb80e4df3eb24ce47",
+      "line": 985,
+      "anchor": "v94 = (data.derived or {}).autoBuy == true",
+      "kind": "client-ui"
+    },
+    "shopRules": {
+      "source": "AutoBuyRules",
+      "file": "AutoBuyRules-11006f0af5db.lua",
+      "sha256": "11006f0af5db526c57a79fe0d2c4c3f97653b3b7acc5fe7ef77847a7c8f1f621",
+      "line": 50,
+      "anchor": "function u2.candidates",
+      "kind": "shared-rule"
+    },
+    "shopReserves": {
+      "source": "AutoBuy",
+      "file": "AutoBuy-5555dc5b550e.lua",
+      "sha256": "5555dc5b550e6edf118a73aa5073f8cf6cb4ec4a753c2e5fb80e4df3eb24ce47",
+      "line": 51,
+      "anchor": "goldReserve = 200",
+      "kind": "client-ui"
+    },
+    "marketBrowse": {
+      "source": "MarketTab",
+      "file": "MarketTab-6dd455bf4473.lua",
+      "sha256": "6dd455bf4473bb17383d1a0b3f9102a356dc5a30c84145bbfe87a3b4e9fdfb55",
+      "line": 1258,
+      "anchor": "invoke(\"browse\",",
+      "kind": "client-ui"
+    },
+    "marketPrices": {
+      "source": "MarketTab",
+      "file": "MarketTab-6dd455bf4473.lua",
+      "sha256": "6dd455bf4473bb17383d1a0b3f9102a356dc5a30c84145bbfe87a3b4e9fdfb55",
+      "line": 1477,
+      "anchor": "invoke(\"prices\",",
+      "kind": "client-ui"
+    },
+    "marketList": {
+      "source": "MarketTab",
+      "file": "MarketTab-6dd455bf4473.lua",
+      "sha256": "6dd455bf4473bb17383d1a0b3f9102a356dc5a30c84145bbfe87a3b4e9fdfb55",
+      "line": 2009,
+      "anchor": "invoke(\"list\",",
+      "kind": "client-ui"
+    },
+    "marketBuy": {
+      "source": "MarketTab",
+      "file": "MarketTab-6dd455bf4473.lua",
+      "sha256": "6dd455bf4473bb17383d1a0b3f9102a356dc5a30c84145bbfe87a3b4e9fdfb55",
+      "line": 854,
+      "anchor": "invoke(\"buy\",",
+      "kind": "client-ui"
+    },
+    "marketRent": {
+      "source": "MarketTab",
+      "file": "MarketTab-6dd455bf4473.lua",
+      "sha256": "6dd455bf4473bb17383d1a0b3f9102a356dc5a30c84145bbfe87a3b4e9fdfb55",
+      "line": 2317,
+      "anchor": "invoke(\"rent\",",
+      "kind": "client-ui"
+    },
+    "marketCollect": {
+      "source": "MarketTab",
+      "file": "MarketTab-6dd455bf4473.lua",
+      "sha256": "6dd455bf4473bb17383d1a0b3f9102a356dc5a30c84145bbfe87a3b4e9fdfb55",
+      "line": 2429,
+      "anchor": "invoke(\"collect\")",
+      "kind": "client-ui"
+    },
+    "familyCash": {
+      "source": "FamilyTab",
+      "file": "FamilyTab-d8794dd853b2.lua",
+      "sha256": "d8794dd853b2e57f6616db47d1af14cd9baac198b6d55f596fd694052fe0d09a",
+      "line": 4417,
+      "anchor": "local u525 = \"donate\"",
+      "kind": "client-ui"
+    },
+    "familyGold": {
+      "source": "FamilyTab",
+      "file": "FamilyTab-d8794dd853b2.lua",
+      "sha256": "d8794dd853b2e57f6616db47d1af14cd9baac198b6d55f596fd694052fe0d09a",
+      "line": 4479,
+      "anchor": "local u531 = \"donategold\"",
+      "kind": "client-ui"
+    },
+    "familyStamina": {
+      "source": "FamilyTab",
+      "file": "FamilyTab-d8794dd853b2.lua",
+      "sha256": "d8794dd853b2e57f6616db47d1af14cd9baac198b6d55f596fd694052fe0d09a",
+      "line": 5444,
+      "anchor": "local u617 = \"contribute\"",
+      "kind": "client-ui"
+    },
+    "takedownAttack": {
+      "source": "FamilyBossView",
+      "file": "FamilyBossView-15a9c549fa27.lua",
+      "sha256": "15a9c549fa27168b30557bee884a64c159aaea5812865633df2d762c1f54e587",
+      "line": 3534,
+      "anchor": "invoke(\"attack\")",
+      "kind": "client-ui"
+    },
+    "takedownClaim": {
+      "source": "FamilyBossView",
+      "file": "FamilyBossView-15a9c549fa27.lua",
+      "sha256": "15a9c549fa27168b30557bee884a64c159aaea5812865633df2d762c1f54e587",
+      "line": 2187,
+      "anchor": "invoke(\"claim\",",
+      "kind": "client-ui"
+    },
+    "territoryWatch": {
+      "source": "TerritoryTab",
+      "file": "TerritoryTab-6f162353e347.lua",
+      "sha256": "6f162353e3476ce30d1c770d3f26f6c12dd05b71b453d66d30db1bc6aefd92e3",
+      "line": 286,
+      "anchor": "\"TerritoryStatus\"",
+      "kind": "client-ui"
+    },
+    "station": {
+      "source": "TerritoryTab",
+      "file": "TerritoryTab-6f162353e347.lua",
+      "sha256": "6f162353e3476ce30d1c770d3f26f6c12dd05b71b453d66d30db1bc6aefd92e3",
+      "line": 703,
+      "anchor": "territoryRequest(\"station\",",
+      "kind": "client-ui"
+    },
+    "stationAll": {
+      "source": "TerritoryTab",
+      "file": "TerritoryTab-6f162353e347.lua",
+      "sha256": "6f162353e3476ce30d1c770d3f26f6c12dd05b71b453d66d30db1bc6aefd92e3",
+      "line": 3560,
+      "anchor": "territoryRequest(\"stationall\",",
+      "kind": "client-ui"
+    },
+    "residency": {
+      "source": "ResidencyPanel",
+      "file": "ResidencyPanel-ed1d41f104d2.lua",
+      "sha256": "ed1d41f104d2fb79f2f5e6c47b5089537c84d853bfc3be0dd779253ecb37cfd5",
+      "line": 618,
+      "anchor": "\"ResidencyAction\"",
+      "kind": "client-ui"
+    },
+    "contracts": {
+      "source": "ContractsTab",
+      "file": "ContractsTab-dda5b99046a2.lua",
+      "sha256": "dda5b99046a20e7b4975719d7df43a52f882926bcfe6853b19c65478680fef40",
+      "line": 1497,
+      "anchor": "ContractAction:InvokeServer(\"claim\",",
+      "kind": "client-ui"
+    },
+    "contractBonus": {
+      "source": "ContractsTab",
+      "file": "ContractsTab-dda5b99046a2.lua",
+      "sha256": "dda5b99046a20e7b4975719d7df43a52f882926bcfe6853b19c65478680fef40",
+      "line": 1575,
+      "anchor": "ContractAction:InvokeServer(\"claimbonus\"",
+      "kind": "client-ui"
+    },
+    "trophies": {
+      "source": "InventoryTab",
+      "file": "InventoryTab-490170b15812.lua",
+      "sha256": "490170b15812f52204e64f35e73f83f8960a897e5db64d7af6f06412972a6b38",
+      "line": 1052,
+      "anchor": "ClaimTrophy:InvokeServer",
+      "kind": "client-ui"
+    },
+    "skills": {
+      "source": "Hud",
+      "file": "Hud-b09f69e3dbcd.lua",
+      "sha256": "b09f69e3dbcd65962b4a8550ab726d74dd5c3b14d4286cb105c984a8874f0949",
+      "line": 2595,
+      "anchor": "AllocateSkillPoint:InvokeServer",
+      "kind": "client-ui"
+    },
+    "playtime": {
+      "source": "SafehouseTab",
+      "file": "SafehouseTab-b2b65fd46bcb.lua",
+      "sha256": "b2b65fd46bcbead98c16a66139b3a162e91011913c9eed28d60f95d7f2cc2894",
+      "line": 842,
+      "anchor": "ClaimLadder:InvokeServer",
+      "kind": "client-ui"
+    },
+    "group": {
+      "source": "PropsTab",
+      "file": "PropsTab-a28419c46910.lua",
+      "sha256": "a28419c46910d05d2bd7f5d165453cda9ffad894672f1f62f0c317435e747bbb",
+      "line": 2702,
+      "anchor": "ClaimGroupBonus:InvokeServer",
+      "kind": "client-ui"
+    },
+    "monthly": {
+      "source": "MonthlyCalendar",
+      "file": "MonthlyCalendar-5c1cd9380e96.lua",
+      "sha256": "5c1cd9380e96f0006dd69676c3194b8cb746cde41bb733afdd66ee8e7db81fe6",
+      "line": 282,
+      "anchor": "ClaimMonthly:InvokeServer",
+      "kind": "client-ui"
+    },
+    "briefcase": {
+      "source": "BriefcasesTab",
+      "file": "BriefcasesTab-fc3d8c46d3e2.lua",
+      "sha256": "fc3d8c46d3e29095d75e4c0f97eaa7fa4b31df71f336e04950df747fdb026fb5",
+      "line": 1047,
+      "anchor": "BriefcaseAction:InvokeServer(\"open\"",
+      "kind": "client-ui"
+    },
+    "eventShop": {
+      "source": "EventShopTab",
+      "file": "EventShopTab-5c8d001aae45.lua",
+      "sha256": "5c8d001aae456bb6dea4577d8311f467cb6c0271c17d21d730a79d28711c8993",
+      "line": 307,
+      "anchor": "EventShopAction:InvokeServer(\"buy\"",
+      "kind": "client-ui"
+    },
+    "afk": {
+      "source": "AFKSessionRefreshClient",
+      "file": "AFKSessionRefreshClient-e5512ae53dda.lua",
+      "sha256": "e5512ae53ddad7aee29824fd1706373a7e233818f7835e9c921261b108f496c4",
+      "line": 841,
+      "anchor": "math.max(p67 or 0, v68) < 1080",
+      "kind": "client-ui"
+    },
+    "afkStay": {
+      "source": "AFKSessionRefreshClient",
+      "file": "AFKSessionRefreshClient-e5512ae53dda.lua",
+      "sha256": "e5512ae53ddad7aee29824fd1706373a7e233818f7835e9c921261b108f496c4",
+      "line": 714,
+      "anchor": "local function runStayCountdown",
+      "kind": "client-ui"
+    },
+    "passes": {
+      "source": "Config",
+      "file": "Config-e07fd1c45e85.lua",
+      "sha256": "e07fd1c45e85b890025b0e9a462c08dbd35362702bd81e06853d997553e37492",
+      "line": 1911,
+      "anchor": "u1.GAMEPASSES = {",
+      "kind": "shared-config"
+    },
+    "vouchers": {
+      "source": "Config",
+      "file": "Config-e07fd1c45e85.lua",
+      "sha256": "e07fd1c45e85b890025b0e9a462c08dbd35362702bd81e06853d997553e37492",
+      "line": 1928,
+      "anchor": "u1.PASS_VOUCHERS = {",
+      "kind": "shared-config"
+    },
+    "redeem": {
+      "source": "InventoryTab",
+      "file": "InventoryTab-490170b15812.lua",
+      "sha256": "490170b15812f52204e64f35e73f83f8960a897e5db64d7af6f06412972a6b38",
+      "line": 4605,
+      "anchor": "RedeemVoucher:InvokeServer",
+      "kind": "client-ui"
+    },
+    "nativePrefs": {
+      "source": "Settings",
+      "file": "Settings-6fd1b1e965c6.lua",
+      "sha256": "6fd1b1e965c6989b3c1494df2012c1e5398661dd54b99d636279938484ec2b1f",
+      "line": 640,
+      "anchor": "\"giftsFrom\"",
+      "kind": "client-ui"
+    },
+    "nativeEconomy": {
+      "source": "DecreeRules",
+      "file": "DecreeRules-d5304a5a005c.lua",
+      "sha256": "d5304a5a005ce12aa7eec35e4e2a31325c093bc11bd170a3d8ee47f073444749",
+      "line": 315,
+      "anchor": "function u1.pctFor",
+      "kind": "shared-rule"
+    },
+    "nativeBuffs": {
+      "source": "DailyBuffRules",
+      "file": "DailyBuffRules-9880354c79e5.lua",
+      "sha256": "9880354c79e56e3ff88f7bdc49ed8f9b36b03fb04ad5febd4184d741a525de81",
+      "line": 182,
+      "anchor": "function u1.buffAt",
+      "kind": "shared-rule"
+    },
+    "nativeClock": {
+      "source": "ServerClock",
+      "file": "ServerClock-d4b81ad7ac37.lua",
+      "sha256": "d4b81ad7ac37169cbd63d7d504d0d4d60b0ffd52db40c84c41c6fa77e54cc956",
+      "line": 55,
+      "anchor": "function u1.now",
+      "kind": "shared-rule"
+    },
+    "nativeCooldown": {
+      "source": "ConsumableRules",
+      "file": "ConsumableRules-41f72f0dc973.lua",
+      "sha256": "41f72f0dc97306fb514559056af3e4e34f656f649ef5bdcecc778b44cf6f0701",
+      "line": 48,
+      "anchor": "function u1.readyIn",
+      "kind": "shared-rule"
+    },
+    "serverMissing": {
+      "source": "ServerAuthorityServer",
+      "file": "ServerAuthorityServer-c2196d9f21cb.lua",
+      "sha256": "c2196d9f21cbfdb1511782881f9bf4e8a83722dad2688825dec340795d152af2",
+      "line": 3,
+      "anchor": "Server Scripts are IMPOSSIBLE to save",
+      "kind": "extraction-limit"
+    }
+  },
+  "source_hash_basis": "UTF-8 source text, CRLF normalized to LF"
+}

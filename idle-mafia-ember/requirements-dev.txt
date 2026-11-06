@@ -1,0 +1,3 @@
+# Offline Lua execution and regression runner; Python 3.12 verified.
+lupa==2.8
+pytest==9.2.0
