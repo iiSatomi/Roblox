@@ -9,8 +9,8 @@ from engine_harness import Harness, lua_table
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = "f8eccd8663f3dd6c816f262b54d7f8d4a6ee0f2b"
-MANIFEST = "08b039c1d2b63dc76fc1b412af596060d0c94d40"
+SOURCE = "30cf3832142a0cf32802273ea962808e76a4ceda"
+MANIFEST = "53d36160cf41ea1711248efbc9384cce6ebf5687"
 class TestEntryTests(unittest.TestCase):
     def test_entry_starts_paused_ui_from_verified_local_bytes(self):
         h = Harness()
