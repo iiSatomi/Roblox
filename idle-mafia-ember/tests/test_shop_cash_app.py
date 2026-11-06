@@ -287,14 +287,15 @@ class ShopCashAppTests(unittest.TestCase):
         self.drain()
         self.assertEqual(len(self.executor.calls), 0)
 
-    def test_positive_reply_with_passive_cash_growth_stays_held(self):
+    def test_positive_reply_with_exact_purchase_markers_and_later_cash_recovers(self):
         self.select()
         self.step()
         self.drain()
         self.restart()
         self.h.at(1)
         self.step(self.raw(0, cash=881, bought=True))
-        self.assertEqual(len(self.runtime.checkpoint.Records(self.runtime.checkpoint)), 1)
+        self.assertEqual(self.runtime.Status(self.runtime).recoveries.shop, "confirmed")
+        self.assertEqual(len(self.runtime.checkpoint.Records(self.runtime.checkpoint)), 0)
         self.assertEqual(self.allowance().spent, 120)
         self.assertEqual(len(self.executor.calls), 0)
 

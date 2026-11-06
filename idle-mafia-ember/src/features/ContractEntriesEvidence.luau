@@ -71,14 +71,72 @@ function ContractEntriesEvidence.evaluate(proposal, beforeHeader, after,
         or proposal.intent.period ~= baseline.period
         or proposal.intent.index ~= baseline.index
         or proposal.intent.rowId ~= baseline.rowId
-        or proposal.intent.reset ~= baseline.reset then return "pending" end
-    local _, claimed = rowState(after, baseline)
+        or proposal.intent.reset ~= baseline.reset
+        or type(after.revision) ~= "number" or after.revision ~= after.revision
+        or after.revision >= math.huge or after.revision % 1 ~= 0
+        or after.revision <= baseline.revision
+        or reply.pending == true or reply.code == "pending" or reply.code == "no_pending"
+        or reply.code == "rate_limited" or reply.code == "busy" or reply.code == "presence" then return "pending" end
+    local done, claimed = rowState(after, baseline)
     if claimed == nil then return "pending" end
     local advanced = type(after.revision) == "number"
         and after.revision > baseline.revision and claimed == true
-    if reply.ok == false then return advanced and "pending" or "rejected" end
+    if reply.ok == false then return done == true and claimed == false and "rejected" or "pending" end
     if reply.ok == true and advanced then return "confirmed" end
     return "pending"
+end
+
+local function equal(a, b, depth)
+    if type(a) ~= type(b) or (depth or 0) > 16 then return false end
+    if type(a) ~= "table" then return a == b end
+    if getmetatable(a) ~= nil or getmetatable(b) ~= nil then return false end
+    local count = 0
+    for key, value in pairs(a) do
+        count = count + 1
+        if count > 512 or not equal(value, b[key], (depth or 0) + 1) then return false end
+    end
+    for key in pairs(b) do if a[key] == nil then return false end end
+    return true
+end
+local function copy(value) local out = {}; for key, child in pairs(value) do out[key] = child end; return out end
+local function clock(value) return type(value) == "number" and value == value and value >= 0 and value < math.huge end
+
+-- Reuse the immutable original row and baseline; never infer a claim from a
+-- replacement Contract set or change the saved session/revision to this load.
+function ContractEntriesEvidence.recoverSaved(data, after)
+    local reply = type(data) == "table" and data.reply
+    if type(reply) ~= "table" or type(reply.ok) ~= "boolean" or reply.pending == true
+        or reply.code == "pending" or reply.code == "no_pending" or reply.code == "rate_limited"
+        or reply.code == "busy" or reply.code == "presence" or type(after) ~= "table" then return nil end
+    local p, before = data.proposal, data.before
+    local baseline = ContractEntriesEvidence.capture(p, before)
+    if not baseline or not equal(baseline, data.baseline) or not matching(p, before)
+        or type(after.session) ~= "string" or #after.session == 0
+        or type(after.native) ~= "table" or not clock(before.native.serverNow)
+        or not clock(after.native.serverNow) or after.native.serverNow <= before.native.serverNow
+        or not clock(after.revision) or after.revision % 1 ~= 0
+        or after.session == baseline.session and (after.revision <= baseline.revision
+            or not clock(after.capturedAt) or after.capturedAt < before.capturedAt)
+        or type(p.resources) ~= "table"
+        or p.actionKey ~= "contract:" .. baseline.period .. ":" .. baseline.reset .. ":"
+            .. baseline.index .. ":" .. #baseline.rowId .. ":" .. baseline.rowId then return nil end
+    for _, field in ipairs({"account", "place", "release"}) do if after[field] ~= p[field] then return nil end end
+    for _, amount in pairs(p.resources) do if amount ~= 0 then return nil end end
+    local done, claimed = rowState(after, baseline)
+    if done ~= true or claimed ~= reply.ok then return nil end
+    local expected = copy(before.native.contracts)
+    if reply.ok then
+        local rows = expected[baseline.period]
+        if baseline.period == "weekly" and rows.id ~= nil then
+            rows = copy(rows); rows.claimed = true
+        else
+            rows = copy(rows); local row = copy(rows[baseline.index]); row.claimed = true
+            rows[baseline.index] = row
+        end
+        expected[baseline.period] = rows
+    end
+    if not equal(expected, after.native.contracts) then return nil end
+    return reply.ok and "confirmed" or "rejected"
 end
 
 return ContractEntriesEvidence

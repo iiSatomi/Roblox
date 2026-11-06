@@ -195,7 +195,7 @@ function NativePrestigeLease.cleanup(registry)
     local epoch = rawget(registry, REGISTRY)
     if epoch == nil then return true, nil end
     if type(epoch) ~= "table" or epoch.sourceKey ~= SOURCE or type(epoch.context) ~= "table" or type(epoch.init) ~= "function"
-        or not text(epoch.job) or (epoch.build ~= 648 and epoch.build ~= 653) then return false, "Native Prestige ownership record is ambiguous" end
+        or not text(epoch.job) or (epoch.build ~= 648 and epoch.build ~= 653 and epoch.build ~= 654) then return false, "Native Prestige ownership record is ambiguous" end
     if epoch.physical then return false, "Native Prestige physical custody remains unresolved" end
     local owner = epoch.binding
     if owner == nil then return true, nil end
@@ -237,7 +237,7 @@ function NativePrestigeLease.bind(deps)
         local cleaned, reason = NativePrestigeLease.cleanup(registry)
         if not cleaned then return nil, reason end
         local build, job = game.PlaceVersion, game.JobId
-        if game.PlaceId ~= 73897506680154 or (build ~= 648 and build ~= 653) or not text(job) then return nil, "Unreviewed Prestige build" end
+        if game.PlaceId ~= 73897506680154 or (build ~= 648 and build ~= 653 and build ~= 654) or not text(job) then return nil, "Unreviewed Prestige build" end
         local players, replicated = game:GetService("Players"), game:GetService("ReplicatedStorage")
         local player = players.LocalPlayer
         if not player or player.Name ~= deps.identity.account or not integer(player.UserId, 1, MAX)

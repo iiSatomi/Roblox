@@ -195,7 +195,7 @@ local function reconcile(proposal, beforeHeader, after, reply, baseline, restart
             or restart and after.session ~= baseline.session and type(after.native) == "table"
                 and timestamp(after.native.serverNow, baseline.awards.serverNow)
                 and after.native.serverNow > baseline.awards.serverNow)
-        or reply.pending == true or reply.code == "rate_limited" or reply.code == "presence" then return "pending" end
+        or reply.pending == true or reply.code == "rate_limited" or reply.code == "busy" or reply.code == "presence" then return "pending" end
     local native, state, usages = current(after)
     if not native or native.serverNow < baseline.awards.serverNow or native.serverNow >= baseline.expiresAt
         or state.week ~= baseline.currentWeek or state.famId ~= baseline.famId

@@ -1,0 +1,862 @@
+{
+  "rows": [
+    {
+      "feature": "bonuses",
+      "requestHighwater": 28,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        },
+        {
+          "feature": "shop",
+          "cashHeld": 375,
+          "requestId": 27
+        }
+      ],
+      "attempts": 0,
+      "reason": "No replicated ready Contract bonus",
+      "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b"
+    },
+    {
+      "feature": "trophies",
+      "requestHighwater": 28,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        },
+        {
+          "feature": "shop",
+          "cashHeld": 375,
+          "requestId": 27
+        }
+      ],
+      "attempts": 0,
+      "reason": "No proven earned Trophy ready",
+      "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b"
+    },
+    {
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        }
+      ],
+      "reason": "Saved purchase confirmed through normal recovery; no second purchase",
+      "feature": "shop",
+      "outcome": "confirmed",
+      "workingBuild": "fbf3d038320fa5aef06a8c8eb3de1ff8d30ae98c88991c75521ac8191541ae97",
+      "recoveredRequestId": 27,
+      "requestHighwater": 33,
+      "attempts": 0,
+      "previousObservations": [
+        {
+          "feature": "shop",
+          "outcome": "skipped_unconfirmed",
+          "requestHighwater": 27,
+          "pending": [
+            {
+              "feature": "operations",
+              "cashHeld": 200,
+              "requestId": 4
+            },
+            {
+              "feature": "shop",
+              "cashHeld": 375,
+              "requestId": 27
+            }
+          ],
+          "attempts": 1,
+          "reason": "Current native Shop stock and cash quotes required",
+          "workingBuild": "f5de0d09779bf04d6bc4e32e52977ad96df0c82887b5c023eeebf4a3e76d1625"
+        }
+      ]
+    },
+    {
+      "feature": "marketManage",
+      "requestHighwater": 28,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        },
+        {
+          "feature": "shop",
+          "cashHeld": 375,
+          "requestId": 27
+        }
+      ],
+      "attempts": 0,
+      "reason": "No sold earnings to collect",
+      "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b"
+    },
+    {
+      "feature": "crewSort",
+      "outcome": "confirmed",
+      "requestHighwater": 28,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        },
+        {
+          "feature": "shop",
+          "cashHeld": 375,
+          "requestId": 27
+        }
+      ],
+      "attempts": 1,
+      "reason": "Session unavailable",
+      "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b"
+    },
+    {
+      "feature": "playtime",
+      "outcome": "confirmed",
+      "requestHighwater": 22,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        }
+      ],
+      "attempts": 1,
+      "reason": "Disabled",
+      "workingBuild": "f5de0d09779bf04d6bc4e32e52977ad96df0c82887b5c023eeebf4a3e76d1625"
+    },
+    {
+      "feature": "familyStamina",
+      "outcome": "confirmed",
+      "requestHighwater": 31,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        },
+        {
+          "feature": "shop",
+          "cashHeld": 375,
+          "requestId": 27
+        }
+      ],
+      "attempts": 1,
+      "reason": "Family resource reserve or uncertain exposure blocks contribution",
+      "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b"
+    },
+    {
+      "feature": "bank",
+      "outcome": "confirmed",
+      "requestHighwater": 30,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        },
+        {
+          "feature": "shop",
+          "cashHeld": 375,
+          "requestId": 27
+        }
+      ],
+      "attempts": 1,
+      "reason": "Session unavailable",
+      "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b"
+    },
+    {
+      "feature": "restoratives",
+      "requestHighwater": 27,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        },
+        {
+          "feature": "shop",
+          "cashHeld": 375,
+          "requestId": 27
+        }
+      ],
+      "attempts": 0,
+      "reason": "No eligible owned restorative",
+      "workingBuild": "f5de0d09779bf04d6bc4e32e52977ad96df0c82887b5c023eeebf4a3e76d1625"
+    },
+    {
+      "feature": "collect",
+      "outcome": "confirmed",
+      "requestHighwater": 23,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        }
+      ],
+      "attempts": 1,
+      "reason": "Disabled",
+      "workingBuild": "f5de0d09779bf04d6bc4e32e52977ad96df0c82887b5c023eeebf4a3e76d1625"
+    },
+    {
+      "feature": "cosmetics",
+      "requestHighwater": 27,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        },
+        {
+          "feature": "shop",
+          "cashHeld": 375,
+          "requestId": 27
+        }
+      ],
+      "attempts": 0,
+      "reason": "Bound cosmetic transfer precedence unverified",
+      "workingBuild": "f5de0d09779bf04d6bc4e32e52977ad96df0c82887b5c023eeebf4a3e76d1625"
+    },
+    {
+      "feature": "station",
+      "outcome": "confirmed",
+      "workingBuild": "0d07b5006fedd69043c009ca0b2d68b41c9095b8297356a93bbd75e3029583c1",
+      "requestHighwater": 36,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        }
+      ],
+      "reason": "Station: Current owned district, city and stable Crew proof required; Recall: Current own deployment, district and member custody required",
+      "attempts": 1,
+      "previousObservations": [
+        {
+          "feature": "station",
+          "workingBuild": "21c15ce5bec1884f4cbe5c71b010a97a2d6a6e464d882a7d033ce19f7ae64c1e",
+          "requestHighwater": 35,
+          "pending": [
+            {
+              "feature": "operations",
+              "cashHeld": 200,
+              "requestId": 4
+            }
+          ],
+          "reason": "Station: Current owned district, city and stable Crew proof required; Recall: Current own deployment, district and member custody required",
+          "attempts": 0,
+          "previousObservations": [
+            {
+              "feature": "station",
+              "requestHighwater": 33,
+              "pending": [
+                {
+                  "feature": "operations",
+                  "cashHeld": 200,
+                  "requestId": 4
+                },
+                {
+                  "feature": "shop",
+                  "cashHeld": 375,
+                  "requestId": 27
+                }
+              ],
+              "attempts": 0,
+              "reason": "Station: Crew slot 9 lacks a stable member identity; Recall: Current own deployment, district and member custody required",
+              "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "feature": "operations",
+      "requestHighwater": 33,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        },
+        {
+          "feature": "shop",
+          "cashHeld": 375,
+          "requestId": 27
+        }
+      ],
+      "attempts": 0,
+      "reason": "Unresolved action exposure",
+      "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b"
+    },
+    {
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        }
+      ],
+      "reason": "Market: 10 listings; 0 research candidates; prices ready 0/1 items; 1 upgraded variant(s); pricing and trading withheld; 0 owned listings to review",
+      "feature": "marketWatch",
+      "workingBuild": "fbf3d038320fa5aef06a8c8eb3de1ff8d30ae98c88991c75521ac8191541ae97",
+      "requestHighwater": 35,
+      "attempts": 0,
+      "reportConfirmed": true,
+      "previousObservations": [
+        {
+          "feature": "marketWatch",
+          "requestHighwater": 33,
+          "pending": [
+            {
+              "feature": "operations",
+              "cashHeld": 200,
+              "requestId": 4
+            },
+            {
+              "feature": "shop",
+              "cashHeld": 375,
+              "requestId": 27
+            }
+          ],
+          "attempts": 0,
+          "reason": "Waiting for complete fresh Market pages",
+          "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b"
+        }
+      ]
+    },
+    {
+      "feature": "heists",
+      "requestHighwater": 28,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        },
+        {
+          "feature": "shop",
+          "cashHeld": 375,
+          "requestId": 27
+        }
+      ],
+      "attempts": 0,
+      "reason": "No eligible personal Heist",
+      "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b"
+    },
+    {
+      "report": {
+        "state": "waiting",
+        "routed": false
+      },
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        }
+      ],
+      "reason": "No ordinary borrowing permission enabled; goal routing is waiting",
+      "feature": "autoContracts",
+      "workingBuild": "fbf3d038320fa5aef06a8c8eb3de1ff8d30ae98c88991c75521ac8191541ae97",
+      "requestHighwater": 35,
+      "attempts": 0,
+      "reportConfirmed": true,
+      "previousObservations": [
+        {
+          "feature": "autoContracts",
+          "report": {
+            "state": "waiting",
+            "routed": false
+          },
+          "requestHighwater": 33,
+          "pending": [
+            {
+              "feature": "operations",
+              "cashHeld": 200,
+              "requestId": 4
+            },
+            {
+              "feature": "shop",
+              "cashHeld": 375,
+              "requestId": 27
+            }
+          ],
+          "attempts": 0,
+          "reason": "No verified planner",
+          "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b"
+        }
+      ]
+    },
+    {
+      "feature": "residency",
+      "workingBuild": "21c15ce5bec1884f4cbe5c71b010a97a2d6a6e464d882a7d033ce19f7ae64c1e",
+      "requestHighwater": 35,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        }
+      ],
+      "reason": "Current native lease and snapshot-bound residency view required",
+      "attempts": 0,
+      "previousObservations": [
+        {
+          "pending": [
+            {
+              "feature": "operations",
+              "cashHeld": 200,
+              "requestId": 4
+            }
+          ],
+          "reason": "Owned residency attempt limit required",
+          "feature": "residency",
+          "workingBuild": "fbf3d038320fa5aef06a8c8eb3de1ff8d30ae98c88991c75521ac8191541ae97",
+          "requestHighwater": 35,
+          "attempts": 0,
+          "previousObservations": [
+            {
+              "feature": "residency",
+              "requestHighwater": 33,
+              "pending": [
+                {
+                  "feature": "operations",
+                  "cashHeld": 200,
+                  "requestId": 4
+                },
+                {
+                  "feature": "shop",
+                  "cashHeld": 375,
+                  "requestId": 27
+                }
+              ],
+              "attempts": 0,
+              "reason": "Current native lease and snapshot-bound residency view required",
+              "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b"
+            }
+          ]
+        }
+      ],
+      "observedPrerequisite": "Existing residence; replacing it is disabled (observed through current native view)."
+    },
+    {
+      "feature": "heistCollect",
+      "requestHighwater": 28,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        },
+        {
+          "feature": "shop",
+          "cashHeld": 375,
+          "requestId": 27
+        }
+      ],
+      "attempts": 0,
+      "reason": "No personal Heist result ready",
+      "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b"
+    },
+    {
+      "feature": "territoryWatch",
+      "requestHighwater": 28,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        },
+        {
+          "feature": "shop",
+          "cashHeld": 375,
+          "requestId": 27
+        }
+      ],
+      "attempts": 0,
+      "reason": "jade_harbor: 15/112 held; bosshunters +28% (2/2 active); buildDiscount +4% (1/2 active); crateLuck +4% (1/2 active); 8 other bonus kinds; Family 15/15 districts; season 2 pre",
+      "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b",
+      "reportConfirmed": true
+    },
+    {
+      "feature": "groupBonus",
+      "requestHighwater": 28,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        },
+        {
+          "feature": "shop",
+          "cashHeld": 375,
+          "requestId": 27
+        }
+      ],
+      "attempts": 0,
+      "reason": "Group bonus already claimed",
+      "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b"
+    },
+    {
+      "feature": "trophyFocus",
+      "report": {
+        "state": "owned",
+        "routed": false,
+        "target": "t_fb_spyglass"
+      },
+      "requestHighwater": 33,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        },
+        {
+          "feature": "shop",
+          "cashHeld": 375,
+          "requestId": 27
+        }
+      ],
+      "attempts": 0,
+      "reason": "Selected Trophy ownership observed; goal routing stopped",
+      "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b",
+      "reportConfirmed": true
+    },
+    {
+      "feature": "collectionDonate",
+      "outcome": "confirmed",
+      "requestHighwater": 25,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        }
+      ],
+      "attempts": 1,
+      "reason": "No safe unbound Collection surplus",
+      "workingBuild": "f5de0d09779bf04d6bc4e32e52977ad96df0c82887b5c023eeebf4a3e76d1625"
+    },
+    {
+      "feature": "crewHealItems",
+      "requestHighwater": 33,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        },
+        {
+          "feature": "shop",
+          "cashHeld": 375,
+          "requestId": 27
+        }
+      ],
+      "attempts": 0,
+      "reason": "Selected Crew healing item not owned",
+      "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b"
+    },
+    {
+      "feature": "chests",
+      "outcome": "confirmed",
+      "requestHighwater": 21,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        }
+      ],
+      "attempts": 1,
+      "reason": "Disabled",
+      "workingBuild": "f5de0d09779bf04d6bc4e32e52977ad96df0c82887b5c023eeebf4a3e76d1625"
+    },
+    {
+      "feature": "crewGear",
+      "requestHighwater": 23,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        }
+      ],
+      "attempts": 0,
+      "reason": "No safe loose-inventory gear gain (captured before disabling)",
+      "workingBuild": "f5de0d09779bf04d6bc4e32e52977ad96df0c82887b5c023eeebf4a3e76d1625"
+    },
+    {
+      "feature": "familyCash",
+      "outcome": "confirmed",
+      "requestHighwater": 33,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        },
+        {
+          "feature": "shop",
+          "cashHeld": 375,
+          "requestId": 27
+        }
+      ],
+      "attempts": 1,
+      "reason": "Preserved Family allowance is included in this cap",
+      "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b"
+    },
+    {
+      "feature": "jobs",
+      "outcome": "confirmed",
+      "requestHighwater": 20,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        }
+      ],
+      "attempts": 1,
+      "reason": "Disabled",
+      "workingBuild": "f5de0d09779bf04d6bc4e32e52977ad96df0c82887b5c023eeebf4a3e76d1625"
+    },
+    {
+      "feature": "contracts",
+      "requestHighwater": 28,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        },
+        {
+          "feature": "shop",
+          "cashHeld": 375,
+          "requestId": 27
+        }
+      ],
+      "attempts": 0,
+      "reason": "No replicated ready Contract entry",
+      "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b"
+    },
+    {
+      "feature": "crewHeal",
+      "requestHighwater": 33,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        },
+        {
+          "feature": "shop",
+          "cashHeld": 375,
+          "requestId": 27
+        }
+      ],
+      "attempts": 0,
+      "reason": "No eligible Crew injury within stamina reserve",
+      "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b"
+    },
+    {
+      "feature": "crewTrain",
+      "outcome": "confirmed",
+      "requestHighwater": 29,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        },
+        {
+          "feature": "shop",
+          "cashHeld": 375,
+          "requestId": 27
+        }
+      ],
+      "attempts": 1,
+      "reason": "Crew training concurrency limit reached",
+      "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b"
+    },
+    {
+      "feature": "properties",
+      "outcome": "confirmed",
+      "workingBuild": "0d07b5006fedd69043c009ca0b2d68b41c9095b8297356a93bbd75e3029583c1",
+      "requestHighwater": 38,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        }
+      ],
+      "reason": "Session unavailable",
+      "attempts": 1,
+      "previousObservations": [
+        {
+          "feature": "properties",
+          "outcome": "confirmed",
+          "requestHighwater": 26,
+          "pending": [
+            {
+              "feature": "operations",
+              "cashHeld": 200,
+              "requestId": 4
+            }
+          ],
+          "attempts": 1,
+          "reason": "Session unavailable",
+          "workingBuild": "f5de0d09779bf04d6bc4e32e52977ad96df0c82887b5c023eeebf4a3e76d1625"
+        }
+      ]
+    },
+    {
+      "feature": "familyBossClaims",
+      "requestHighwater": 30,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        },
+        {
+          "feature": "shop",
+          "cashHeld": 375,
+          "requestId": 27
+        }
+      ],
+      "attempts": 0,
+      "reason": "No unattempted unexpired Family reward claim",
+      "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b"
+    },
+    {
+      "feature": "familyGold",
+      "outcome": "confirmed",
+      "requestHighwater": 32,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        },
+        {
+          "feature": "shop",
+          "cashHeld": 375,
+          "requestId": 27
+        }
+      ],
+      "attempts": 1,
+      "reason": "Family resource reserve or uncertain exposure blocks contribution",
+      "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b"
+    },
+    {
+      "feature": "crew",
+      "outcome": "confirmed",
+      "requestHighwater": 24,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        }
+      ],
+      "attempts": 1,
+      "reason": "Disabled",
+      "workingBuild": "f5de0d09779bf04d6bc4e32e52977ad96df0c82887b5c023eeebf4a3e76d1625"
+    },
+    {
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        }
+      ],
+      "reason": "Boss Tokens below quote and reserve",
+      "feature": "bossShop",
+      "outcome": "confirmed",
+      "workingBuild": "fbf3d038320fa5aef06a8c8eb3de1ff8d30ae98c88991c75521ac8191541ae97",
+      "requestHighwater": 34,
+      "attempts": 1
+    },
+    {
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        }
+      ],
+      "reason": "Session unavailable",
+      "feature": "bosses",
+      "outcome": "confirmed",
+      "workingBuild": "fbf3d038320fa5aef06a8c8eb3de1ff8d30ae98c88991c75521ac8191541ae97",
+      "requestHighwater": 35,
+      "attempts": 1
+    },
+    {
+      "feature": "crewHire",
+      "workingBuild": "21c15ce5bec1884f4cbe5c71b010a97a2d6a6e464d882a7d033ce19f7ae64c1e",
+      "requestHighwater": 35,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        }
+      ],
+      "reason": "Selected tier, limits and empty slot required",
+      "attempts": 0
+    },
+    {
+      "feature": "familyBossAttacks",
+      "outcome": "confirmed",
+      "workingBuild": "0d07b5006fedd69043c009ca0b2d68b41c9095b8297356a93bbd75e3029583c1",
+      "requestHighwater": 37,
+      "pending": [
+        {
+          "feature": "operations",
+          "cashHeld": 200,
+          "requestId": 4
+        }
+      ],
+      "reason": "Unknown Takedown damage needs explicit permission, full health and an unused weekly attempt",
+      "attempts": 1,
+      "previousObservations": [
+        {
+          "feature": "familyBossAttacks",
+          "workingBuild": "21c15ce5bec1884f4cbe5c71b010a97a2d6a6e464d882a7d033ce19f7ae64c1e",
+          "requestHighwater": 35,
+          "pending": [
+            {
+              "feature": "operations",
+              "cashHeld": 200,
+              "requestId": 4
+            }
+          ],
+          "reason": "Unknown Takedown damage needs explicit permission, full health and an unused weekly attempt",
+          "attempts": 0
+        }
+      ]
+    }
+  ],
+  "contentHash": "0d07b5006fedd69043c009ca0b2d68b41c9095b8297356a93bbd75e3029583c1",
+  "schema": 2,
+  "placeId": 73897506680154,
+  "placeVersion": 654,
+  "captured_utc": "2026-11-06T17:03:00Z",
+  "scope": "Cumulative bounded path evidence from f5de, 901, fbf, 21c and 0d working builds, not all branches or final-release acceptance. Each mutation used a one-attempt manager gate. No account identifiers or native source.",
+  "confirmedGameplay": 18,
+  "limitations": [
+    "Original Operation request4 remains unresolved with200Cash held.",
+    "Shop request27 recovered normally in fbf with zero second purchases; original375Cash allowance remains charged.",
+    "A confirmed path does not mean every branch or all award delivery effects were verified.",
+    "Some f5de reason snapshots retained Disabled after test; explicit unavailable reasons are preserved separately."
+  ]
+}

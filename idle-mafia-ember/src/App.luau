@@ -26,12 +26,17 @@ function App.start(dependencies)
             and type(dependencies.ProfileStore) == "table"
             and type(dependencies.ProfileStore.new) == "function",
             "Invalid storage activation")
-        local stores, reason = dependencies.StorageAssembly.new(dependencies)
+        local stores, reason = dependencies.preparedStorage, nil
+        if stores == nil then stores, reason = dependencies.StorageAssembly.new(dependencies) end
+        assert(type(stores) ~= "table" or stores.identity == nil
+            or stores.identity == dependencies.identity, "Prepared storage identity differs from runtime")
         assert(stores and type(stores.ProfileStorage) == "table"
             and type(stores.storage) == "table",
             reason or "Storage assembly failed")
         dependencies.ProfileStorage = stores.ProfileStorage
         dependencies.storage = stores.storage
+        dependencies.usageCarryGuard = stores.usageCarryGuard
+        dependencies.requestHighwaterFloor = stores.requestHighwaterFloor
     end
     local automation = runtimeInstance(dependencies.automationRuntimeInstance)
         or runtimeInstance(dependencies.AutomationRuntime)
@@ -42,6 +47,15 @@ function App.start(dependencies)
             and type(dependencies.RuntimeAssembly) == "table"
             and type(dependencies.RuntimeAssembly.start) == "function",
             "Invalid runtime activation")
+        local carry = dependencies.usageCarryGuard
+        if type(carry) == "table" and type(carry.BindNativeSources) == "function" then
+            local protocol = dependencies.heistProtocol
+            local bound, why = carry:BindNativeSources({
+                heist = type(protocol) == "table" and protocol.lease or nil,
+                recall = dependencies.nativeRecallLease,
+            })
+            assert(bound == true, why or "Native carry sources unavailable")
+        end
         local reason
         automation, reason = dependencies.RuntimeAssembly.start(dependencies)
         assert(automation, reason or "Runtime assembly failed")
@@ -49,6 +63,8 @@ function App.start(dependencies)
     assert(not (automation and jobs),
         "Use one automation runtime")
     local runtime = automation or jobs
+    local startPaused = dependencies.startPaused == true
+    if startPaused and runtime then runtime:Pause() end
     local allowedFeatures = runtime and dependencies.allowedFeatures or nil
     local function allowed(values)
         if type(allowedFeatures) ~= "table" then return true end
@@ -62,7 +78,7 @@ function App.start(dependencies)
         return true
     end
     local self = { alive = true,
-        model = dependencies.Settings.new(dependencies.Catalog, runtime ~= nil),
+        model = dependencies.Settings.new(dependencies.Catalog, runtime ~= nil and not startPaused),
         ui = nil, staged = nil, profileSync = false, profileModified = false,
         profileSaving = false, savedStateReview = nil, savedStatePage = 1, reviewBusy = false,
         jobsRuntime = jobs,
@@ -824,7 +840,7 @@ function App.start(dependencies)
     self.ui = uiOrReason
     local ok, reason = self:Refresh(startupNote)
     if not ok then self:Destroy(); error(reason, 0) end
-    if runtime then runtime:Resume() end
+    if runtime and not startPaused then runtime:Resume() end
     return self
 end
 

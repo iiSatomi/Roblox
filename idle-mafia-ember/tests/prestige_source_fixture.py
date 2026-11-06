@@ -3,8 +3,8 @@ import hashlib
 from engine_harness import Harness, ROOT
 
 
-def make_prestige_client():
-    h = Harness()
+def make_prestige_client(h=None):
+    h = h if h is not None else Harness()
     h.lua.globals().prestigeCapturedSource = (ROOT / 'docs/native-source/2026-11-02/PrestigeModal.lua.txt').read_bytes().decode('utf-8')
     h.lua.globals().prestigeSourceHash = lambda value, kind: hashlib.sha256(value.encode()).hexdigest()
     f = h.lua.execute('''

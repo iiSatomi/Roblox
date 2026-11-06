@@ -103,7 +103,7 @@ function Methods:Descriptors()
         { id = "playtime", reader = self.playtimeReader,
             planner = d.Playtime, evidence = self.playtimeEvidence, recoverSaved = self.playtimeEvidence.recoverSaved },
         { id = "groupBonus", reader = d.GroupBonusState,
-            planner = d.GroupBonus, evidence = self.groupEvidence },
+            planner = d.GroupBonus, evidence = self.groupEvidence, recoverSaved = self.groupEvidence.recoverSaved },
         { id = "monthlyRewards", reader = self.monthlyReader,
             planner = d.MonthlyRewards,
             evidence = self.monthlyEvidence, recoverSaved = self.monthlyEvidence.recoverSaved },

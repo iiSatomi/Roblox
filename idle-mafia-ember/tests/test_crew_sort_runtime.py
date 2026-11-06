@@ -1,4 +1,5 @@
 """Actual native Crew sorting with complete-member custody and saved results."""
+import hashlib
 import unittest
 import test_crew_equip_runtime as equip_fixture
 from engine_harness import lua_table
@@ -6,6 +7,8 @@ class CrewSortRuntimeTests(unittest.TestCase):
     def setUp(self):
         self.e=equip_fixture.CrewEquipRuntimeTests();self.e.setUp();self.f=self.e.f;self.h=self.e.h
         self.f.app.Destroy(self.f.app);self.f.feature_id='crewSort'
+        self.h.lua.globals().crewRuntimeSortHash=lambda value: hashlib.sha256(value.encode()).hexdigest()
+        self.f.tab_dependencies['sha256']=self.h.lua.eval('function(value) return crewRuntimeSortHash(value) end')
         self.f.tab_dependencies['CrewSort']=self.h.load('src/tabs/crew/CrewSort.luau');self.f.start_current()
     def tearDown(self):self.f.tearDown()
     def raw(self,revision=1,sorted=False):
@@ -65,3 +68,22 @@ class CrewSortRuntimeTests(unittest.TestCase):
         after=self.raw(0,True);after.native.serverNow=1005;self.f.app.Step(self.f.app,after)
         self.assertIsNone(self.f.runtime.Status(self.f.runtime).recoveries.crewSort)
         self.assertEqual(len(self.f.runtime.checkpoint.Records(self.f.runtime.checkpoint)),1)
+
+    def test_large_roster_crosses_actual_app_checkpoint_and_exact_native_call(self):
+        self.choose()
+        raw=self.raw()
+        for slot in range(5,34):
+            raw.native.crew[slot]=lua_table(self.h.lua,{'name':f'Member {slot} with a long roster name',
+                'rarity':4,'healId':f'stable-id-{slot}-abcdefghijklmnopqrstuvwxyz'})
+        self.h.at(raw.capturedAt);self.f.app.Step(self.f.app,raw)
+        self.f.drain()
+        self.assertEqual(len(self.f.executor.calls),1,str(dict(self.f.runtime.Status(self.f.runtime).reasons.items())))
+        self.assertEqual(self.f.executor.calls[1].args[1],'sort')
+        self.assertFalse(self.f.runtime.Status(self.f.runtime).storageFault)
+        self.f.restart()
+        after=self.raw(0,True)
+        for slot in range(5,34):after.native.crew[slot]=raw.native.crew[slot]
+        after.native.serverNow=1005
+        self.f.app.Step(self.f.app,after)
+        self.assertEqual(self.f.runtime.Status(self.f.runtime).recoveries.crewSort,'confirmed')
+        self.assertEqual(len(self.f.executor.calls),1)

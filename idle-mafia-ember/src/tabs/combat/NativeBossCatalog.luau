@@ -24,7 +24,7 @@ local function validShop(rows)
     return true
 end
 
--- Build 653's reviewed get formula (docs/native-source/2026-11-03).
+-- Build 653's reviewed get formula, unchanged in the current 654 capture.
 -- This is a build/function-lifetime contract, not a runtime source decompile.
 local CONTRACT = "boss-get-653-v1"
 local function equal(a, b)
@@ -72,7 +72,8 @@ local function citySource(data)
     return {rows = rows, rarities = rarities}
 end
 local function reviewed(stages, data, game)
-    if game == nil or game.PlaceId ~= 73897506680154 or game.PlaceVersion ~= 653
+    if game == nil or game.PlaceId ~= 73897506680154
+        or (game.PlaceVersion ~= 653 and game.PlaceVersion ~= 654)
         or not constants(stages) then return nil end
     return citySource(data)
 end
@@ -223,7 +224,7 @@ function NativeBossCatalog.new(stages, config, fingerprint, release, data, game)
         for id in pairs(contract.rarities) do itemRefs[id] = data.ITEMS_BY_ID[id] end
     end
     return setmetatable({ stages = stages, game = game, data = data, contract = contract,
-        rowRefs = rowRefs, itemRefs = itemRefs,
+        rowRefs = rowRefs, itemRefs = itemRefs, placeVersion = game and game.PlaceVersion,
         get = stages.get, mw = stages.MOST_WANTED, base = stages.MW_BASE,
         cityRows = type(data) == "table" and data.BOSSES,
         itemRows = type(data) == "table" and data.ITEMS_BY_ID,
@@ -259,7 +260,7 @@ function Methods:Enrich(snapshot, settings, exactStage, excludedStages)
     local selection, indexes, cityReason, selectionAvailable, selectionReason
     if self.contract then
         local current = reviewed(self.stages, self.data, self.game)
-        if self.retired or self.stages.get ~= self.get
+        if self.retired or self.game.PlaceVersion ~= self.placeVersion or self.stages.get ~= self.get
             or self.stages.MOST_WANTED ~= self.mw or self.stages.MW_BASE ~= self.base
             or not sameReferences(self)
             or not current or not equal(current, self.contract) then
@@ -342,7 +343,8 @@ function Methods:Enrich(snapshot, settings, exactStage, excludedStages)
                 price = row.price, unlocked = unlocked }
         end
     end
-    if self.contract and (self.retired or self.stages.get ~= self.get or self.stages.MOST_WANTED ~= self.mw
+    if self.contract and (self.retired or self.game.PlaceVersion ~= self.placeVersion
+        or self.stages.get ~= self.get or self.stages.MOST_WANTED ~= self.mw
         or self.stages.MW_BASE ~= self.base or not sameReferences(self)
         or not equal(reviewed(self.stages, self.data, self.game), self.contract)) then
         self.retired = true

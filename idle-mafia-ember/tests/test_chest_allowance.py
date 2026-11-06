@@ -159,6 +159,23 @@ class ChestAllowanceTests(unittest.TestCase):
         self.assertEqual(self.runtime.Status(self.runtime).recoveries.chests,'rejected')
         self.assertEqual(self.usage().spent,2)
 
+    def test_negative_reply_with_changed_inventory_keeps_custody_after_timeout_and_restart(self):
+        self.enable(limit=2);self.send(reply={'ok':False});self.app.Pause(self.app)
+        self.h.at(1);self.app.Step(self.app,self.raw(2,8,2))
+        self.assertIsNone(self.runtime.Status(self.runtime).outcomes.chests)
+        self.h.at(46);self.app.Step(self.app,self.raw(3,8,2))
+        records=self.runtime.checkpoint.Records(self.runtime.checkpoint)
+        self.assertEqual(len(records),1)
+        self.assertEqual(records[1].custody['items']['L:crate_a'],2)
+        self.assertEqual(self.usage().spent,2)
+        self.assertEqual(len(self.executor.calls),1)
+        self.restart();self.enable(limit=2);self.h.at(47)
+        self.app.Step(self.app,self.raw(4,8,2));self.executor.Drain(self.executor)
+        self.assertIsNone(self.runtime.Status(self.runtime).recoveries.chests)
+        self.assertEqual(len(self.runtime.checkpoint.Records(self.runtime.checkpoint)),1)
+        self.assertEqual(self.usage().spent,2)
+        self.assertEqual(len(self.executor.calls),0)
+
     def test_unknown_reply_exact_delta_does_not_confirm_or_refund(self):
         self.enable();self.app.Step(self.app,self.raw())
         self.executor.Invoke=self.h.lua.eval("function() error('lost connection') end")

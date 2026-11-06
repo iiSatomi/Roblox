@@ -297,13 +297,19 @@ function AutomationRuntime.new(deps)
     local shopUsage = m.ShopBuy or (features.shop and features.shop.planner)
     if type(shopUsage) ~= "table" or type(shopUsage.copy) ~= "function" then shopUsage = nil end
     local checkpoint = m.Checkpoint.new(deps.storage, m.FamilyContributionUsage, m.ResourceReservations, m.PendingAction, m.EventShopUsage, m.MarketRentUsage,m.CrewHireUsage,m.PlayerFightUsage,m.Chests,shopUsage)
+    local usageGuard = deps.usageCarryGuard
+    assert(usageGuard == nil or type(usageGuard) == "table"
+        and type(usageGuard.Check) == "function" and type(usageGuard.BindCheckpoint) == "function"
+        and type(m.ResourceReservations) == "table", "Imported usage guard unavailable")
+    assert(deps.requestHighwaterFloor == nil or usageGuard ~= nil, "Unverified imported request floor")
+    assert(usageGuard == nil or deps.requestHighwaterFloor ~= nil, "Imported request floor unavailable")
     local reservationOwner
     if m.ResourceReservations ~= nil then
         reservationOwner = m.ResourceReservations.new(deps.identity,
             function()
                 if checkpoint.fault then error("Checkpoint custody unavailable") end
                 return checkpoint:Records()
-            end, deps.reservationSources)
+            end, deps.reservationSources, usageGuard)
     end
     local broker = m.Broker.new(deps.clock, deps.transport, journal, {
         contracts = m.Contracts, session = deps.identity,
@@ -339,6 +345,17 @@ function AutomationRuntime.new(deps)
         end,
     })
     local session = m.Session.new(broker, checkpoint, deps.identity)
+    if usageGuard and not session.storageFault then
+        local bound, accepted, why = pcall(usageGuard.BindCheckpoint, usageGuard, checkpoint)
+        if not bound or accepted ~= true then
+            session.storageFault = bound and type(why) == "string" and why or "Imported usage binding failed"
+        elseif deps.requestHighwaterFloor ~= nil then
+            local applied, ok, reason = pcall(checkpoint.ApplyRequestFloor, checkpoint, deps.requestHighwaterFloor)
+            if not applied or ok ~= true then
+                session.storageFault = applied and type(reason) == "string" and reason or "Imported request floor unavailable"
+            end
+        end
+    end
     local saveBefore, resolveAfter, saveReply = broker.policy.beforeSend, broker.policy.afterResolve, broker.policy.recordReply
     local abandonedUnsent = broker.policy.abandonedUnsent
     local function lifecycle(proposal) return features[proposal.feature].lifecycle end
@@ -737,6 +754,16 @@ local function sameGoalSelection(a, b)
     for key, value in pairs(b) do if a[key] ~= value then return false end end
     return true
 end
+local function borrowingDisabled(settings)
+    local present = false
+    for key, value in pairs(settings or {}) do
+        if type(key) == "string" and key:match("^borrow") and type(value) == "boolean" then
+            if value then return false end
+            present = true
+        end
+    end
+    return present
+end
 local function goalRoutes(self, raw, context, settings, proposals, enabled, tabReasons, reservations)
     local preferred, candidates, seen = {}, {}, {}
     for _, proposal in ipairs(proposals) do candidates[proposal.feature],seen[proposal.actionKey] = true,true end
@@ -825,6 +852,7 @@ local function goalRoutes(self, raw, context, settings, proposals, enabled, tabR
                         or state == "complete" and "Native objective complete; ordinary switches keep their own settings"
                         or state == "progressed" and "Native objective progress observed"
                         or routed and "Goal route selected; ordinary availability and limits still apply"
+                        or borrowingDisabled(choices) and "No ordinary borrowing permission enabled; goal routing is waiting"
                         or (type(requests.excluded) == "table" and type(requests.excluded[1]) == "table"
                             and type(requests.excluded[1].reason) == "string" and requests.excluded[1].reason)
                         or "No eligible explicitly borrowed ordinary proposal; verify switches, limits and current objective"

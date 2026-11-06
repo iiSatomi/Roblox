@@ -66,7 +66,8 @@ local function reconcile(proposal, beforeHeader, after, reply, baseline, restart
         or type(baseline.serverNow) ~= "number" or after.native.serverNow < baseline.serverNow
         or not (after.session == baseline.session and after.revision > baseline.revision
             or restart and after.session ~= baseline.session and after.native.serverNow > baseline.serverNow)
-        or reply.pending == true or reply.code == "rate_limited" or reply.code == "presence"
+        or reply.pending == true or reply.code == "pending" or reply.code == "busy"
+        or reply.code == "rate_limited" or reply.code == "presence"
         or not matching(proposal, baseline)
         or proposal.revision ~= baseline.revision
         or beforeHeader.revision ~= baseline.revision

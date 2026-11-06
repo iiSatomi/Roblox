@@ -203,7 +203,8 @@ local function reconcile(proposal,before,after,reply,baseline,restart)
         or not (after.session==baseline.session and after.revision>baseline.revision
             or restart and after.session~=baseline.session and type(after.native)=="table"
                 and balance(baseline.serverNow,0) and balance(after.native.serverNow,0) and after.native.serverNow>baseline.serverNow)
-        or reply.pending==true or reply.code=="rate_limited" or reply.code=="presence" then
+        or reply.pending==true or reply.code=="pending" or reply.code=="busy"
+        or reply.code=="rate_limited" or reply.code=="presence" then
         return "pending"
     end
     local native = after.native
@@ -223,7 +224,7 @@ local function reconcile(proposal,before,after,reply,baseline,restart)
     if reply.ok ~= true or reply.pending == true or reply.code == "rate_limited"
         or (reply.index ~= nil and reply.index ~= baseline.slot)
         or type(native) ~= "table" or native.fullSync ~= true
-        or not balance(native.cash, 0) or native.cash ~= baseline.cash - baseline.cost
+        or not balance(native.cash, 0)
         or type(crew) ~= "table" or #crew ~= baseline.count
         or type(returned) ~= "table" or type(member) ~= "table"
         or type(returned.name) ~= "string"
@@ -235,6 +236,15 @@ local function reconcile(proposal,before,after,reply,baseline,restart)
         or member.rarity ~= returned.rarity
         or member.atk ~= returned.atk
         or member.def ~= returned.def then return "pending" end
+    if native.cash == baseline.cash - baseline.cost then return "confirmed" end
+    -- Passive income can change Cash before Sync. Independently prove the exact
+    -- newly owned member; never infer a debit from an estimated income rate.
+    if not balance(baseline.serverNow,0) or not balance(native.serverNow,0)
+        or native.serverNow<=baseline.serverNow
+        or type(returned.healId)~="string" or #returned.healId==0 or #returned.healId>128 then return "pending" end
+    for _,original in pairs(baseline.identities or {}) do
+        if original.memberId==returned.healId then return "pending" end
+    end
     return "confirmed"
 end
 

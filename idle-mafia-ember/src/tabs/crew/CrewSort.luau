@@ -92,7 +92,7 @@ function CrewSort.read(raw, context)
         orderKey = table.concat(order, "|") }, nil
 end
 
-function CrewSort.propose(view, settings)
+function CrewSort.propose(view, settings, hash)
     if type(view) ~= "table" or type(settings) ~= "table" then
         return nil, "Missing Crew sort input"
     end
@@ -101,10 +101,17 @@ function CrewSort.propose(view, settings)
         or type(view.movable) ~= "number" or view.movable < 2 then
         return nil, "Fewer than two available Crew members"
     end
+    -- Keep the exact roster in capture; only the deduplication key is compact.
+    if type(hash) ~= "function" then return nil, "Crew sort digest unavailable" end
+    local ok, digest = pcall(hash, view.orderKey)
+    if not ok or type(digest) ~= "string" or #digest ~= 64
+        or not digest:match("^[0-9a-fA-F]+$") then
+        return nil, "Crew sort digest unavailable"
+    end
     return { session = view.session, account = view.account,
         place = view.place, release = view.release,
         revision = view.revision, feature = "crewSort",
-        actionKey = "crewSort:" .. view.orderKey,
+        actionKey = "crewSort:v2:" .. digest:lower(),
         resources = {}, intent = { kind = "crewSort" } }, nil
 end
 

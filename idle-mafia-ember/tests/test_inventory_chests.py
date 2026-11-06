@@ -60,6 +60,20 @@ class InventoryChestTests(unittest.TestCase):
         self.before["crateLuckProof"]["luck"] = 0.3
         self.assertIsNone(self.feature.capture(proposal, self.before)[0])
 
+    def test_negative_reply_requires_complete_unchanged_crate_and_reward_inventory(self):
+        proposal = self.plan()
+        baseline,_ = self.feature.capture(proposal,self.before)
+        cases = [({'fullSync':True,'inventory':{'crate_a':3},'inventoryBound':{'crate_a':2}},'rejected'),
+            ({'fullSync':False,'inventory':{'crate_a':3},'inventoryBound':{'crate_a':2}},'pending'),
+            ({'fullSync':True,'inventory':{'crate_a':1,'prize_a':2},'inventoryBound':{'crate_a':2}},'pending'),
+            ({'fullSync':True,'inventory':{'crate_a':3,'prize_a':1},'inventoryBound':{'crate_a':2}},'pending'),
+            ({'fullSync':True,'inventory':{'crate_a':3}},'pending')]
+        for native,expected in cases:
+            with self.subTest(native=native):
+                after=self.h.snapshot(revision=2,native=native)
+                self.assertEqual(self.feature.evaluate(proposal,self.before,after,
+                    lua_table(self.h.lua,{'ok':False}),baseline),expected)
+
     def test_send_time_missing_catalog_or_resource_fails_closed(self):
         proposal = self.plan()
         self.before["ownedCrateCatalog"]["crates"] = None

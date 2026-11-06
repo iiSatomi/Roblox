@@ -59,6 +59,25 @@ class InventoryCosmeticTests(unittest.TestCase):
         proposal = self.plan()
         self.assertIsNone(self.feature["capture"](proposal, None)[0])
 
+    def test_transient_or_changed_negative_reply_keeps_cosmetic_custody(self):
+        proposal=self.plan()
+        baseline,_=self.feature.capture(proposal,self.before)
+        for code in ('busy','presence','rate_limited'):
+            with self.subTest(code=code):
+                after=self.h.snapshot(revision=2,native=self.before.native)
+                self.assertEqual(self.feature.evaluate(proposal,self.before,after,
+                    lua_table(self.h.lua,{'ok':False,'code':code}),baseline),'pending')
+        for worn,amount,full,expected in [('bg_old',1,True,'rejected'),('bg_new',1,True,'pending'),
+                ('bg_old',0,True,'pending'),('bg_old',1,False,'pending')]:
+            with self.subTest(worn=worn,amount=amount,full=full):
+                after=self.h.snapshot(revision=2,native={'fullSync':full,'equippedBackground':worn,
+                    'inventory':{'bg_old':1,'bg_new':amount},'inventoryBound':{},'collectionBound':{}})
+                self.assertEqual(self.feature.evaluate(proposal,self.before,after,
+                    lua_table(self.h.lua,{'ok':False}),baseline),expected)
+        after=self.h.snapshot(revision=2,native={'fullSync':True,'equippedBackground':'bg_new'})
+        self.assertEqual(self.feature.evaluate(proposal,self.before,after,
+            lua_table(self.h.lua,{'ok':True,'pending':True}),baseline),'pending')
+
 
 if __name__ == "__main__":
     unittest.main()

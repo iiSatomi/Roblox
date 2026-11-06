@@ -308,12 +308,21 @@ function CollectionDonate.evaluate(proposal, before, after,
         or not integer(after.revision, baseline.revision + 1) then
         return "pending"
     end
-    if reply.ok == false then return "rejected" end
+    if reply.pending == true or reply.code == "rate_limited"
+        or reply.code == "busy" or reply.code == "presence" then return "pending" end
     local native = after.native
     local used = worn(native)
+    if type(native) ~= "table" or native.fullSync ~= true
+        or not used or (used[baseline.itemId] or 0) ~= baseline.worn then return "pending" end
+    if reply.ok == false then
+        return count(native.inventory, baseline.itemId) == baseline.loose
+            and count(native.inventoryBound, baseline.itemId) == baseline.inventoryBound
+            and count(native.collection, baseline.itemId) == baseline.collectionLoose
+            and count(native.collectionBound, baseline.itemId) == baseline.collectionBound
+            and collected(native, baseline.itemId) == baseline.collected
+            and "rejected" or "pending"
+    end
     if reply.ok ~= true or reply.moved ~= baseline.amount
-        or type(native) ~= "table" or native.fullSync ~= true
-        or not used or (used[baseline.itemId] or 0) ~= baseline.worn
         or count(native.inventory, baseline.itemId)
             ~= baseline.loose - baseline.amount
         or count(native.inventoryBound, baseline.itemId)

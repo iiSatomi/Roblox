@@ -30,12 +30,13 @@ local function copy(row)
         sellerName = row.sellerName }
 end
 
-function MarketBrowsePages.new(maxPages, maxRows)
+function MarketBrowsePages.new(maxPages, maxRows, matchesItemScope)
+    assert(matchesItemScope == nil or type(matchesItemScope) == "function", "Invalid Market item scope validator")
     assert(integer(maxPages, 1, 5)
         and integer(maxRows, 1, 500),
         "Invalid Market browse pagination bounds")
     return setmetatable({ maxPages = maxPages, maxRows = maxRows,
-        current = nil, closed = false }, Methods)
+        current = nil, closed = false, matchesItemScope = matchesItemScope }, Methods)
 end
 
 function Methods:Begin(kind, arg)
@@ -71,13 +72,15 @@ function Methods:Accept(result)
         or #result.rows > self.maxRows then
         return nil, nil, "Market browse observation changed or invalid"
     end
-    local count, rows, seen = 0, {}, {}
+    local count, rows, seen, variantCount = 0, {}, {}, 0
     for index, row in ipairs(result.rows) do
-        if not listing(row) or (current.kind == "item" and row.item ~= current.arg)
+        if not listing(row) or (current.kind == "item" and row.item ~= current.arg
+                and (not self.matchesItemScope or self.matchesItemScope(row.item, current.arg) ~= true))
             or seen[tostring(row.id)] then
             return nil, nil, "Invalid or duplicate Market browse listing"
         end
         count = index
+        if row.item:find("@", 1, true) then variantCount = variantCount + 1 end
         rows[index], seen[tostring(row.id)] = copy(row), true
     end
     if count ~= #result.rows then
@@ -91,7 +94,7 @@ function Methods:Accept(result)
     return nil, { kind = current.kind, arg = current.arg,
         page = current.page, pages = result.pages,
         capturedAt = result.capturedAt, more = result.more,
-        stale = result.stale, small = result.small, rows = rows }, nil
+        stale = result.stale, small = result.small, rows = rows, variantCount = variantCount }, nil
 end
 
 function Methods:Close()

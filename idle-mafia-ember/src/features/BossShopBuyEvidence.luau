@@ -116,7 +116,8 @@ local function reconcile(proposal, beforeHeader, after, reply, baseline, restart
             or restart and after.session ~= baseline.session and timestamp(baseline.serverNow)
                 and type(after.native) == "table" and timestamp(after.native.serverNow)
                 and after.native.serverNow > baseline.serverNow)
-        or reply.pending == true or reply.code == "rate_limited" or reply.code == "presence" then
+        or reply.pending == true or reply.code == "pending" or reply.code == "busy"
+        or reply.code == "rate_limited" or reply.code == "presence" then
         return "pending"
     end
     local current = state(after, baseline.item)

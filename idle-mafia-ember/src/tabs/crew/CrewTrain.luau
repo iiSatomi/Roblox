@@ -268,7 +268,8 @@ local function reconcile(proposal,before,after,reply,baseline,restart)
         or after.native.serverNow<baseline.serverNow
         or not (after.session==baseline.session and after.revision>baseline.revision
             or restart and after.session~=baseline.session and after.native.serverNow>baseline.serverNow)
-        or reply.pending==true or reply.code=="rate_limited" or reply.code=="presence" then return "pending" end
+        or reply.pending==true or reply.code=="pending" or reply.code=="busy"
+        or reply.code=="rate_limited" or reply.code=="presence" then return "pending" end
     local members=roster(after)
     local member=members and members[baseline.slot]
     local row=type(after.native.crew)=="table" and after.native.crew[baseline.slot]
@@ -278,7 +279,11 @@ local function reconcile(proposal,before,after,reply,baseline,restart)
     if reply.ok==false then
         return member.level==baseline.from and row.training==nil and cash==baseline.cash and "rejected" or "pending"
     end
-    if reply.ok~=true or cash~=baseline.cash-baseline.quotedCost then return "pending" end
+    if reply.ok~=true then return "pending" end
+    -- Exact member/training proof below also settles when passive income has
+    -- changed Cash, but that independent path needs a strictly later Sync clock.
+    if cash~=baseline.cash-baseline.quotedCost
+        and after.native.serverNow<=baseline.serverNow then return "pending" end
     if member.level==baseline.to and row.training==nil and after.native.serverNow>=baseline.serverNow+baseline.quotedSeconds then
         return "confirmed"
     end

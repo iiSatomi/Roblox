@@ -20,7 +20,9 @@ class HeistProtocolAppTests(unittest.TestCase):
         self.lane=h.load('src/engine/RequestLane.luau').new(h.clock)
         self.executor=h.lua.execute("return {calls={},queued={},reply={pending=true},Invoke=function() error('unowned invocation') end,Schedule=function(s,fn) s.queued[#s.queued+1]=fn;return true end,InvokeOwned=function(s,token,remote,method,...) s.calls[#s.calls+1]={remote=remote,args=table.pack(...)};if s.fail then error('lost') end;return s.reply end,Drain=function(s) local q=s.queued;s.queued={};for _,f in ipairs(q) do f() end end}")
         self.adapter=h.load('src/transport/NativeDispatchAdapter.luau').new(h.load('src/transport/NativeCallPlan.luau'),self.executor,self.lane,h.clock,None,self.protocol)
-        self.runtime=h.load('src/engine/AutomationRuntime.luau').new(lua_table(h.lua,{'clock':h.clock,'transport':self.adapter,'storage':self.base.base.storage,'identity':h.session,'modules':self.base.runtime.modules,'features':composed.features,'featurePages':composed.featurePages,'tabInstances':self.tabs,'snapshotAssembler':composed.snapshotAssembler}))
+        carry=self.usage_carry_factory(self,lease) if hasattr(self,'usage_carry_factory') else None
+        self.runtime=h.load('src/engine/AutomationRuntime.luau').new(lua_table(h.lua,{'clock':h.clock,'transport':self.adapter,'storage':self.base.base.storage,'identity':h.session,'modules':self.base.runtime.modules,'features':composed.features,'featurePages':composed.featurePages,'tabInstances':self.tabs,'snapshotAssembler':composed.snapshotAssembler,
+            'usageCarryGuard':carry,'requestHighwaterFloor':carry.requestHighwaterFloor if carry else None}))
         self.app=h.load('src/App.luau').start(lua_table(h.lua,{'Ember':h.load('tests/ember_double.lua')(),'Catalog':h.load('src/ui/Catalog.luau'),'Settings':h.load('src/storage/Settings.luau'),'EmberAdapter':h.load('src/ui/EmberAdapter.luau'),'HeistsTab':h.load('src/tabs/heists/Module.luau'),'FavorsTab':h.load('src/tabs/favors/Module.luau'),'automationRuntimeInstance':self.runtime}))
         self.raw=self.base.raw
     def test_authoritative_reader_keeps_actual_sync_through_income_projection_before_heist(self):

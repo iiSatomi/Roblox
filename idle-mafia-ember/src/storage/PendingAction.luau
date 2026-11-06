@@ -376,11 +376,21 @@ end
 
 -- Ordinary stationing shares exact roster custody with Recall and also
 -- rechecks its owned map, catalog and original home/defender reservations.
-local function stationBefore(before)
+local function stationBefore(proposal, before)
     local saved = recallBefore(before)
     if not saved then return nil end
     saved.recallOwnerProof = nil
     saved.territoryMap, saved.stationCatalogProof = before.territoryMap, before.stationCatalogProof
+    for slot = 2, #before.native.crew do
+        local observation = proposal.intent["unidentifiedHome" .. slot]
+        if observation ~= nil then
+            local row = before.native.crew[slot]
+            if not text(observation) or #observation > 900 or not plain(row)
+                or row.healId ~= nil or row.dutyToken ~= nil then return nil end
+            -- The bounded graph converter below copies the exact original row.
+            saved.native.crew[slot] = row
+        end
+    end
     return saved
 end
 
@@ -476,7 +486,7 @@ local function recoveryBefore(proposal, before)
     if proposal.feature == "station" and type(proposal.intent) == "table"
         and proposal.intent.kind == "territoryStation" and plain(before)
         and plain(before.stationCatalogProof) and plain(before.territoryMap) then
-        return stationBefore(before)
+        return stationBefore(proposal, before)
     end
     if proposal.feature == "jobs" and type(proposal.intent) == "table" and proposal.intent.kind == "job"
         and plain(before) and plain(before.jobCatalog) and plain(before.masteryRules) then

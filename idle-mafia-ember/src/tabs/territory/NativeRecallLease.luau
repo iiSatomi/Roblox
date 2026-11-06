@@ -8,9 +8,10 @@ local function now(self)
     local ok, value = pcall(self.clock.Now, self.clock)
     return ok and type(value) == "number" and value == value and value >= 0 and value < math.huge and value or nil
 end
-local function read(self, current)
+local function read(self, current, identityOnly)
     if current then
-        local ok, valid = pcall(self.port.Current, self.port)
+        local check = identityOnly and self.port.Bound or self.port.Current
+        local ok, valid = pcall(check or self.port.Current, self.port)
         if not ok or valid ~= true then return nil, "Native Recall source changed" end
     end
     local ok, value = pcall(self.port.Read, self.port)
@@ -59,6 +60,19 @@ function Methods:CheckTarget(p,baseline)
     local ok,valid=pcall(self.port.Target,self.port,p,baseline)
     return ok and valid==true
 end
+-- Unlike Observe, this never expires or releases an owned native pending cell.
+function Methods:Inspect()
+    if self.closed then return nil, "Native Recall lease closed" end
+    -- A manual dialog changes readiness, not source identity. Acquire and Owns
+    -- still require Current; inspection must not retire a proven bound epoch.
+    local state, why = read(self, true, true)
+    if not state then return nil, why end
+    local result = self:Identity()
+    if not result then return nil, "Native Recall identity unavailable" end
+    result.counter = state.counter
+    return result, nil
+end
+
 function Methods:Observe()
     if self.closed then return nil end
     expire(self)

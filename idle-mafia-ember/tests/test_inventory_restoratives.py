@@ -169,6 +169,43 @@ class InventoryRestorativesTests(unittest.TestCase):
         self.assertEqual(self.feature.evaluate(proposal, self.before,
             after, reply, baseline), "pending")
 
+
+    def result_fixture(self, effect=False):
+        return self.h.snapshot(revision=2,native={"fullSync":True,"serverNow":2000001,
+            "consumableUseSequence":5 if effect else 4,
+            "consumableReadyAt":2000003 if effect else 1999999,
+            "pools":{"health":80 if effect else 30},
+            "inventoryBound":{"con_medkit_small":0 if effect else 1},
+            "inventory":{"con_medkit_small":1}})
+
+    def test_pending_and_transient_replies_keep_inventory_custody(self):
+        proposal=self.plan();baseline,reason=self.feature.capture(proposal,self.before)
+        self.assertIsNone(reason)
+        for status in ({"pending":True},{"code":"rate_limited"},{"code":"busy"},{"code":"presence"}):
+            for ok in (False,True):
+                with self.subTest(status=status,ok=ok):
+                    reply=lua_table(self.h.lua,{"ok":ok,"sequence":5,"readyAt":2000003,
+                        "resource":"health","gain":50,**status})
+                    for effect in (False,True):
+                        self.assertEqual(self.feature.evaluate(proposal,self.before,self.result_fixture(effect),reply,baseline),"pending")
+
+    def test_negative_reply_rejects_only_complete_unchanged_owned_state(self):
+        proposal=self.plan();baseline,reason=self.feature.capture(proposal,self.before)
+        self.assertIsNone(reason)
+        reply=lua_table(self.h.lua,{"ok":False,"code":"not_ready"})
+        self.assertEqual(self.feature.evaluate(proposal,self.before,self.result_fixture(),reply,baseline),"rejected")
+        for change in ("partial","sequence","cooldown","item","otherOrigin","pool","missingPool"):
+            with self.subTest(change=change):
+                after=self.result_fixture()
+                if change=="partial":after.native.fullSync=False
+                elif change=="sequence":after.native.consumableUseSequence=5
+                elif change=="cooldown":after.native.consumableReadyAt=2000003
+                elif change=="item":after.native.inventoryBound.con_medkit_small=0
+                elif change=="otherOrigin":after.native.inventory.con_medkit_small=0
+                elif change=="pool":after.native.pools.health=80
+                else:after.native.pools=None
+                self.assertEqual(self.feature.evaluate(proposal,self.before,after,reply,baseline),"pending")
+
     def test_cooldown_and_sequence_fence(self):
         proposal = self.plan()
         self.before["native"]["consumableReadyAt"] = 2000002

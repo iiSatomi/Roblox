@@ -230,9 +230,12 @@ local function inScope(raw, scope, session)
     for _, key in ipairs({"account", "place", "release"}) do if raw[key] ~= scope[key] then return false end end
     return not session or raw.session == scope.session
 end
-function ResourceReservations.new(identity, records, providers)
+function ResourceReservations.new(identity, records, providers, usageGuard)
     assert(type(identity) == "table" and type(records) == "function"
         and (providers == nil or type(providers) == "table"), "Missing reservation owners")
+    assert(usageGuard == nil or type(usageGuard) == "table"
+        and type(usageGuard.Check) == "function", "Invalid imported usage guard")
+    local checkUsage = usageGuard and usageGuard.Check
     local scope, sources = {}, {}
     for _, key in ipairs({"session", "account", "place", "release"}) do
         assert(text(identity[key], 200), "Invalid reservation scope")
@@ -312,6 +315,12 @@ function ResourceReservations.new(identity, records, providers)
         if not inScope(raw, scope, true) or not inScope(proposal, scope, true)
             or raw.revision ~= proposal.revision then return nil, "Reservation scope or revision changed" end
         local revision, capturedAt = raw.revision, raw.capturedAt
+        if checkUsage then
+            local checked, allowed, why = pcall(checkUsage, usageGuard, proposal, raw)
+            if not checked or allowed ~= true then
+                return nil, checked and type(why) == "string" and why or "Imported usage unavailable"
+            end
+        end
         local requested, reason = ResourceReservations.ForProposal(proposal, raw)
         if not requested then return nil, reason end
         local held, heldReason = heldClaims(raw, proposal)

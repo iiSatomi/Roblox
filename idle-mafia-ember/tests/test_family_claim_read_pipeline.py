@@ -186,6 +186,18 @@ class FamilyClaimReadPipelineTests(unittest.TestCase):
     def test_pending_reply_cannot_confirm_even_with_full_awards(self):
         self.executor.reply=lua_table(self.h.lua,{'ok':True,'pending':True});self.begin_claim();self.drain();self.followup()
         self.assertIsNone(self.runtime.Status(self.runtime).outcomes.familyBossClaims)
+    def test_busy_reply_cannot_confirm_full_awards_live_or_after_restart(self):
+        self.executor.reply=lua_table(self.h.lua,{'ok':True,'code':'busy'})
+        self.begin_claim();self.drain();self.followup()
+        self.assertIsNone(self.runtime.Status(self.runtime).outcomes.familyBossClaims)
+        self.assertEqual(len(self.runtime.checkpoint.Records(self.runtime.checkpoint)),1)
+        self.restart();self.attach_current_read();self.step()
+        self.assertIsNone(self.runtime.Status(self.runtime).recoveries.familyBossClaims)
+        self.assertEqual(len(self.runtime.checkpoint.Records(self.runtime.checkpoint)),1)
+        usage=self.runtime.checkpoint.FamilyClaimUsage(self.runtime.checkpoint,100,0)
+        self.assertEqual(list(usage.stages.values()),[1])
+        self.assertEqual(len(self.executor.calls),0)
+
     def test_partial_award_is_never_confirmed(self):
         self.begin_claim();self.drain();self.native.inventoryBound.gold_bar=0;self.followup()
         self.assertIsNone(self.runtime.Status(self.runtime).outcomes.familyBossClaims)

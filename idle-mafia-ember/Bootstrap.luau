@@ -26,7 +26,13 @@ local function acquire(release, registry, account, legacyRegistry)
             or not hex(previous.release,40)
             or type(previous.writes)~="number" or previous.writes~=previous.writes
             or previous.writes<0 or previous.writes>=math.huge or previous.writes%1~=0 then return nil,"Existing runtime ownership is ambiguous" end
-        if previous.release~=release.commit then return nil,"Previous release requires checkpoint migration before replacement" end
+        -- Manual unload closes the handle, while this registry still says active.
+        -- Such a handle must pass the same CanReplace/I/O/shutdown checks below.
+        local unloaded = previous.phase == "active" and type(previous.handle) == "table"
+            and previous.handle.alive == false
+        if previous.release~=release.commit and previous.phase~="closed" and not unloaded then
+            return nil,"Previous release requires checkpoint migration before replacement"
+        end
         if previous.writes>0 then return nil,"Existing runtime is writing; wait before replacing it" end
         if previous.phase=="starting" or previous.phase=="closing" then return nil,"Runtime startup or shutdown already in progress" end
         if previous.phase=="active" then
@@ -157,11 +163,16 @@ function Bootstrap.start(release, adapters, activateRuntime)
         activateAutomation = activateRuntime == true,
         activateStorage = activateRuntime == true,
         activateCurrentClient = activateRuntime == true,
+        startPaused = adapters.startPaused == true,
         clientGame = adapters.clientGame,
         clientRequire = adapters.clientRequire,
         clientHash = adapters.clientHash,
         executorEnv = executorEnv,
         executionRegistry = adapters.executionRegistry,
+        storageUpgradeCurrent = owner and function()
+            return rawget(adapters.executionRegistry, ownerKey) == owner
+                and (owner.phase == "starting" or owner.phase == "active")
+        end or nil,
         scheduler = adapters.scheduler,
         httpService = http,
     }

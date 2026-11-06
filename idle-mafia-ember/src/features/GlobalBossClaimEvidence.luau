@@ -148,7 +148,8 @@ local function reconcile(proposal, beforeHeader, after, reply, baseline, restart
         or not (after.session == baseline.session and after.revision > baseline.revision
             or restart and after.session ~= baseline.session and type(after.native) == "table"
                 and timestamp(after.native.serverNow, baseline.serverNow) and after.native.serverNow > baseline.serverNow)
-        or reply.pending == true or reply.code == "rate_limited" or reply.code == "presence" then return "pending" end
+        or reply.pending == true or reply.code == "pending" or reply.code == "no_pending"
+        or reply.code == "rate_limited" or reply.code == "busy" or reply.code == "presence" then return "pending" end
     local _, mine, usage, runKey = current(after)
     local native = after.native
     if not mine or runKey ~= baseline.runKey or native.serverNow < baseline.serverNow

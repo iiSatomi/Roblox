@@ -1,7 +1,8 @@
 """Actual Prestige App dispatch requires the native reset owner on current clients."""
 import unittest
 import test_prestige_owned_app as fixture
-from engine_harness import lua_table
+from engine_harness import ROOT, lua_table
+from prestige_source_fixture import make_prestige_client
 
 class NativePrestigeAppTests(unittest.TestCase):
     def setUp(self):
@@ -69,6 +70,45 @@ class NativePrestigeAppTests(unittest.TestCase):
         f.adapter.prestigeLease=self.owner;f.tab.nativePrestigeLease=self.owner
         f.tab.controller=self.owner;f.tab.controllerRead=self.owner.Read;f.tab.controllerCurrent=self.owner.Current
         f.runtime.nativePrestigeController=self.owner;f.runtime.nativePrestigeRead=self.owner.Read;f.runtime.nativePrestigeCurrent=self.owner.Current
+
+    @unittest.skipUnless((ROOT / "docs/native-source/2026-11-02/PrestigeModal.lua.txt").is_file(),
+                         "Private native contract capture is intentionally excluded")
+    def test_reviewed_654_source_owner_crosses_actual_app_and_preserves_attempt(self):
+        h, native = make_prestige_client(self.h)
+        native.game.PlaceVersion = 654
+        native.state.data.xp = 1234
+        owner, why = h.load('src/tabs/prestige/NativePrestigeLease.luau').bind(lua_table(h.lua, {
+            'env': native.env, 'game': native.game, 'registry': native.registry,
+            'requireModule': native.requireModule, 'clock': h.clock, 'identity': h.session}))
+        self.assertIsNotNone(owner, why)
+        self.owner = owner
+        f = self.f
+        f.adapter.prestigeLease = owner
+        f.tab.nativePrestigeLease = owner
+        f.tab.controller, f.tab.controllerRead, f.tab.controllerCurrent = owner, owner.Read, owner.Current
+        f.runtime.nativePrestigeController = owner
+        f.runtime.nativePrestigeRead, f.runtime.nativePrestigeCurrent = owner.Read, owner.Current
+        h.lua.globals().prestige654 = native
+        f.executor.InvokeOwned = h.lua.eval("""function(s, token, remote, method, arg)
+            assert(prestigeLane:Owns(token))
+            assert(remote=='PrestigeAction' and method=='InvokeServer' and arg=='prestige')
+            s.calls=s.calls+1
+            local d=prestige654.state.data;d.prestige=1;d.level=1;d.xp=0
+            return {ok=true,rank=1}
+        end""")
+        f.begin(); f.send()
+        self.assertEqual(h.lua.eval('type')(native.env.getupvalues(native.api.init)[5]), 'table')
+        self.assertEqual(len(f.runtime.checkpoint.Records(f.runtime.checkpoint)), 1)
+        h.at(.25)
+        f.app.Step(f.app, f.raw(rank=1, level=1, xp=0, revision=2, at=.25))
+        self.assertEqual(f.runtime.Status(f.runtime).outcomes.prestige, 'confirmed')
+        self.assertFalse(native.env.getupvalues(native.api.init)[5])
+        self.assertEqual(f.runtime.checkpoint.PrestigeUsage(f.runtime.checkpoint, f.raw())[0].attempted, 1)
+        self.assertEqual((f.executor.calls, native.calls), (1, 0))
+        f.restart_all_off()
+        f.app.Step(f.app, f.raw(rank=1, level=1, xp=0, revision=2, at=.25))
+        self.assertEqual(f.runtime.checkpoint.PrestigeUsage(f.runtime.checkpoint, f.raw())[0].attempted, 1)
+        self.assertEqual(f.executor.calls, 0)
 
     def test_actual_native_owner_exposes_outcome_frame_while_busy_without_permitting_second_reset(self):
         self.attach_real_owner();f=self.f;f.begin();f.send()

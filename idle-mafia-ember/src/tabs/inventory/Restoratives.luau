@@ -223,7 +223,9 @@ function Restoratives.capture(proposal, before)
         revision = proposal.revision,
         itemId = intent.itemId, fromBound = intent.fromBound,
         sequence = intent.sequence, resource = intent.resource,
-        beforePool = intent.beforePool, count = amount }, nil
+        beforePool = intent.beforePool, count = amount,
+        otherCount = count(intent.fromBound and native.inventory or native.inventoryBound, intent.itemId),
+        readyAt = native.consumableReadyAt }, nil
 end
 
 function Restoratives.evaluate(proposal, before, after, reply,
@@ -236,14 +238,25 @@ function Restoratives.evaluate(proposal, before, after, reply,
         or not integer(after.revision, baseline.revision + 1) then
         return "pending"
     end
-    if reply.ok == false then return "rejected" end
+    if reply.pending == true or reply.code == "rate_limited"
+        or reply.code == "busy" or reply.code == "presence" then return "pending" end
     local native = after.native
     local inventory = type(native) == "table"
         and (baseline.fromBound and native.inventoryBound
             or native.inventory)
     local pools = type(native) == "table" and native.pools
-    if reply.ok ~= true or type(native) ~= "table"
-        or native.fullSync ~= true
+    if type(native) ~= "table" or native.fullSync ~= true
+        or not timestamp(native.serverNow) then return "pending" end
+    if reply.ok == false then
+        local other = baseline.fromBound and native.inventory or native.inventoryBound
+        return count(inventory, baseline.itemId) == baseline.count
+            and baseline.otherCount ~= nil and count(other, baseline.itemId) == baseline.otherCount
+            and native.consumableUseSequence == baseline.sequence
+            and baseline.readyAt ~= nil and native.consumableReadyAt == baseline.readyAt
+            and type(pools) == "table" and pools[baseline.resource] == baseline.beforePool
+            and "rejected" or "pending"
+    end
+    if reply.ok ~= true
         or not integer(reply.sequence, baseline.sequence + 1)
         or reply.sequence ~= baseline.sequence + 1
         or not timestamp(reply.readyAt)

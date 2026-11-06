@@ -1,5 +1,6 @@
 """One offline broker coordinates Jobs and ordinary Operation actions."""
 from datetime import datetime, timezone
+import hashlib
 import unittest
 
 from engine_harness import Harness, lua_table
@@ -590,8 +591,11 @@ class AutomationRuntimeTests(unittest.TestCase):
 
     def test_crew_sort_app_native_call_preserves_pinned_member(self):
         feature = self.h.load("src/tabs/crew/CrewSort.luau")
+        self.h.lua.globals().runtimeSortFeature = feature
+        self.h.lua.globals().runtimeSortHash = lambda value: hashlib.sha256(value.encode()).hexdigest()
+        planner = self.h.lua.eval("{propose=function(view,settings) return runtimeSortFeature.propose(view,settings,function(value) return runtimeSortHash(value) end) end}")
         descriptor = lua_table(self.h.lua, {"id": "crewSort", "reader": feature,
-            "planner": feature, "evidence": feature})
+            "planner": planner, "evidence": feature})
         self.runtime["features"]["crewSort"] = descriptor
         self.runtime["order"][len(self.runtime["order"]) + 1] = descriptor
         executor = self.h.lua.execute("""return {

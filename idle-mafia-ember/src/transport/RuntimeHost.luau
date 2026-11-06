@@ -87,6 +87,11 @@ function RuntimeHost.start(deps)
         or type(deps.fingerprint) ~= "string" then
         return nil, "Missing explicit runtime host capabilities"
     end
+    -- Code pins belong to the caller. Reviewed storage may select an older data
+    -- identity, so keep this runtime's dependency adjustments local.
+    local supplied = deps
+    deps = {}
+    for key, value in pairs(supplied) do deps[key] = value end
     local remotesFolder = deps.remotesFolder
     local nativeState = deps.nativeState
     local teleportSignal = deps.teleportSignal
@@ -281,6 +286,27 @@ function RuntimeHost.start(deps)
     appDeps.files = storage.files
     appDeps.codec = storage.codec
     appDeps.sha256 = storage.sha256
+    if type(deps.StorageAssembly) == "table" then
+        local assembled, stores, storageReason = pcall(deps.StorageAssembly.new, appDeps)
+        if not assembled or type(stores) ~= "table"
+            or type(stores.storage) ~= "table" or type(stores.ProfileStorage) ~= "table" then
+            resolver:Close()
+            return nil, "Storage startup failed: " .. (assembled and tostring(storageReason or "Invalid stores")
+                or "Storage assembly raised")
+        end
+        local identity = stores.identity or deps.identity
+        local sourceRelease = deps.sourceRelease or deps.identity.release
+        if type(identity) ~= "table" or type(identity.release) ~= "string" or #identity.release == 0
+            or identity.account ~= deps.identity.account or identity.place ~= deps.identity.place
+            or identity.session ~= deps.identity.session
+            or stores.sourceRelease ~= nil and stores.sourceRelease ~= sourceRelease then
+            resolver:Close()
+            return nil, "Storage upgrade identity differs from the current code or account"
+        end
+        deps.identity, deps.release, deps.sourceRelease = identity, identity.release, sourceRelease
+        appDeps.identity, appDeps.release, appDeps.sourceRelease = identity, identity.release, sourceRelease
+        appDeps.preparedStorage = stores
+    end
     appDeps.nativeRecallLease, appDeps.nativeRecallRuntime = nil, nil
     if currentClient and type(deps.NativeRecallLease) == "table" and type(deps.NativeRecallLease.bind) == "function" then
         local bound, lease = pcall(deps.NativeRecallLease.bind, {game = deps.clientGame, env = deps.executorEnv,
@@ -435,6 +461,22 @@ function RuntimeHost.start(deps)
         setmetatable(forward, {__index = function(_, key) return deferredTransport.current[key] end})
         appDeps.transport = forward
     else appDeps.transport = transport end
+    appDeps.hireQuoteSource = nil
+    if currentClient and type(deps.NativeHireQuoteSource) == "table"
+        and type(deps.NativeHireQuoteSource.bind) == "function" and type(deps.NativeHireQuoteSource.new) == "function"
+        and type(executorRuntimeApi.readNative) == "function" then
+        local bound, current = pcall(deps.NativeHireQuoteSource.bind, {game = deps.clientGame,
+            requireModule = deps.clientRequire, nativeState = nativeState, config = clientBindings.config,
+            placeVersion = clientBindings.placeVersion})
+        if bound and type(current) == "table" then
+            local made, source = pcall(deps.NativeHireQuoteSource.new, current, deps.identity,
+                deps.fingerprint, executorRuntimeApi.readNative)
+            if made and type(source) == "table" and source.release == deps.identity.release
+                and source.account == deps.identity.account and source.sourceKey == deps.fingerprint:lower()
+                and type(source.Enrich) == "function" and type(source.CanDispatch) == "function"
+                and type(source.Close) == "function" then appDeps.hireQuoteSource = source end
+        end
+    elseif not currentClient then appDeps.hireQuoteSource = deps.hireQuoteSource end
     appDeps.shopQuoteSource = nil
     appDeps.rewardsSource = nil
     appDeps.crateLuckSource = nil
@@ -520,7 +562,7 @@ function RuntimeHost.start(deps)
         end
     end
     local function closeSources()
-        for _, key in ipairs({ "shopQuoteSource", "globalBossSource", "eventShopSource", "territorySeasonSource",
+        for _, key in ipairs({ "hireQuoteSource", "shopQuoteSource", "globalBossSource", "eventShopSource", "territorySeasonSource",
             "rewardsSource", "briefcaseSource", "nativeFamilyBossController", "fightReceipts", "nativePrestigeController", "heistProtocol", "nativeRecallRuntime", "nativeRecallLease", "nativeCombatLease" }) do
             local source = appDeps[key]
             if type(source) == "table"

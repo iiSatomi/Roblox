@@ -76,6 +76,26 @@ class FamilyContributionRecoveryTests(unittest.TestCase):
         self.h.lua.globals().familyReceipt=lua_table(self.h.lua,{'ok':False,'pending':True})
         self.f.executor.queued[2]();self.observe()
         self.assertIsNone(self.f.runtime.Status(self.f.runtime).outcomes.familyCash)
+    def test_busy_exact_receipts_keep_three_saved_attempts_without_replay(self):
+        for feature,kind,amount in [('familyCash','cash',100),('familyStamina','stamina',5),('familyGold','gold_bar',1)]:
+            with self.subTest(feature=feature):
+                if self.f.app:self.f.app.Destroy(self.f.app)
+                self.f.fixture.storage.data=self.h.lua.table()
+                self.begin(feature,kind,amount,drain=False)
+                self.h.lua.globals().familyReceipt.code='busy'
+                self.f.executor.queued[2]();self.restart(kind,amount)
+                self.assertIsNone(self.f.runtime.Status(self.f.runtime).recoveries[feature])
+                self.assertEqual(len(self.f.runtime.checkpoint.Records(self.f.runtime.checkpoint)),1)
+                self.assertEqual(len(self.f.executor.calls),0)
+                raw=self.f.reader.Capture(self.f.reader)[0]
+                usage=self.f.runtime.checkpoint.FamilyContributionUsage(self.f.runtime.checkpoint,raw)[0].usage[feature]
+                self.assertEqual((usage.attempted,usage.spent),(1,amount))
+    def test_busy_negative_unchanged_balance_keeps_live_attempt(self):
+        self.begin(drain=False)
+        self.h.lua.globals().familyReceipt=lua_table(self.h.lua,{'ok':False,'code':'busy'})
+        self.f.executor.queued[2]();self.observe()
+        self.assertIsNone(self.f.runtime.Status(self.f.runtime).outcomes.familyCash)
+        self.assertEqual(len(self.f.runtime.checkpoint.Records(self.f.runtime.checkpoint)),1)
     def test_same_revision_negative_does_not_resolve_sent_action(self):
         self.begin(drain=False);self.h.lua.globals().familyReceipt=lua_table(self.h.lua,{'ok':False})
         self.f.executor.queued[2]();self.f.step()

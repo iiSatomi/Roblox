@@ -48,6 +48,18 @@ class ResidencyRuntimeTests(unittest.TestCase):
     def test_unowned_or_unknown_district_never_requests_admission(self):
         self.select();self.app.Step(self.app,self.raw(owned=False))
         self.assertIsNone(self.executor.callback)
+    def test_native_explicit_none_status_reaches_normal_admission_and_settles(self):
+        before=self.begin(status="none")
+        self.assertEqual(before.residencyView.status,"none")
+        self.executor.callback();self.h.at(1)
+        self.app.Step(self.app,self.raw(2,{"d":"d1","rent":1,"active":True},status="resident",myRent=1))
+        self.assertEqual(self.runtime.Status(self.runtime).outcomes.residency,"confirmed")
+        self.assertEqual(len(self.executor.calls),1)
+
+    def test_native_none_status_still_obeys_zero_rent_limit(self):
+        self.select(**{"residency.custom.maxRentPct":0})
+        self.app.Step(self.app,self.raw(status="none",rent=1))
+        self.assertIsNone(self.executor.callback)
     def test_pending_negative_same_revision_does_not_reject(self):
         raw=self.begin();self.executor.reply=lua_table(self.h.lua,{"ok":False,"pending":True})
         self.executor.callback();self.app.Step(self.app,raw)

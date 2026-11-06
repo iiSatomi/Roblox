@@ -76,7 +76,12 @@ function ContractBonusesEvidence.evaluate(proposal, beforeHeader, after,
         or beforeHeader.revision ~= baseline.revision
         or type(proposal.intent) ~= "table"
         or proposal.intent.period ~= baseline.period
-        or proposal.intent.reset ~= baseline.reset then return "pending" end
+        or proposal.intent.reset ~= baseline.reset
+        or type(after.revision) ~= "number" or after.revision ~= after.revision
+        or after.revision >= math.huge or after.revision % 1 ~= 0
+        or after.revision <= baseline.revision
+        or reply.pending == true or reply.code == "pending" or reply.code == "no_pending"
+        or reply.code == "rate_limited" or reply.code == "busy" or reply.code == "presence" then return "pending" end
     local valid, claimed = state(after, baseline)
     if not valid then return "pending" end
     local advanced = type(after.revision) == "number"
@@ -84,6 +89,49 @@ function ContractBonusesEvidence.evaluate(proposal, beforeHeader, after,
     if reply.ok == false then return advanced and "pending" or "rejected" end
     if reply.ok == true and advanced then return "confirmed" end
     return "pending"
+end
+
+local function equal(a, b, depth)
+    if type(a) ~= type(b) or (depth or 0) > 16 then return false end
+    if type(a) ~= "table" then return a == b end
+    if getmetatable(a) ~= nil or getmetatable(b) ~= nil then return false end
+    local count = 0
+    for key, value in pairs(a) do
+        count = count + 1
+        if count > 512 or not equal(value, b[key], (depth or 0) + 1) then return false end
+    end
+    for key in pairs(b) do if a[key] == nil then return false end end
+    return true
+end
+local function clock(value) return type(value) == "number" and value == value and value >= 0 and value < math.huge end
+
+-- The whole original Contract set must remain identical except for this
+-- successful bonus marker; a new row/reset cannot settle an old receipt.
+function ContractBonusesEvidence.recoverSaved(data, after)
+    local reply = type(data) == "table" and data.reply
+    if type(reply) ~= "table" or type(reply.ok) ~= "boolean" or reply.pending == true
+        or reply.code == "pending" or reply.code == "no_pending" or reply.code == "rate_limited"
+        or reply.code == "busy" or reply.code == "presence" or type(after) ~= "table" then return nil end
+    local p, before = data.proposal, data.before
+    local baseline = ContractBonusesEvidence.capture(p, before)
+    if not baseline or not equal(baseline, data.baseline) or not matching(p, before)
+        or type(after.session) ~= "string" or #after.session == 0
+        or type(after.native) ~= "table" or not clock(before.native.serverNow)
+        or not clock(after.native.serverNow) or after.native.serverNow <= before.native.serverNow
+        or not clock(after.revision) or after.revision % 1 ~= 0
+        or after.session == baseline.session and (after.revision <= baseline.revision
+            or not clock(after.capturedAt) or after.capturedAt < before.capturedAt)
+        or type(p.resources) ~= "table"
+        or p.actionKey ~= "contract-bonus:" .. baseline.period .. ":" .. baseline.reset then return nil end
+    for _, field in ipairs({"account", "place", "release"}) do if after[field] ~= p[field] then return nil end end
+    for _, amount in pairs(p.resources) do if amount ~= 0 then return nil end end
+    local valid, claimed = state(after, baseline)
+    if not valid or claimed ~= reply.ok then return nil end
+    local expected = {}
+    for key, value in pairs(before.native.contracts) do expected[key] = value end
+    if reply.ok then expected[baseline.period == "daily" and "bonusClaimed" or "weeklyBonusClaimed"] = true end
+    if not equal(expected, after.native.contracts) then return nil end
+    return reply.ok and "confirmed" or "rejected"
 end
 
 return ContractBonusesEvidence

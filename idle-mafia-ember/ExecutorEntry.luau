@@ -40,6 +40,7 @@ function ExecutorEntry.start(release, services, activateRuntime)
         executionRegistry = services.executionRegistry,
         legacyRegistry = services.legacyRegistry,
         scheduler = services.scheduler,
+        startPaused = services.startPaused == true,
         Ember = services.Ember,
     }, activateRuntime)
 end

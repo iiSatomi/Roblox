@@ -7,7 +7,7 @@ local function finite(value)
 end
 
 function MarketResearchView.assess(browse, rapByItem,
-    historyByItem, itemsById, termsByItem, settings, now, watch)
+    historyByItem, itemsById, termsByItem, settings, now, watch, matchesItemScope)
     if type(browse) ~= "table"
         or not (browse.kind == "all" and browse.arg == nil
             or browse.kind == "item" and type(browse.arg) == "string" and #browse.arg > 0 and #browse.arg <= 120)
@@ -38,7 +38,18 @@ function MarketResearchView.assess(browse, rapByItem,
     if count ~= #browse.rows then
         return nil, "Sparse Market research rows"
     end
-    local accepted, rejected, seen = {}, {}, {}
+    local accepted, rejected, seen, variantCount = {}, {}, {}, 0
+    -- Validate all rows, including those beyond the bounded presentation window.
+    for _, row in ipairs(browse.rows) do
+        if type(row) ~= "table" or type(row.item) ~= "string" or #row.item == 0 or #row.item > 120
+            or row.id == nil or seen[tostring(row.id)]
+            or browse.kind == "item" and row.item ~= browse.arg
+                and (type(matchesItemScope) ~= "function" or matchesItemScope(row.item, browse.arg) ~= true) then
+            return nil, "Invalid Market research listing"
+        end
+        seen[tostring(row.id)] = true
+        if row.item:find("@", 1, true) then variantCount = variantCount + 1 end
+    end
     local complete = browse.more == false and browse.stale ~= true and browse.small ~= true
     local evaluated = math.min(#browse.rows, 100)
     for index = 1, evaluated do
@@ -46,14 +57,17 @@ function MarketResearchView.assess(browse, rapByItem,
         if type(row) ~= "table"
             or type(row.item) ~= "string"
             or #row.item == 0 or #row.item > 120
-            or (browse.kind == "item" and row.item ~= browse.arg)
-            or row.id == nil or seen[tostring(row.id)] then
+            or row.id == nil then
             return nil, "Invalid Market research listing"
         end
         seen[tostring(row.id)] = true
         local id = row.item
         local quote, reason
-        if complete then
+        if row.item:find("@", 1, true) then
+            reason = "Unsupported upgraded variant; pricing and trading withheld"
+        elseif variantCount > 0 then
+            reason = "Variant-inclusive browse; exact-item pricing withheld"
+        elseif complete then
             quote, reason = watch.assess(browse, row.id,
                 rapByItem[id], historyByItem[id], itemsById[id],
                 termsByItem[id], settings, now)
@@ -81,6 +95,7 @@ function MarketResearchView.assess(browse, rapByItem,
         refused[index] = rejected[index]
     end
     return { readOnly = true, paginationComplete = complete,
+        pricingComplete = complete and variantCount == 0, variantCount = variantCount,
         capturedAt = browse.capturedAt,
         totalRows = #browse.rows, evaluated = evaluated,
         truncated = not complete or #browse.rows > evaluated

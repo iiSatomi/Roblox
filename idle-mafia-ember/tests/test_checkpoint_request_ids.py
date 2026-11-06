@@ -47,6 +47,49 @@ class CheckpointRequestIdsTests(unittest.TestCase):
         self.assertTrue(self.cp.Resolve(self.cp,proposal.actionKey,'confirmed')[0])
         self.assertEqual(self.new().requestHighwater,1)
 
+    def test_reviewed_import_floor_preserves_disk_and_pending_then_allocates_above_both_stores(self):
+        self.assertTrue(self.save()[0])
+        key = self.cp.ScopeKey(self.cp)
+        original = self.storage.data[key]
+        pending = original.records[1].recovery
+        self.assertTrue(self.cp.ApplyRequestFloor(self.cp,19)[0])
+        self.assertEqual(original.requestHighwater,1)
+        self.assertEqual(self.cp.requestHighwater,19)
+        self.assertEqual(self.cp.Records(self.cp)[1].requestId,1)
+        self.assertTrue(self.cp.ApplyRequestFloor(self.cp,7)[0])
+        self.assertEqual(self.cp.requestHighwater,19)
+        self.assertEqual(self.save(self.cp,self.h.proposal('operations','other')),(True,None,20))
+        self.assertEqual(self.new().requestHighwater,20)
+        equal = self.h.lua.execute('''local function equal(a,b)
+            if type(a) ~= type(b) then return false end
+            if type(a) ~= 'table' then return a == b end
+            for k,v in pairs(a) do if not equal(v,b[k]) then return false end end
+            for k in pairs(b) do if a[k] == nil then return false end end
+            return true
+        end; return equal''')
+        self.assertTrue(equal(pending,self.storage.data[key].records[1].recovery))
+
+    def test_import_floor_is_reapplied_after_restart_and_does_not_weaken_stale_write_guard(self):
+        stale = self.new()
+        self.assertTrue(stale.ApplyRequestFloor(stale,19)[0])
+        self.assertEqual(self.new().requestHighwater,0)
+        self.assertTrue(self.save()[0])
+        self.assertFalse(self.save(stale,self.h.proposal('operations','other'))[0])
+        self.assertEqual(self.new().requestHighwater,1)
+
+    def test_import_floor_rejects_invalid_faulted_unloaded_or_writing_checkpoint(self):
+        for value in (-1,1.5,9007199254740992,True,'19'):
+            with self.subTest(value=value):
+                self.assertFalse(self.cp.ApplyRequestFloor(self.cp,value)[0])
+                self.assertEqual(self.cp.requestHighwater,0)
+        unloaded = self.module.new(self.storage,None,None,self.pending)
+        self.assertFalse(unloaded.ApplyRequestFloor(unloaded,19)[0])
+        self.cp.writing = True
+        self.assertFalse(self.cp.ApplyRequestFloor(self.cp,19)[0])
+        self.cp.writing = False
+        self.cp.fault = 'unreadable storage'
+        self.assertFalse(self.cp.ApplyRequestFloor(self.cp,19)[0])
+
     def test_legacy_record_loads_without_identity_and_next_save_is_numbered(self):
         self.assertTrue(self.save()[0])
         key = self.cp.ScopeKey(self.cp)

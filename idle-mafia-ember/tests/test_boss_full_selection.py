@@ -155,8 +155,29 @@ class BossFullSelectionTests(unittest.TestCase):
         self.assertIsNotNone(enriched,reason);self.assertIsNone(enriched.bossStageProof)
         self.assertIsNotNone(enriched.bossShopProof)
         self.assertLessEqual(self.stages.calls,36)
-    def test_current_progression_fallback_and_explicit_rankings_on_unreviewed_initial_build(self):
+    def test_reviewed_654_supports_all_rankings_with_same_source_oracle(self):
         self.game.PlaceVersion=654
+        self.catalog=self.h.load('src/tabs/combat/NativeBossCatalog.luau').new(self.stages,
+            lua_table(self.h.lua,{'BOSS':{'staminaCost':1}}),'a'*64,'release-a',self.data,self.game)
+        raw=self.raw(best=200,health=100,max_health=100)
+        for mode in MODES+('Current progression',):
+            proposal,reason=self.choose(raw,mode)
+            self.assertIsNotNone(proposal,reason)
+            self.assertEqual(proposal.intent.stage,self.oracle(raw,mode,{}))
+
+    def test_reviewed_654_owner_retires_on_build_change_even_to_653(self):
+        self.game.PlaceVersion=654
+        self.catalog=self.h.load('src/tabs/combat/NativeBossCatalog.luau').new(self.stages,
+            lua_table(self.h.lua,{'BOSS':{'staminaCost':1}}),'a'*64,'release-a',self.data,self.game)
+        self.assertIsNotNone(self.choose(self.raw(),'Smart')[0])
+        self.game.PlaceVersion=653
+        self.assertIsNone(self.choose(self.raw(),'Smart')[0])
+        self.assertTrue(self.catalog.retired)
+        self.game.PlaceVersion=654
+        self.assertIsNone(self.choose(self.raw(),'Smart')[0])
+
+    def test_current_progression_fallback_and_explicit_rankings_on_unreviewed_initial_build(self):
+        self.game.PlaceVersion=999
         self.catalog=self.h.load('src/tabs/combat/NativeBossCatalog.luau').new(self.stages,
             lua_table(self.h.lua,{'BOSS':{'staminaCost':1}}),'a'*64,'release-a',self.data,self.game)
         self.assertIsNotNone(self.choose(self.raw(best=1),'Current progression')[0])

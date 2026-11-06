@@ -176,9 +176,10 @@ function CrewTab.new(deps)
         assert(replacement, reason or "Invalid Crew replacement source")
     end
     local self = setmetatable({ id = "crew", roster = deps.RosterState,
-        autoEquip = deps.AutoEquipCrew, sort = deps.CrewSort,
+        autoEquip = deps.AutoEquipCrew, sort = deps.CrewSort, sortHash = deps.sha256,
         heal = deps.CrewHeal, train = deps.CrewTrain,
         hire = deps.CrewHire, healItems = deps.CrewHealItems,
+        hireQuoteSource = deps.hireQuoteSource, requireHireQuote = deps.activateCurrentClient == true,
         gear = gear, roll = deps.CrewRollState, replacement = replacement,
         replacementTransactions = deps.CrewReplacementTransactions,
         reservationModule = deps.ResourceReservations,
@@ -194,6 +195,10 @@ function CrewTab.new(deps)
             storage = deps.storage, identity = deps.identity, clock = deps.clock, review = deps.CrewRecoveryReview})
         if self.replacementRuntime then self.replacementOwner = self.replacementRuntime.owner end
         self.ownedProofs = {"crewReplacementUsageProof", "crewReplacementOwnerProof"}
+    end
+    if self.hireQuoteSource or self.requireHireQuote then
+        self.ownedProofs = self.ownedProofs or {}
+        self.ownedProofs[#self.ownedProofs + 1] = "economyProof"
     end
     return self
 end
@@ -215,11 +220,27 @@ function Methods:Enrich(snapshot, settings)
     result.healRules = { release = self.healRules.release,
         healStaminaCost = self.healRules.healStaminaCost,
         healSeconds = self.healRules.healSeconds }
+    local needsQuote = false
+    for _, id in ipairs({"crewHire", "crewRoll"}) do
+        if type(settings) == "table" and type(settings[id]) == "table" and settings[id].enabled == true then needsQuote = true end
+    end
+    if self.replacementOwner and self.replacementOwner:Active() then needsQuote = true end
+    if needsQuote and self.hireQuoteSource then
+        local quoted = self.hireQuoteSource:Enrich(result)
+        if quoted then result = quoted end
+    end
     if self.replacement then
         result = self.replacement:Enrich(result)
-        if self.replacementRuntime then return self.replacementRuntime:Enrich(result, settings) end
+        if self.replacementRuntime then result = self.replacementRuntime:Enrich(result, settings) end
     end
+    self.latestSnapshot = result
     return result, nil
+end
+
+function Methods:HireQuoteCurrent(proposal)
+    if self.closed then return false end
+    if not self.hireQuoteSource then return not self.requireHireQuote end
+    return self.hireQuoteSource:CanDispatch(proposal, self.latestSnapshot) == true
 end
 
 function CrewTab.ReplacementSettings(settings)
@@ -312,15 +333,19 @@ function Methods:Descriptors()
             planner = self.gear, evidence = self.gear,recoverSaved=self.gear.recoverSaved },
         { id = "crewRoll", reader = roll,
             planner = planner, evidence = roll,
-            lifecycle = self.replacementRuntime and self.replacementRuntime.lifecycle or nil },
+            lifecycle = self.replacementRuntime and self.replacementRuntime.lifecycle or nil,
+            canDispatch = function(proposal) return self:HireQuoteCurrent(proposal) end },
         { id = "crewSort", reader = self.sort,
-            planner = self.sort, evidence = self.sort,recoverSaved=self.sort.recoverSaved },
+            planner = {propose = function(view, settings)
+                return self.sort.propose(view, settings, self.sortHash)
+            end}, evidence = self.sort,recoverSaved=self.sort.recoverSaved },
         { id = "crewHeal", reader = self.heal,
             planner = self.heal, evidence = self.heal,recoverSaved=self.heal.recoverSaved },
         { id = "crewTrain", reader = self.train,
             planner = self.train, evidence = self.train,recoverSaved=self.train.recoverSaved },
         { id = "crewHire", reader = self.hire,
-            planner = self.hire, evidence = self.hire,recoverSaved=self.hire.recoverSaved },
+            planner = self.hire, evidence = self.hire,recoverSaved=self.hire.recoverSaved,
+            canDispatch = function(proposal) return self:HireQuoteCurrent(proposal) end },
         { id = "crewHealItems", reader = self.healItems,
             planner = self.healItems, evidence = self.healItems, recoverSaved = self.healItems.recoverSaved } }
 end

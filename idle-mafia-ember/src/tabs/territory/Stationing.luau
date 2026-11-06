@@ -26,6 +26,41 @@ local function copy(a)
     for key, value in pairs(a) do result[key] = value end
     return result
 end
+-- An unidentified home row is an observation only, never a member identity.
+-- Bound the exact flat-intent observation; unsupported rows remain unavailable.
+local function observeHome(row)
+    local seen, nodes = {}, 0
+    local function encode(value, depth)
+        nodes = nodes + 1
+        if nodes > 128 or depth > 6 then return nil end
+        local kind = type(value)
+        if kind == "string" then
+            if #value > 512 then return nil end
+            return "s" .. tostring(#value) .. ":" .. value, value
+        elseif kind == "number" then
+            if not number(value, -9007199254740991, 9007199254740991) then return nil end
+            return "n" .. string.format("%.17g", value) .. ";", value
+        elseif kind == "boolean" then
+            return value and "t" or "f", value
+        elseif kind ~= "table" or seen[value] or getmetatable(value) ~= nil then return nil end
+        seen[value] = true
+        local entries, retained = {}, {}
+        for key, child in pairs(value) do
+            if type(key) ~= "string" and type(key) ~= "number" then return nil end
+            local encodedKey = encode(key, depth + 1)
+            local encodedValue, copied = encode(child, depth + 1)
+            if not encodedKey or not encodedValue then return nil end
+            entries[#entries + 1] = encodedKey .. encodedValue
+            retained[key] = copied
+        end
+        seen[value] = nil
+        table.sort(entries)
+        local result = "{" .. table.concat(entries) .. "}"
+        if #result > 900 then return nil end
+        return result, retained
+    end
+    return encode(row, 0)
+end
 local function roster(native)
     if type(native) ~= "table" or native.fullSync ~= true
         or not number(native.serverNow, 0, 9007199254740991)
@@ -53,11 +88,10 @@ local function roster(native)
                     key = "deployment:" .. token
                 end
             end
-            if not key then
-                return nil, nil, "Crew slot " .. tostring(slot) .. " lacks a stable member identity"
+            if key then
+                if seen[key] then return nil, nil, "Crew member identities are duplicated" end
+                seen[key] = true
             end
-            if seen[key] then return nil, nil, "Crew member identities are duplicated" end
-            seen[key] = true
             local injured, recalled, train = row.injuredUntil, row.recalledUntil, row.train
             if injured == nil then injured = 0 end
             if recalled == nil then recalled = 0 end
@@ -76,13 +110,27 @@ local function roster(native)
                 duty = row.duty or false, train = train, training = row.training ~= nil,
                 rolling = row.rolling == true, recalling = row.recalling == true, stationed = row.stationed == true, injured = injured, recalled = recalled,
                 weapon = row.weapon or false, armor = row.armor or false, vehicle = row.vehicle or false }
+            if not key then
+                if row.duty ~= nil and row.duty ~= false or row.dutyToken ~= nil
+                    or row.stationed ~= nil and row.stationed ~= false
+                    or row.recalling ~= nil and row.recalling ~= false
+                    or row.dutyPending ~= nil and row.dutyPending ~= false
+                    or row.dutyRemapPending ~= nil and row.dutyRemapPending ~= false
+                    or row.training ~= nil or row.rolling == true then
+                    return nil, nil, "Unidentified Crew deployment or pending state requires review"
+                end
+                local observation, original = observeHome(row)
+                if not observation then return nil, nil, "Unidentified home Crew observation is unsupported or oversized" end
+                members[slot].unidentified, members[slot].observation = true, observation
+                members[slot].originalRow = original
+            end
         end
     end
     if count ~= #native.crew or native.crew[1] == nil then return nil end
     return members, count
 end
 local function eligible(member, now)
-    return member.duty == false and not member.stationed and not member.recalling and not member.training and not member.rolling
+    return member.key ~= nil and member.unidentified ~= true and member.duty == false and not member.stationed and not member.recalling and not member.training and not member.rolling
         and member.injured <= now and member.recalled <= now
 end
 
@@ -281,6 +329,7 @@ function Stationing.propose(view, settings)
     local slots = {}
     for slot = 2, view.size do
         local row = view.members[slot]
+        if row.unidentified then proposal.intent["unidentifiedHome" .. slot] = row.observation end
         if slot ~= settings.memberSlot and #slots < settings.minHome and eligible(row, view.serverNow)
             and not view.reserved[row.key] then
             slots[#slots + 1] = tostring(slot)
@@ -310,6 +359,11 @@ function Stationing.capture(proposal, before)
     for slot = 2, view.size do
         if planned.intent["homeKey" .. slot] ~= intent["homeKey" .. slot] then return nil, "Home backup identity changed" end
     end
+    for slot = 2, 46 do
+        if planned.intent["unidentifiedHome" .. slot] ~= intent["unidentifiedHome" .. slot] then
+            return nil, "Unidentified home Crew observation changed"
+        end
+    end
     local baseline = copy(view)
     baseline.memberSlot, baseline.memberKey = intent.memberSlot, intent.memberKey
     return baseline, nil
@@ -328,7 +382,8 @@ local function reconcile(proposal, before, after, reply, baseline, restart)
         or not integer(after.revision, 0, 9007199254740991)
         or not (after.session == baseline.session and after.revision > baseline.revision
             or restart and after.session ~= baseline.session and after.native.serverNow > baseline.serverNow)
-        or reply.pending == true or reply.code == "rate_limited" or reply.code == "presence" then return "pending" end
+        or reply.pending == true or reply.code == "pending" or reply.code == "busy"
+        or reply.code == "rate_limited" or reply.code == "presence" then return "pending" end
     for _, field in ipairs({"session", "account", "place", "release"}) do
         if proposal[field] ~= baseline[field] or before[field] ~= baseline[field]
             or (field ~= "session" or not restart) and after[field] ~= baseline[field] then return "pending" end
@@ -341,6 +396,7 @@ local function reconcile(proposal, before, after, reply, baseline, restart)
         local row = current[slot]
         if not row then return "pending" end
         if row.key ~= member.key or row.name ~= member.name or row.rarity ~= member.rarity then return "pending" end
+        if member.unidentified == true and not equal(row, member) then return "pending" end
         if slot == baseline.memberSlot then
             for key, value in pairs(member) do
                 if key ~= "duty" and key ~= "stationed" and not equal(row[key], value) then return "pending" end

@@ -132,7 +132,8 @@ function RewardEffects.new(source, marker, lane, weekendSource)
     end
     function result.evaluate(proposal, beforeHeader, after, reply, baseline)
         if type(baseline) ~= "table" or type(baseline.spec) ~= "table"
-            or type(reply) ~= "table" or reply.pending == true or reply.code == "rate_limited" or reply.code == "presence" then return "pending" end
+            or type(reply) ~= "table" or reply.pending == true or reply.code == "pending" or reply.code == "busy"
+            or reply.code == "rate_limited" or reply.code == "presence" then return "pending" end
         local status = marker.evaluate(proposal, beforeHeader, after, reply, baseline.marker)
         if status ~= "confirmed" and status ~= "rejected" then return "pending" end
         after = withWeekend(after)
@@ -147,6 +148,7 @@ function RewardEffects.new(source, marker, lane, weekendSource)
     function result.recoverSaved(data, after)
         if type(data) ~= "table" or type(data.reply) ~= "table" or type(data.baseline) ~= "table"
             or type(marker.recoverSaved) ~= "function" or data.reply.pending == true
+            or data.reply.code == "pending" or data.reply.code == "busy"
             or data.reply.code == "rate_limited" or data.reply.code == "presence" then return nil end
         local baseline = result.capture(data.proposal, data.before)
         if not baseline or not same(baseline, data.baseline) then return nil end

@@ -53,6 +53,19 @@ class ExecutorStorageAdapterTests(unittest.TestCase):
         self.assertIsNone(caps)
         self.assertIn("Missing", reason)
 
+    def test_directory_probe_is_read_only_and_distinguishes_absence_from_invalid_answers(self):
+        caps, _ = self.adapter.new(self.api)
+        self.assertIsNotNone(caps.files.IsDirectory, 'Migration discovery needs a read-only directory probe')
+        self.assertFalse(caps.files.IsDirectory(caps.files, 'IdleMafiaEmberCompletion655/checkpoints'))
+        self.assertEqual(list(self.api.folders.keys()), [])
+        self.api.folders['IdleMafiaEmberCompletion655/checkpoints'] = True
+        self.assertTrue(caps.files.IsDirectory(caps.files, 'IdleMafiaEmberCompletion655/checkpoints'))
+        self.assertIsNone(caps.files.IsDirectory(caps.files, '../outside')[0])
+        for callback in ('function() return 1 end', "function() error('unavailable') end"):
+            self.api.isfolder = self.h.lua.eval(callback)
+            self.assertIsNone(caps.files.IsDirectory(caps.files, 'IdleMafiaEmberCompletion655/checkpoints')[0])
+        self.assertEqual(list(self.api.folders.keys()), ['IdleMafiaEmberCompletion655/checkpoints'])
+
 
     def test_optional_listing_confines_and_normalizes_direct_children(self):
         self.api.listfiles=self.h.lua.eval("function() return {[[IdleMafiaEmber\\state\\record.a.json]]} end")

@@ -59,6 +59,7 @@ function TerritoryReadSources.new(deps)
             local field, query = fieldName, queries[fieldName]
             if query then
                 sources[#sources + 1] = {id = field, interval = (field == "territoryMap" or field == "fortificationView") and 15 or 5,
+                    latestStartAge = field == "territoryMap" and 1 or nil,
                     enabled = function(settings, _, raw)
                         state.settings = settings
                         local selected = not state.closed and target(field, raw) or nil

@@ -96,7 +96,7 @@ class PrestigeOwnedAppTests(unittest.TestCase):
         for uncertain in (False,True):
             self.tearDown();self.setUp();self.begin();self.executor.apply=False
             self.executor.reply=lua_table(self.h.lua,{'ok':False,'code':'presence' if uncertain else 'requirements'})
-            self.send();self.restart_all_off();self.app.Step(self.app,self.raw())
+            self.send();self.restart_all_off();self.h.at(.25);self.app.Step(self.app,self.raw(at=.25))
             self.assertEqual(self.runtime.Status(self.runtime).recoveries.prestige,None if uncertain else 'rejected')
             self.assertEqual(len(self.runtime.checkpoint.Records(self.runtime.checkpoint)),1 if uncertain else 0)
             self.assertEqual(self.runtime.checkpoint.PrestigeUsage(self.runtime.checkpoint,self.raw())[0].attempted,1)

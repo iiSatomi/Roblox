@@ -98,18 +98,24 @@ function SkillsEvidence.capture(proposal, before)
         allocs = allocs }, nil
 end
 
-function SkillsEvidence.evaluate(proposal, beforeHeader, after, reply, baseline)
+local function reconcile(proposal, beforeHeader, after, reply, baseline, restart)
     if type(proposal) ~= "table" or type(beforeHeader) ~= "table"
         or type(after) ~= "table" or type(reply) ~= "table"
         or type(baseline) ~= "table"
         or not matching(proposal, beforeHeader)
-        or not matching(proposal, after)
+        or after.account ~= proposal.account or after.place ~= proposal.place or after.release ~= proposal.release
+        or (not restart and not matching(proposal, after))
         or not matching(proposal, baseline)
         or proposal.revision ~= baseline.revision
         or beforeHeader.revision ~= baseline.revision
         or type(proposal.intent) ~= "table"
         or proposal.intent.stat ~= baseline.stat
-        or proposal.intent.count ~= baseline.count then return "pending" end
+        or proposal.intent.count ~= baseline.count
+        or not integer(after.revision, 0)
+        or not (after.session == baseline.session and after.revision > baseline.revision
+            or restart and type(after.session) == "string" and #after.session > 0 and after.session ~= baseline.session)
+        or reply.pending == true or reply.code == "pending" or reply.code == "busy"
+        or reply.code == "presence" or reply.code == "rate_limited" then return "pending" end
     local allocated, points, allocs = state(after, baseline.stat)
     if not allocated or type(baseline.allocs) ~= "table" then
         return "pending"
@@ -120,13 +126,52 @@ function SkillsEvidence.evaluate(proposal, beforeHeader, after, reply, baseline)
             return "pending"
         end
     end
-    local advanced = type(after.revision) == "number"
-        and after.revision > baseline.revision
-        and allocated == baseline.allocated + baseline.count
+    local advanced = allocated == baseline.allocated + baseline.count
         and points == baseline.points - baseline.cost
-    if reply.ok == false then return advanced and "pending" or "rejected" end
+    if reply.ok == false then
+        return allocated == baseline.allocated and points == baseline.points and "rejected" or "pending"
+    end
     if reply.ok == true and advanced then return "confirmed" end
     return "pending"
+end
+
+function SkillsEvidence.evaluate(proposal, beforeHeader, after, reply, baseline)
+    return reconcile(proposal, beforeHeader, after, reply, baseline, false)
+end
+
+local function equal(a, b, depth)
+    if type(a) ~= type(b) or (depth or 0) > 16 then return false end
+    if type(a) ~= "table" then return a == b end
+    if getmetatable(a) ~= nil or getmetatable(b) ~= nil then return false end
+    local count = 0
+    for key, value in pairs(a) do
+        count = count + 1
+        if count > 512 or not equal(value, b[key], (depth or 0) + 1) then return false end
+    end
+    for key in pairs(b) do if a[key] == nil then return false end end
+    return true
+end
+local function clock(value) return type(value) == "number" and value == value and value >= 0 and value < math.huge end
+
+-- Reconstruct the original cost/all-stat baseline. A reload never changes its
+-- scope or quotes another allocation; only a strictly later Sync can settle it.
+function SkillsEvidence.recoverSaved(data, after)
+    if type(data) ~= "table" or type(data.reply) ~= "table" or type(after) ~= "table" then return nil end
+    local p, before = data.proposal, data.before
+    local baseline = SkillsEvidence.capture(p, before)
+    if not baseline or not equal(baseline, data.baseline) or type(after.native) ~= "table"
+        or not clock(before.native.serverNow) or not clock(after.native.serverNow)
+        or after.native.serverNow <= before.native.serverNow
+        or after.catalogKey ~= before.catalogKey
+        or p.actionKey ~= "skills:" .. #p.intent.catalogKey .. ":" .. p.intent.catalogKey
+            .. ":" .. baseline.stat .. ":" .. baseline.allocated .. ":" .. baseline.count then return nil end
+    for key, amount in pairs(p.resources) do
+        if key ~= "skillPoints" or amount ~= baseline.cost then return nil end
+    end
+    if after.session == baseline.session and (not clock(after.capturedAt)
+        or after.capturedAt < before.capturedAt) then return nil end
+    local outcome = reconcile(p, before, after, data.reply, baseline, true)
+    return (outcome == "confirmed" or outcome == "rejected") and outcome or nil
 end
 
 return SkillsEvidence

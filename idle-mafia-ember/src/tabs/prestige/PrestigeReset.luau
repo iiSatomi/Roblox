@@ -94,9 +94,10 @@ function PrestigeReset.new(reader)
             if before[field] ~= baseline[field] then return "pending" end
         end
         local current = reader.read(after, after)
-        if not current or not current.xpKnown or current.catalogKey ~= baseline.catalogKey then return "pending" end
+        if not current or not current.xpKnown or current.catalogKey ~= baseline.catalogKey
+            or not integer(current.revision, baseline.revision + 1, MAX) then return "pending" end
         local unchanged = current.rank == baseline.rank and current.level == baseline.level and current.xp == baseline.xp
-        if reply.pending == true or reply.code == "rate_limited" or reply.code == "busy" or reply.code == "presence" then return "pending" end
+        if reply.pending == true or reply.code == "pending" or reply.code == "rate_limited" or reply.code == "busy" or reply.code == "presence" then return "pending" end
         if reply.ok == false then return unchanged and "rejected" or "pending" end
         if reply.ok == true and reply.pending ~= true and reply.code ~= "rate_limited"
             and reply.rank == intent.nextRank and integer(current.revision, baseline.revision + 1, MAX)
@@ -118,10 +119,12 @@ function PrestigeReset.new(reader)
             or after.session == p.session and (not integer(after.revision, before.revision + 1, MAX))
             or type(after.native) ~= "table" or type(data.before.native) ~= "table"
             or not number(after.native.serverNow, 0, MAX) or not number(data.before.native.serverNow, 0, MAX)
-            or after.native.serverNow < data.before.native.serverNow then return nil end
+            or after.native.serverNow < data.before.native.serverNow
+            or reply.ok == false and after.session ~= p.session
+                and after.native.serverNow <= data.before.native.serverNow then return nil end
         local current = reader.read(after, after)
         if not current or not current.xpKnown or current.catalogKey ~= before.catalogKey
-            or reply.pending == true or reply.code == "rate_limited" or reply.code == "busy" or reply.code == "presence" then return nil end
+            or reply.pending == true or reply.code == "pending" or reply.code == "rate_limited" or reply.code == "busy" or reply.code == "presence" then return nil end
         if reply.ok == true and reply.rank == before.rank + 1 and current.rank == before.rank + 1
             and current.level == 1 and current.xp == 0 then return "confirmed" end
         if reply.ok == false and current.rank == before.rank and current.level == before.level and current.xp == before.xp then

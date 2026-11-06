@@ -32,6 +32,21 @@ class EventShopRecoveryTests(unittest.TestCase):
         raw=self.f.raw(revision=2);self.app.Step(self.app,raw)
         self.assertEqual(self.runtime.Status(self.runtime).outcomes.eventShop,"skipped_unconfirmed")
         self.assertTrue(self.runtime.reservationOwner.Held(self.runtime.reservationOwner,raw)[0].allItems)
+    def test_busy_success_with_exact_award_keeps_saved_attempt_and_custody(self):
+        self.begin({"ok":True,"code":"busy"});self.restart();self.h.at(1)
+        raw=self.f.raw(revision=2,medals=85,bound=1)
+        self.app.Step(self.app,raw)
+        self.assertIsNone(self.runtime.Status(self.runtime).recoveries.eventShop)
+        self.assertEqual(len(self.runtime.checkpoint.Records(self.runtime.checkpoint)),1)
+        usage=self.runtime.checkpoint.EventShopUsage(self.runtime.checkpoint,raw)[0]
+        self.assertEqual((usage.attempted,usage.spent),(1,15))
+        self.assertTrue(self.runtime.reservationOwner.Held(self.runtime.reservationOwner,raw)[0].allItems)
+        self.assertEqual(len(self.executor.calls),0)
+    def test_busy_negative_with_unchanged_inventory_keeps_live_attempt(self):
+        self.begin({"ok":False,"code":"busy"});self.h.at(1)
+        self.app.Step(self.app,self.f.raw(revision=2))
+        self.assertIsNone(self.runtime.Status(self.runtime).outcomes.eventShop)
+        self.assertEqual(len(self.runtime.checkpoint.Records(self.runtime.checkpoint)),1)
     def test_saved_partial_award_or_debit_stays_uncertain(self):
         self.begin();self.restart();self.h.at(1)
         self.app.Step(self.app,self.f.raw(revision=2,medals=85))

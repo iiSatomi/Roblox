@@ -81,9 +81,11 @@ class RecallRuntimeAppTests(unittest.TestCase):
         self.lane=h.load('src/engine/RequestLane.luau').new(h.clock)
         transport=h.load('src/transport/NativeDispatchAdapter.luau').new(plan,self.executor,self.lane,h.clock)
         self.transport=self.recall.WrapTransport(self.recall,transport)
+        carry=self.usage_carry_factory(self,self.lease) if hasattr(self,'usage_carry_factory') else None
         self.runtime=h.load('src/engine/AutomationRuntime.luau').new(lua_table(h.lua,{'clock':h.clock,'transport':self.transport,'storage':self.storage,
             'identity':h.session,'modules':self.modules,'features':[self.tab.Descriptors(self.tab)[2]],'tabInstances':[self.tab],'featurePages':{'station':'territory'},
-            'snapshotAssembler':h.load('src/tabs/TabSnapshotAssembler.luau').new(lua_table(h.lua,[self.tab])),'reservationSources':self.tab.ReservationSources(self.tab)}))
+            'snapshotAssembler':h.load('src/tabs/TabSnapshotAssembler.luau').new(lua_table(h.lua,[self.tab])),'reservationSources':self.tab.ReservationSources(self.tab),
+            'usageCarryGuard':carry,'requestHighwaterFloor':carry.requestHighwaterFloor if carry else None}))
         self.recall.BindCheckpoint(self.recall,self.runtime.checkpoint,h.lua.eval('function() return recallAppRaw end'))
         sources=self.tab.ReadSources(self.tab,self.reader if with_reads else None)
         specs=[{'id':row.id,'interval':row.interval} for row in sources.values()]
@@ -114,7 +116,7 @@ class RecallRuntimeAppTests(unittest.TestCase):
         self.app.Set(self.app,'station.enabled',True);self.app.Resume(self.app)
         self.step()
         reason=self.runtime.Status(self.runtime).reasons.station
-        self.assertIn('Crew slot 2 lacks a stable member identity',reason)
+        self.assertIn('Unidentified Crew deployment or pending state requires review',reason)
         self.assertEqual(len(self.executor.calls),0);self.assertEqual(len(self.executor.queued),0)
         self.assertEqual(len(self.runtime.checkpoint.Records(self.runtime.checkpoint)),0)
         self.assertEqual(self.runtime.checkpoint.stationAttempts,0)

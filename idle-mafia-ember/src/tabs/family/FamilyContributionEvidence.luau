@@ -123,7 +123,7 @@ function FamilyContributionEvidence.new(state)
                 or restart and after.session ~= baseline.session and after.native.serverNow > baseline.serverNow)
             or type(after.familyContributionCatalog) ~= "table"
             or after.familyContributionCatalog.key ~= baseline.sourceKey
-            or reply.pending == true or reply.code == "rate_limited" or reply.code == "presence" then return "pending" end
+            or reply.pending == true or reply.code == "rate_limited" or reply.code == "busy" or reply.code == "presence" then return "pending" end
         local current = balance(after, baseline.resource, baseline.allowNativeGoldPool)
         if not current then return "pending" end
         local loose, bound

@@ -64,7 +64,7 @@ function Methods:Accept(request, reply)
         or reply.code == "rate_limited" or reply.code == "presence"
         or (reply.owned ~= nil and type(reply.owned) ~= "boolean")
         or reply.districtId ~= request.districtId
-        or (reply.status ~= nil and reply.status ~= "resident"
+        or (reply.status ~= nil and reply.status ~= "none" and reply.status ~= "resident"
             and reply.status ~= "pending")
         or type(reply.admission) ~= "string"
         or not ({ open = true, closed = true,

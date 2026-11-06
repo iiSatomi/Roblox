@@ -125,7 +125,7 @@ function EventShopBuyer.new(source)
             or not identity(proposal, baseline) or not identity(before, baseline) or type(after) ~= "table"
             or after.account ~= baseline.account or after.place ~= baseline.place or after.release ~= baseline.release
             or not restart and after.session ~= baseline.session
-            or reply.pending == true or reply.code == "rate_limited" or reply.code == "presence"
+            or reply.pending == true or reply.code == "rate_limited" or reply.code == "busy" or reply.code == "presence"
             or proposal.feature ~= "eventShop" or proposal.actionKey ~= baseline.actionKey
             or proposal.revision ~= baseline.revision or not same(proposal.intent, baseline.intent)
             or not same(proposal.resources, { event_medal = baseline.intent.price }) then return "pending" end

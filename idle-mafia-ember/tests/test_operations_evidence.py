@@ -53,7 +53,9 @@ class OperationsEvidenceTests(unittest.TestCase):
         ]), {"ok": True}), "pending")
 
     def test_rejection_and_missing_evidence(self):
-        self.assertEqual(self.evaluate(self.raw(2), {"ok": False}), "rejected")
+        unchanged = self.raw(2)
+        unchanged.native.cash = self.before.native.cash
+        self.assertEqual(self.evaluate(unchanged, {"ok": False}), "rejected")
         changed = self.raw(2, [{"opId": "op_fence", "remaining": 19},
                                {"opId": "op_truck", "remaining": 3600}])
         self.assertEqual(self.evaluate(changed, {"ok": False}), "pending")
@@ -63,6 +65,37 @@ class OperationsEvidenceTests(unittest.TestCase):
         self.assertEqual(self.evaluate(partial, {"ok": False}), "pending")
         wrong = self.raw(2, account="other")
         self.assertEqual(self.evaluate(wrong, {"ok": False}), "pending")
+
+    def test_transient_replies_never_settle_even_with_matching_effect(self):
+        active = [{"opId": "op_fence", "remaining": 19, "slot": 1},
+                  {"opId": "op_truck", "remaining": 3600, "slot": 2}]
+        for flag in ({"pending": True}, {"code": "pending"}, {"code": "busy"},
+                     {"code": "presence"}, {"code": "rate_limited"}):
+            for accepted in (True, False):
+                with self.subTest(flag=flag, accepted=accepted):
+                    after = self.raw(2, active if accepted else None)
+                    if not accepted: after.native.cash = self.before.native.cash
+                    self.assertEqual(self.evaluate(after, dict(flag, ok=accepted)), "pending")
+
+    def test_negative_requires_newer_unchanged_cash_and_slots(self):
+        self.assertEqual(self.evaluate(self.before, {"ok": False}), "pending")
+        self.assertEqual(self.evaluate(self.raw(2), {"ok": False}), "pending")
+        extra = self.raw(2, [{"opId": "op_fence", "remaining": 19, "slot": 1},
+                             {"opId": "op_truck", "remaining": 3600, "slot": 2}])
+        extra.native.cash = self.before.native.cash
+        self.assertEqual(self.evaluate(extra, {"ok": False}), "pending")
+
+    def test_saved_negative_needs_a_strictly_newer_clock_after_restart(self):
+        self.before.native.serverNow = 100
+        baseline = self.evidence.capture(self.proposal, self.before)[0]
+        data = lua_table(self.h.lua, {"proposal": self.proposal, "before": self.before,
+                                    "baseline": baseline, "reply": {"ok": False}})
+        data.proposal.resources = lua_table(self.h.lua, {"cash": 4000})
+        after = self.raw(1, session="new-session")
+        after.native.serverNow = 100
+        self.assertIsNone(self.evidence.recoverSaved(data, after))
+        after.native.serverNow = 101
+        self.assertEqual(self.evidence.recoverSaved(data, after), "rejected")
 
     def test_baseline_requires_complete_matching_operation_state(self):
         self.before["native"]["operations"]["active"] = None

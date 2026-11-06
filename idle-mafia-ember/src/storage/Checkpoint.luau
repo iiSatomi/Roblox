@@ -283,6 +283,18 @@ function Methods:ScopeKey()
     return self.key
 end
 
+-- A verified imported store can contain newer request identities. Reserve its
+-- range in memory; keep the loaded envelope intact for the next write's CAS.
+-- The caller must reapply the reviewed floor after each Load.
+function Methods:ApplyRequestFloor(floor)
+    if not self.scope or self.fault or self.writing or writers[self.key]
+        or not integer(floor, 0) or floor > MAX then
+        return false, self.fault or "Invalid imported request identity floor"
+    end
+    self.requestHighwater = math.max(self.requestHighwater, floor)
+    return true, nil
+end
+
 function Methods:Load(account, place, release)
     if self.writing then return nil, "Checkpoint write already in flight" end
     if not nonempty(account) or not nonempty(place) or not nonempty(release) then

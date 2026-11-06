@@ -105,8 +105,16 @@ local function reconcile(proposal, beforeHeader, after, reply, baseline, restart
         or type(proposal.intent) ~= "table"
         or baseline.opId ~= proposal.intent.targetId
         or baseline.cost ~= proposal.intent.expectedCost then return "pending" end
+    if reply.pending == true or reply.code == "pending" or reply.code == "busy"
+        or reply.code == "presence" or reply.code == "rate_limited" then return "pending" end
     local total, targetCount, slots = counts(after, baseline.opId)
     if not total then return "pending" end
+    local beforeTime = type(beforeHeader.native) == "table" and beforeHeader.native.serverNow
+    local afterTime = after.native.serverNow
+    if not finite(after.revision) or after.revision % 1 ~= 0
+        or not (after.session == baseline.session and after.revision > baseline.revision
+            or restart and after.session ~= baseline.session and finite(beforeTime)
+                and finite(afterTime) and afterTime > beforeTime) then return "pending" end
     if type(baseline.slots) ~= "table" then return "pending" end
     local newSlots = 0
     for nativeSlot, opId in pairs(baseline.slots) do
@@ -130,7 +138,12 @@ local function reconcile(proposal, beforeHeader, after, reply, baseline, restart
     if restart and (type(beforeHeader.native) ~= "table"
         or not finite(beforeHeader.native.serverNow) or not finite(after.native.serverNow)
         or after.native.serverNow < beforeHeader.native.serverNow) then return "pending" end
-    if reply.ok == false then return advanced and "pending" or "rejected" end
+    if reply.ok == false then
+        local unchanged = newSlots == 0 and total == baseline.total
+            and targetCount == baseline.targetCount and finite(after.native.cash)
+            and after.native.cash == baseline.cash
+        return unchanged and "rejected" or "pending"
+    end
     if reply.ok == true and advanced
         and (restart or type(after.revision) == "number"
             and after.revision > baseline.revision) then return "confirmed" end

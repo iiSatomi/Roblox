@@ -10,6 +10,21 @@ local function integer(value, low, high)
         and value >= low and value <= high and value % 1 == 0
 end
 
+-- Native Util.splitItemKey: one @ suffix, canonical upgrade levels 1..99.
+-- This relates read-only search rows; it never changes an item ID or its value.
+local function itemBase(value)
+    if type(value) ~= "string" or #value == 0 or #value > 120 or value:find("%c") then return nil end
+    local at = value:find("@", 1, true)
+    if not at then return value end
+    local base, level = value:sub(1, at - 1), value:sub(at + 1)
+    if #base == 0 or not level:match("^[1-9]%d?$") then return nil end
+    return base
+end
+function MarketBrowse.matchesItemScope(itemId, selectedId)
+    local base = itemBase(itemId)
+    return base ~= nil and (itemId == selectedId or base == selectedId)
+end
+
 local function rows(raw)
     if type(raw) ~= "table" or #raw > 500 then return nil end
     local length = #raw
@@ -25,7 +40,7 @@ local function rows(raw)
         if type(row) ~= "table"
             or (type(row.id) == "string" and #row.id == 0)
             or (type(row.id) ~= "string" and not integer(row.id, 1, 9007199254740991))
-            or type(row.item) ~= "string" or #row.item == 0
+            or itemBase(row.item) == nil
             or not integer(row.qty, 1, 999999)
             or not integer(row.price, 1, 999999999)
             or (row.t ~= nil and not integer(row.t, 0, 9007199254740991))
@@ -90,11 +105,16 @@ function Methods:Accept(request, reply)
     if type(reply) ~= "table" or reply.ok ~= true then
         return nil, "Market browse rejected"
     end
+    if reply.scope ~= nil and reply.scope ~= request.kind
+        or reply.arg ~= nil and reply.arg ~= request.arg
+        or reply.scope ~= nil and request.kind == "item" and reply.arg ~= request.arg then
+        return nil, "Market item scope changed"
+    end
     local accepted = rows(reply.rows)
     if not accepted then return nil, "Invalid Market browse rows" end
     if request.kind == "item" then
         for _, row in ipairs(accepted) do
-            if row.item ~= request.arg then return nil, "Market item scope changed" end
+            if not MarketBrowse.matchesItemScope(row.item, request.arg) then return nil, "Market item scope changed" end
         end
     end
     local pages = reply.pages

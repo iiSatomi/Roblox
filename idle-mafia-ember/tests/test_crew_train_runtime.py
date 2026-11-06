@@ -30,8 +30,10 @@ class CrewTrainRuntimeTests(unittest.TestCase):
         self.begin();call=self.f.executor.calls[1]
         self.assertEqual(call.remote,'CrewAction');self.assertEqual((call.args[1],call.args[2]),('train',2))
         self.step(2,400,True);self.assertEqual(self.f.runtime.Status(self.f.runtime).outcomes.crewTrain,'confirmed')
-    def test_timer_without_cash_debit_cannot_confirm(self):
-        self.begin();self.step(2,500,True)
+    def test_wrong_timer_without_cash_debit_cannot_confirm(self):
+        self.begin();after=self.raw(2,500,True)
+        after.native.crew[2].training.endsAt=1100
+        self.h.at(after.capturedAt);self.f.app.Step(self.f.app,after)
         self.assertIsNone(self.f.runtime.Status(self.f.runtime).outcomes.crewTrain)
     def test_wrong_training_duration_cannot_confirm(self):
         self.begin();after=self.raw(2,400,True);after.native.crew[2].training.endsAt=1100

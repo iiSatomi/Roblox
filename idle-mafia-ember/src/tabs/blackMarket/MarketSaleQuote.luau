@@ -22,6 +22,7 @@ local function identity(custody, listings)
             or custody[field] ~= listings[field] then return false end
     end
     return type(custody.itemId) == "string" and #custody.itemId > 0
+        and not custody.itemId:find("@", 1, true)
         and integer(custody.quantity, 1, 999)
         and integer(custody.withdraw, 0, custody.quantity)
 end
@@ -58,6 +59,7 @@ local function supply(browse, listings, itemId)
     local depth, cheapest, count = 0, nil, 0
     for index, row in ipairs(rows) do
         if type(row) ~= "table" or type(row.item) ~= "string"
+            or row.item:find("@", 1, true)
             or not integer(row.qty, 1, 1000000000)
             or not integer(row.price, 1, 9999999)
             or type(row.mine) ~= "boolean" then return nil end

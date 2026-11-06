@@ -15,6 +15,28 @@ class NativeRecallLeaseTests(unittest.TestCase):
         self.scope=lua_table(self.h.lua,{'account':'user-a','userId':42,'place':self.h.session['place'],'jobId':'job-a','sourceKey':'a'*64})
         self.epoch=lua_table(self.h.lua,{'id':'epoch-a','counterKnown':0,'proven':True})
         self.owner=None
+    def test_inspect_never_expires_or_changes_native_pending_fields(self):
+        self.new()
+        self.assertIsNotNone(self.owner.Inspect)
+        view,why=self.owner.Inspect(self.owner)
+        self.assertIsNone(why)
+        self.assertEqual((view.account,view.userId,view.counter),('user-a',42,0))
+        self.assertEqual(self.port.writes,0)
+        self.assertTrue(self.owner.Acquire(self.owner,self.proposal(),45)[0])
+        writes=self.port.writes;token=self.port.pending
+        self.h.at(46)
+        view,why=self.owner.Inspect(self.owner)
+        self.assertIsNone(why);self.assertEqual(view.counter,self.port.counter)
+        self.assertEqual(self.port.writes,writes)
+        self.assertTrue(self.h.lua.eval('function(a,b)return a==b end')(token,self.port.pending))
+
+    def test_inspect_refuses_unproven_counter_without_adopting_or_writing_it(self):
+        self.new()
+        self.assertIsNotNone(self.owner.Inspect)
+        self.epoch.proven=False
+        self.assertIsNone(self.owner.Inspect(self.owner)[0])
+        self.assertEqual(self.port.writes,0)
+
     def new(self):
         self.assertTrue(self.path.is_file(),'Native Recall lease is missing')
         self.module=self.h.load('src/tabs/territory/NativeRecallLease.luau')

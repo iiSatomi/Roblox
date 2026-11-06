@@ -13,6 +13,7 @@ class OperationConstraintsAppTests(unittest.TestCase):
     def raw(self,revision=1):
         raw=self.f.raw(revision)
         raw.native.cash=10000
+        raw.native.serverNow=100+max(0,revision-1)
         raw.operationCatalog=lua_table(self.h.lua,[
             {'id':'op_fence','level':1,'duration':600,'cost':200,'cash':1500,'xp':20,'crate':'crate_low','crateChance':.1},
             {'id':'op_truck','level':8,'duration':3600,'cost':4000,'cash':18000,'xp':180,'crate':'crate_high','crateChance':.2}])
@@ -101,7 +102,7 @@ class OperationConstraintsAppTests(unittest.TestCase):
         self.app=self.f.app;self.runtime=self.f.runtime;self.executor=self.f.executor
     def test_saved_sent_rate_goal_recovers_exact_effect_without_replay(self):
         self.run_op(policy='Profit / hour');self.target();self.restart()
-        after=self.raw(0);after.capturedAt=1;after.native.cash=6000
+        after=self.raw(0);after.capturedAt=1;after.native.cash=6000;after.native.serverNow=101
         after.native.operations.active=lua_table(self.h.lua,[{'opId':'op_truck','remaining':3599,'slot':1}])
         self.h.at(1);self.app.Step(self.app,after)
         self.assertEqual(self.runtime.Status(self.runtime).recoveries.operations,'confirmed')
@@ -128,7 +129,7 @@ class OperationConstraintsAppTests(unittest.TestCase):
         record=self.runtime.checkpoint.Records(self.runtime.checkpoint)[1]
         return self.runtime.checkpoint.Recovery(self.runtime.checkpoint,record.actionKey)[0]
     def settled(self):
-        after=self.raw(0);after.session='ops-reloaded';after.native.cash=6000
+        after=self.raw(0);after.session='ops-reloaded';after.native.cash=6000;after.native.serverNow=101
         after.native.operations.active=lua_table(self.h.lua,[{'opId':'op_truck','remaining':3599,'slot':1}])
         return after
     def test_saved_recovery_refuses_forged_baseline_and_cash_exposure(self):
@@ -151,6 +152,23 @@ class OperationConstraintsAppTests(unittest.TestCase):
         self.saved_start({'ok':False});self.restart();self.h.at(1)
         self.app.Step(self.app,self.raw(2))
         self.assertEqual(self.runtime.Status(self.runtime).recoveries.operations,'rejected')
+        self.assertEqual(len(self.executor.calls),0)
+
+    def test_transient_negative_retains_exact_cash_custody_through_timeout_and_restart(self):
+        self.saved_start({'ok':False,'code':'busy'})
+        original=self.runtime.checkpoint.Records(self.runtime.checkpoint)[1].actionKey
+        self.h.at(45);after=self.raw(2);after.capturedAt=45
+        self.app.Step(self.app,after)
+        records=self.runtime.checkpoint.Records(self.runtime.checkpoint)
+        self.assertEqual(len(records),1);self.assertEqual(records[1].resources.cash,4000)
+        self.assertEqual(len(self.executor.calls),1)
+        self.restart();self.h.at(46);after=self.raw(3);after.capturedAt=46
+        self.app.Step(self.app,after)
+        records=self.runtime.checkpoint.Records(self.runtime.checkpoint)
+        self.assertEqual(len(records),1);self.assertEqual(records[1].actionKey,original)
+        self.assertEqual(records[1].resources.cash,4000)
+        saved=self.runtime.checkpoint.Recovery(self.runtime.checkpoint,original)[0]
+        self.assertEqual(saved.reply.code,'busy');self.assertFalse(saved.reply.ok)
         self.assertEqual(len(self.executor.calls),0)
     def test_failed_recovery_cleanup_retains_record_until_later_success(self):
         self.saved_start();self.restart();after=self.settled();after.session=self.h.session['session'];after.capturedAt=1

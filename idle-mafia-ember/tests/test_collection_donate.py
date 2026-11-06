@@ -78,6 +78,47 @@ class CollectionDonateTests(unittest.TestCase):
             after, lua_table(self.h.lua, {"ok": True, "moved": 2}),
             baseline), "pending")
 
+    def test_transient_replies_never_resolve_even_matching_custody(self):
+        proposal = self.plan()
+        baseline, reason = self.feature.capture(proposal, self.before)
+        self.assertIsNone(reason)
+        after = self.h.snapshot(revision=2, native={"fullSync": True,
+            "inventory": {"w_a": 2}, "inventoryBound": {},
+            "collection": {"w_a": 11}, "collectionBound": {},
+            "crew": [{"name": "Player", "weapon": "w_a"},
+                     {"name": "Ally", "rarity": 4}]})
+        for ok in (True, False):
+            for transient in ({"pending": True}, {"code": "rate_limited"},
+                              {"code": "busy"}, {"code": "presence"}):
+                with self.subTest(ok=ok, transient=transient):
+                    reply = lua_table(self.h.lua, {"ok": ok, "moved": 2, **transient})
+                    self.assertEqual(self.feature.evaluate(proposal, self.before,
+                        after, reply, baseline), "pending")
+
+    def test_rejection_requires_complete_unchanged_custody_and_equipment(self):
+        proposal = self.plan()
+        baseline, reason = self.feature.capture(proposal, self.before)
+        self.assertIsNone(reason)
+        for change in ("loose", "bound", "collection", "collectionBound", "variant", "worn", "partial"):
+            with self.subTest(change=change):
+                after = self.h.snapshot(revision=2, native={"fullSync": True,
+                    "inventory": {"w_a": 4}, "inventoryBound": {},
+                    "collection": {"w_a": 9}, "collectionBound": {},
+                    "crew": [{"name": "Player", "weapon": "w_a"},
+                             {"name": "Ally", "rarity": 4}]})
+                reply = lua_table(self.h.lua, {"ok": False})
+                self.assertEqual(self.feature.evaluate(proposal, self.before,
+                    after, reply, baseline), "rejected")
+                if change == "loose": after.native.inventory.w_a = 3
+                elif change == "bound": after.native.inventoryBound.w_a = 1
+                elif change == "collection": after.native.collection.w_a = 10
+                elif change == "collectionBound": after.native.collectionBound.w_a = 1
+                elif change == "variant": after.native.collection["w_a@alt"] = 1
+                elif change == "worn": after.native.crew[2].weapon = "w_a"
+                else: after.native.fullSync = False
+                self.assertEqual(self.feature.evaluate(proposal, self.before,
+                    after, reply, baseline), "pending")
+
     def test_worn_or_loose_change_blocks_capture(self):
         proposal = self.plan()
         self.before["native"]["crew"][2]["weapon"] = "w_a"

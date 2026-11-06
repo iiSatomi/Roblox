@@ -150,7 +150,8 @@ local function reconcile(proposal, beforeHeader,
             or restart and after.session ~= baseline.session and type(after.native) == "table"
                 and finite(after.native.serverNow, 0) and finite(baseline.serverNow, 0)
                 and after.native.serverNow > baseline.serverNow)
-        or reply.pending == true or reply.code == "rate_limited" or reply.code == "presence" then
+        or reply.pending == true or reply.code == "pending" or reply.code == "busy"
+        or reply.code == "rate_limited" or reply.code == "presence" then
         return "pending"
     end
     local event, native, usage, run, hits, damage = current(after)

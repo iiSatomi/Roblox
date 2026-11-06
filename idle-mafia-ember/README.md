@@ -27,6 +27,18 @@ Verified module bytes are cached by SHA-256, so unchanged modules can be
 reused across release commits. Each launch still checks every byte against
 the pinned manifest; missing or corrupt modules are fetched again.
 
+## November 6 continuation
+
+See the [completion continuation](docs/completion-2026-11-06.md) for subsequent
+storage-lineage, runtime, and feature fixes, verification, and current limits.
+The [55-control acceptance matrix](docs/feature-acceptance-2026-11-06.json) and
+[bounded live ledger](docs/completion-live-2026-11-06.json) separate implementation
+and offline tests from confirmed native paths. Current working builds record
+18 confirmed mutation paths and four read/goal reports, including normal saved
+Shop recovery without a second purchase; this is not 100% gameplay acceptance.
+Additional followup source, manifest, and entry pins are pending.
+The recovery report above remains the earlier published-release checkpoint.
+
 ## Historical implementation notes
 
 The following notes describe earlier development checkpoints. Use the current
@@ -133,7 +145,7 @@ task. Existing active native automation must still be detected and yielded to.
 
 The user requested the same functions with substantially fewer configuration options. The first slice is a local interactive design preview with 25 dedicated system tabs, including separate Heists, Jobs, Collection, Money, Property, Shop and Black Market tabs. Combat groups player fights, city Bosses, Family Takedown and Global Bosses, and has four Custom overrides and Properties has three. All 50 old feature IDs remain accounted for. Actual Ember and gameplay scripts follow the simplified layout and a tested request/recovery engine. Features will be freshly implemented from reviewed requirements and current game evidence; old production modules will not be copied, imported, or wrapped.
 
-## Planned organization
+## Historical planned organization
 
 ```text
 idle-mafia-ember/
@@ -159,15 +171,15 @@ idle-mafia-ember/
   manifest.json     future release module/dependency/checksum manifest
 ```
 
-`src/App.luau`, `src/storage/Settings.luau`, `src/ui/EmberAdapter.luau` and generated
-`src/ui/Catalog.luau` now exist, with offline tests and a private local builder.
-`ExecutorEntry.luau`, `Bootstrap.luau`, `ReleaseAdapters.luau` and `Loader.luau` load the full inert
-modular App in local tests, including a verified-cache offline restart. A
-production manifest, packaged client-side entry, current-client full-App test and
-gameplay outcomes remain pending. Private dependency/compiler bytes,
+At this prototype checkpoint, `src/App.luau`, `src/storage/Settings.luau`,
+`src/ui/EmberAdapter.luau` and generated `src/ui/Catalog.luau` existed with offline
+tests and a private local builder. The loader composed the inert modular App in
+local tests, including a verified-cache offline restart; production packaging and
+gameplay outcomes remained pending. Current results are linked above.
+Private dependency/compiler bytes,
 assembled executor files and extracted game evidence stay in ignored `.private/`.
 
-## Loading and releases
+## Historical loading plan
 
 A short entry script will select one reviewed release commit, load its matching modules and reviewed Ember dependency, validate the complete release, and compose the application. Feature modules will not be fetched independently from a moving branch during gameplay. A failed or incomplete startup must not start gameplay actions. The exact loader capabilities still need verification in the intended runtime.
 

@@ -850,7 +850,7 @@ local function resolve(game, requireModule, readUpvalues, familyBossControllerMo
             return player:IsInGroup(groupId)
         end
     end
-    return { moduleFolder = mw, remotesFolder = remotes,
+    return { moduleFolder = mw, remotesFolder = remotes, placeVersion = placeVersion,
         nativeState = state, stateModule = stateModule, teleportSignal = player.OnTeleport,
         uiParent = child(player, "PlayerGui", "PlayerGui"),
         currentDailyBuffRules = dailyBuffRules,

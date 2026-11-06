@@ -246,8 +246,27 @@ function Chests.evaluate(proposal, before, after, reply, baseline)
         return "pending"
     end
     if reply.pending ~= nil and reply.pending ~= false or reply.code ~= nil and reply.code ~= "" then return "pending" end
-    if reply.ok == false then return "rejected" end
     local native = after.native
+    if reply.ok == false then
+        if type(native) ~= "table" or native.fullSync ~= true
+            or type(native.inventory) ~= "table" or type(native.inventoryBound) ~= "table"
+            or type(baseline.inventory) ~= "table"
+            or count(native.inventory, baseline.itemId) ~= baseline.count then return "pending" end
+        local current = {}
+        for _, field in ipairs({"inventory", "inventoryBound"}) do
+            for id, amount in pairs(native[field]) do
+                if type(id) ~= "string" or not integer(amount, 0) then return "pending" end
+                current[id] = (current[id] or 0) + amount
+            end
+        end
+        for id, amount in pairs(baseline.inventory) do
+            if (current[id] or 0) ~= amount then return "pending" end
+        end
+        for id, amount in pairs(current) do
+            if (baseline.inventory[id] or 0) ~= amount then return "pending" end
+        end
+        return "rejected"
+    end
     local rewards = reply.itemIds
     if reply.ok ~= true or type(native) ~= "table"
         or native.fullSync ~= true

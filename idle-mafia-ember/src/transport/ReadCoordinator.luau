@@ -91,6 +91,8 @@ function ReadCoordinator.new(deps)
         assert(type(spec) == "table" and type(spec.id) == "string" and #spec.id > 0 and #spec.id <= 80
             and not sources[spec.id] and type(spec.prepare) == "function"
             and type(spec.accept) == "function" and type(spec.commit) == "function", "Invalid read source")
+        assert(spec.latestStartAge == nil or finite(spec.latestStartAge)
+            and spec.latestStartAge > 0 and spec.latestStartAge <= 2, "Invalid read admission age")
         local confirmFeatures, count = {}, 0
         assert(spec.confirmFeatures == nil or type(spec.confirmFeatures) == "table", "Invalid confirmation read scope")
         for feature, allowed in pairs(spec.confirmFeatures or {}) do
@@ -100,7 +102,8 @@ function ReadCoordinator.new(deps)
             assert(count <= 8, "Too many confirmation features")
         end
         sources[spec.id] = {id = spec.id, prepare = spec.prepare, accept = spec.accept,
-            commit = spec.commit, confirmFeatures = confirmFeatures, statusOnly = spec.statusOnly == true}
+            commit = spec.commit, confirmFeatures = confirmFeatures, statusOnly = spec.statusOnly == true,
+            latestStartAge = spec.latestStartAge}
     end
     local closed, active, enabled, reasons = false, nil, {}, {}
     local lane, budget, clock, executor = deps.lane, deps.budget, deps.clock, deps.executor
@@ -157,7 +160,18 @@ function ReadCoordinator.new(deps)
                 end
             end
             if next(effective) == nil then return "busy" end
-        else effective = enabled end
+        else
+            for id, allowed in pairs(enabled) do effective[id] = allowed end
+        end
+        -- Reserve time for dependent reads without consuming a token/backoff.
+        -- Already admitted work retains the existing exact-header/2s result rule.
+        for id in pairs(effective) do
+            local latest = sources[id].latestStartAge
+            if effective[id] == true and latest and clock:Now() - bound.capturedAt > latest then
+                effective[id], borrowed[id] = nil, nil
+                reasons[id] = "Read deferred until a fresh Sync"
+            end
+        end
         local id, budgetToken = budget:Due(effective)
         if not id then return "idle" end
         local source = sources[id]

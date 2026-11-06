@@ -53,7 +53,7 @@ local function visible(browse, listingId, itemId)
     for index, row in ipairs(rows) do
         if type(row) ~= "table" or not id(row.id)
             or type(row.item) ~= "string" or #row.item == 0
-            or #row.item > 120
+            or #row.item > 120 or row.item:find("@", 1, true)
             or not integer(row.qty, 1, 1000000000)
             or not integer(row.price, 1, 9999999)
             or type(row.mine) ~= "boolean"
@@ -91,7 +91,7 @@ function MarketWatchOpportunity.assess(browse, listingId, rap,
         or not fresh(history, now, 120)
         or type(item) ~= "table"
         or type(item.id) ~= "string" or #item.id == 0
-        or #item.id > 120 or item.tradable ~= true
+        or #item.id > 120 or item.id:find("@", 1, true) or item.tradable ~= true
         or item.kind == "gold"
         or not integer(item.rarity, 1, 20)
         or rap.itemId ~= item.id

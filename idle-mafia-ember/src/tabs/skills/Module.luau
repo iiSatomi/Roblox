@@ -62,7 +62,7 @@ end
 function Methods:Descriptors()
     local d = self.deps
     return { { id = "skills", reader = d.SkillsState,
-        planner = d.Skills, evidence = d.SkillsEvidence } }
+        planner = d.Skills, evidence = d.SkillsEvidence, recoverSaved = d.SkillsEvidence.recoverSaved } }
 end
 
 return SkillsTab

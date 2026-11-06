@@ -1,0 +1,192 @@
+{
+  "settingsChanged": false,
+  "resources": {
+    "heldStamina": 0,
+    "health": 297,
+    "heldSkillPoints": 0,
+    "stamina": 30,
+    "skillPoints": 0,
+    "maxHealth": 300,
+    "energy": 22
+  },
+  "pendingCount": 2,
+  "readOnly": true,
+  "strictContext": true,
+  "age": 0.3124746000394225,
+  "sameSnapshotAtEnd": true,
+  "paused": true,
+  "features": {
+    "bossShop": {
+      "enabled": false,
+      "reviewedImportedAttemptFloor": 1,
+      "cheapest": {
+        "price": 14,
+        "kind": "crate",
+        "item": "crate_loot"
+      },
+      "readable": true,
+      "quoteAvailableIgnoringSwitch": true,
+      "registered": true,
+      "resourceQuote": {
+        "bossTokens": 14
+      },
+      "facts": {
+        "tokens": 6570,
+        "attempts": 0
+      }
+    },
+    "briefcases": {
+      "enabled": false,
+      "readable": false,
+      "readReason": "Briefcase event is inactive",
+      "registered": true,
+      "facts": {
+        "endAt": 0,
+        "active": false
+      },
+      "free": 1
+    },
+    "familyBossAttacks": {
+      "enabled": false,
+      "nativeProof": false,
+      "fullHealth": false,
+      "readable": false,
+      "readReason": "Current free Family attack proof required",
+      "registered": true,
+      "stateProof": true,
+      "facts": [],
+      "unknownDamageOptIn": false
+    },
+    "monthlyRewards": {
+      "enabled": false,
+      "readable": false,
+      "readReason": "Native monthly calendar is disabled",
+      "registered": true,
+      "configEnabled": false
+    },
+    "prestige": {
+      "enabled": false,
+      "noLeaseMethodsCalled": true,
+      "cachedUsageProof": true,
+      "readable": true,
+      "quoteAvailableIgnoringSwitch": false,
+      "nativeControllerBound": true,
+      "facts": {
+        "ready": false,
+        "attempted": 0,
+        "requiredLevel": 200,
+        "level": 92,
+        "controllersClear": false,
+        "rank": 1
+      },
+      "quoteReason": "Current level 92 -> 1; current EXP 23495 -> 0; rank 1 -> 2; explicit reset choice is off",
+      "registered": true
+    },
+    "globalBossClaim": {
+      "enabled": false,
+      "readable": true,
+      "registered": true,
+      "facts": {
+        "personalDamageIntegral": true,
+        "nativeCooldownUnavailable": false,
+        "runMatches": false,
+        "phase": "done",
+        "participated": true,
+        "attackCooldown": 1.25,
+        "eventPresent": true,
+        "claimed": true,
+        "claimSecondsRemaining": 551670
+      },
+      "quoteReason": "No unclaimed participated Global Boss result",
+      "quoteAvailableIgnoringSwitch": false
+    },
+    "skills": {
+      "enabled": false,
+      "readable": true,
+      "registered": true,
+      "nextAllocations": {
+        "defense": {
+          "nextCost": 1,
+          "allocated": 0
+        },
+        "health": {
+          "nextCost": 5,
+          "allocated": 20
+        },
+        "stamina": {
+          "nextCost": 5,
+          "allocated": 24
+        },
+        "property": {
+          "nextCost": 1024,
+          "allocated": 10
+        },
+        "energy": {
+          "nextCost": 1,
+          "allocated": 0
+        },
+        "attack": {
+          "nextCost": 4,
+          "allocated": 11
+        }
+      },
+      "quoteReason": "Skill points unavailable",
+      "quoteAvailableIgnoringSwitch": false
+    },
+    "bosses": {
+      "enabled": false,
+      "readable": true,
+      "registered": true,
+      "stageProof": true,
+      "facts": {
+        "usageHits": 0,
+        "stamina": 30,
+        "usageStamina": 0,
+        "best": 72,
+        "staminaCost": 1
+      },
+      "quoteReason": "Reviewed build 653 complete Boss selection source required",
+      "quoteAvailableIgnoringSwitch": false
+    },
+    "familyBossClaims": {
+      "enabled": false,
+      "readable": false,
+      "readReason": "Current Family claim and attempt proof required",
+      "registered": true
+    },
+    "eventShop": {
+      "enabled": false,
+      "readable": false,
+      "readReason": "Current Event Shop offers and medal custody are not connected",
+      "registered": true,
+      "paidMedals": 0,
+      "facts": [],
+      "earnedBoundMedals": 0
+    },
+    "globalBossAttack": {
+      "enabled": false,
+      "readable": true,
+      "registered": true,
+      "facts": {
+        "personalDamageIntegral": true,
+        "nativeCooldownUnavailable": false,
+        "runMatches": false,
+        "phase": "done",
+        "participated": true,
+        "attackCooldown": 1.25,
+        "eventPresent": true,
+        "claimed": true,
+        "claimSecondsRemaining": 551670
+      },
+      "quoteReason": "Current live Global Boss resources required",
+      "quoteAvailableIgnoringSwitch": false
+    }
+  },
+  "storageFault": false,
+  "fullSync": true,
+  "matchingReader": true,
+  "nativeCalls": 0,
+  "capturedUTC": "2026-11-06T16:10:00Z",
+  "workingBuild": "901c11473d932ac0864093915a580781cc9a59bb4269b7c82862bbc9c168694b",
+  "scope": "Read-only prerequisites from real normal enriched snapshot. Quotes ignore enabled switch solely for inspection and do not assert dispatch allowance or gameplay success."
+}

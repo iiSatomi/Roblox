@@ -126,7 +126,7 @@ function ShopBuyEvidence.capture(proposal, before)
         revision = proposal.revision, itemId = intent.itemId,
         slot = intent.slot, beforeOwned = intent.beforeOwned,
         beforeBought = intent.beforeBought,
-        cashBefore = native.cash, cost = intent.expectedCost,
+        cashBefore = native.cash, cost = intent.expectedCost, serverNow = native.serverNow,
         trackedBought = type(native.shopBought) == "table",
         inventoryBound = type(native.inventoryBound) == "table" and (native.inventoryBound[intent.itemId] or 0) or nil,
         collection = type(native.collection) == "table" and (native.collection[intent.itemId] or 0) or nil,
@@ -148,7 +148,8 @@ local function reconcile(proposal, beforeHeader, after, reply, baseline, restart
     if not same(proposal, beforeHeader) or not same(proposal, after, restart)
         or not same(proposal, baseline)
         or type(reply) ~= "table"
-        or reply.pending == true
+        or reply.pending == true or reply.code == "rate_limited"
+        or reply.code == "presence" or reply.code == "busy"
         or type(proposal.intent) ~= "table"
         or proposal.intent.itemId ~= baseline.itemId
         or proposal.intent.expectedCost ~= baseline.cost
@@ -179,10 +180,26 @@ local function reconcile(proposal, beforeHeader, after, reply, baseline, restart
     if restart and (type(beforeHeader.native) ~= "table"
         or not finiteAtLeast(beforeHeader.native.serverNow, 0)
         or not finiteAtLeast(native.serverNow, beforeHeader.native.serverNow)) then return "pending" end
+    local exactCashDebit = native.cash == baseline.cashBefore - baseline.cost
+    -- The native bought flag is a one-per-item purchase record for this slot.
+    -- With every origin known, a later wallet can include income. Confirm the
+    -- purchase outcome, without claiming an exact debit or estimating that income.
+    local priorServerNow = baseline.serverNow
+    if priorServerNow == nil and restart and type(beforeHeader.native) == "table"
+        and beforeHeader.native.fullSync == true then
+        priorServerNow = beforeHeader.native.serverNow
+    end
+    local laterPurchaseWallet = integer(baseline.inventoryBound, 0)
+        and integer(baseline.collection, 0) and integer(baseline.collectionBound, 0)
+        and finiteAtLeast(priorServerNow, 0)
+        and finiteAtLeast(native.serverNow, 0)
+        and native.serverNow > priorServerNow
+        and finiteAtLeast(baseline.cashBefore, baseline.cost)
+        and native.cash >= baseline.cashBefore - baseline.cost
     local granted = native.inventory[baseline.itemId]
         == baseline.beforeOwned + 1
         and boughtThisRotation(native.shopRotation, baseline.slot, baseline.itemId)
-        and native.cash == baseline.cashBefore - baseline.cost
+        and (exactCashDebit or laterPurchaseWallet)
         and (not baseline.trackedBought
             or native.shopBought[baseline.itemId]
                 == baseline.beforeBought + 1)
@@ -217,7 +234,10 @@ end
 function ShopBuyEvidence.recoverSaved(data, after)
     if type(data) ~= "table" or type(data.reply) ~= "table" then return nil end
     local baseline = ShopBuyEvidence.capture(data.proposal, data.before)
-    if not baseline or not equal(baseline, data.baseline) then return nil end
+    if not baseline or type(data.baseline) ~= "table" then return nil end
+    -- Legacy receipts retain their original schema and immutable before clock.
+    if data.baseline.serverNow == nil then baseline.serverNow = nil end
+    if not equal(baseline, data.baseline) then return nil end
     local result = reconcile(data.proposal, data.before, after, data.reply, baseline, true)
     return (result == "confirmed" or result == "rejected") and result or nil
 end

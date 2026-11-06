@@ -136,6 +136,46 @@ function StorageAssembly.new(deps)
                 return nil, "Invalid storage identity"
             end
         end
+        local ownerKey = "idle-mafia-ember:release-owner:v1:"
+            .. #identity.account .. ":" .. identity.account .. #identity.place .. ":" .. identity.place
+        local ownerRead, existingOwner = pcall(checkpoints.Read, checkpoints, ownerKey)
+        if not ownerRead then return nil, "Checkpoint release ownership unreadable" end
+        local upgradePath = deps.directory .. "/storage-upgrade-review.json"
+        local readUpgrade, upgradeBytes = pcall(deps.files.ReadFile, deps.files, upgradePath)
+        if not readUpgrade then return nil, "Storage upgrade review unreadable" end
+        if type(existingOwner) == "table" and existingOwner.version == 2 or upgradeBytes ~= nil then
+            if type(deps.StorageUpgrade) ~= "table" or type(deps.StorageUpgrade.new) ~= "function" then
+                return nil, "Reviewed storage upgrade owner required"
+            end
+            local function current()
+                if deps.storageUpgradeCurrent ~= nil then
+                    local ok, active = pcall(deps.storageUpgradeCurrent)
+                    if not ok or active ~= true then return false end
+                end
+                if upgradeBytes ~= nil then
+                    local ok, bytes = pcall(deps.files.ReadFile, deps.files, upgradePath)
+                    if not ok or bytes ~= upgradeBytes then return false end
+                end
+                return true
+            end
+            local made, upgrade, why = pcall(deps.StorageUpgrade.new, {store=checkpoints, files=deps.files,
+                codec=deps.codec, sha256=deps.sha256, directory=deps.directory, identity=identity,
+                modules=deps, current=current, usageCarry=deps.usageCarry})
+            if not made or not upgrade then return nil, made and why or "Storage upgrade construction failed" end
+            local adopted, reason
+            if type(existingOwner) == "table" and existingOwner.version == 2 and existingOwner.release == identity.release then
+                adopted, reason = upgrade:Open()
+            else
+                if type(upgradeBytes) ~= "string" or #upgradeBytes > 1048576 then return nil, "Exact storage upgrade review required" end
+                local decoded, review = pcall(deps.codec.Decode, deps.codec, upgradeBytes)
+                if not decoded or type(review) ~= "table" then return nil, "Invalid storage upgrade review" end
+                adopted, reason = upgrade:Commit(review)
+            end
+            if not adopted then return nil, reason or "Storage upgrade was not confirmed" end
+            return {ProfileStorage=profiles, storage=checkpoints, identity=adopted.identity,
+                sourceRelease=adopted.sourceRelease,usageCarryGuard=adopted.usageCarryGuard,
+                requestHighwaterFloor=adopted.requestHighwaterFloor}, nil
+        end
         local reviewPath = deps.directory .. "/migration-review.json"
         local readReview, reviewBytes = pcall(deps.files.ReadFile, deps.files, reviewPath)
         if not readReview then return nil, "Migration review unreadable" end
@@ -284,7 +324,10 @@ function StorageAssembly.new(deps)
             end
         end
     end
-    return { ProfileStorage = profiles, storage = checkpoints }, nil
+    local identity = type(deps.identity) == "table" and {account=deps.identity.account,place=deps.identity.place,
+        release=deps.identity.release,session=deps.identity.session} or nil
+    return { ProfileStorage = profiles, storage = checkpoints, identity=identity,
+        sourceRelease=identity and identity.release or nil }, nil
 end
 
 return StorageAssembly

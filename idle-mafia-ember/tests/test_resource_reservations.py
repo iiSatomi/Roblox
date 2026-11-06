@@ -52,6 +52,31 @@ class ResourceReservationsTests(unittest.TestCase):
         proposal.intent.quantity, proposal.resources.w_a = 4, 4
         self.assertIsNone(self.module.ForProposal(proposal, raw)[0])
 
+    def test_imported_usage_guard_is_required_on_every_check_and_fails_closed(self):
+        guard = self.h.lua.execute('''return {calls=0, allow=true,
+            Check=function(self,proposal,raw)
+                self.calls=self.calls+1
+                if self.raises then error('unavailable') end
+                if self.changes then raw.revision=raw.revision+1 end
+                return self.allow, 'Imported allowance exhausted'
+            end}''')
+        manager = self.module.new(lua_table(self.h.lua,self.h.session),
+            self.h.lua.eval('function() return heldRecords end'),self.providers,guard)
+        proposal = self.proposal('job','jobs',{'energy':1})
+        self.assertIsNotNone(manager.Check(manager,proposal,self.raw())[0])
+        self.assertEqual(guard.calls,1)
+        guard.allow = False
+        blocked,reason = manager.Check(manager,proposal,self.raw())
+        self.assertIsNone(blocked)
+        self.assertIn('Imported allowance',reason)
+        self.assertEqual(guard.calls,2)
+        guard.allow = 'true'
+        self.assertIsNone(manager.Check(manager,proposal,self.raw())[0])
+        guard.raises = True
+        self.assertIsNone(manager.Check(manager,proposal,self.raw())[0])
+        guard.raises,guard.allow,guard.changes = False,True,True
+        self.assertIsNone(manager.Check(manager,proposal,self.raw())[0])
+
 
     def test_same_member_blocks_training_stationing_and_gear_but_other_member_can_run(self):
         self.hold(self.claims(members={"slot:2": True, "id:h1": True}), "crewRoll")

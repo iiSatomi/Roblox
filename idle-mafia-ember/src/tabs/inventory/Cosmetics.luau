@@ -208,9 +208,18 @@ function Cosmetics.evaluate(proposal, before, after, reply,
         or not integer(after.revision, baseline.revision + 1) then
         return "pending"
     end
-    if reply.ok == false then return "rejected" end
+    if reply.pending == true or reply.code == "busy" or reply.code == "presence"
+        or reply.code == "rate_limited" then return "pending" end
     local native = after.native
     local field = fields[baseline.cosmeticKind]
+    if reply.ok == false then
+        local intent = proposal.intent
+        return type(native) == "table" and native.fullSync == true and field ~= nil
+            and native[field] == baseline.oldId and type(intent) == "table"
+            and integer(intent.count, 1) and count(native.inventory, baseline.itemId) == intent.count
+            and count(native.inventoryBound, baseline.itemId) == 0
+            and count(native.collectionBound, baseline.itemId) == 0 and "rejected" or "pending"
+    end
     if reply.ok ~= true or type(native) ~= "table"
         or native.fullSync ~= true or not field
         or native[field] ~= baseline.itemId then return "pending" end

@@ -1,5 +1,5 @@
 """Own-member stationing never competes with training or a reserved member."""
-import unittest, hashlib
+import unittest, hashlib, json
 import test_automation_runtime as runtime_fixture
 
 from engine_harness import Harness, lua_table
@@ -63,7 +63,9 @@ class TerritoryStationingTests(unittest.TestCase):
     def test_station_requires_unique_stable_native_member_ids(self):
         raw = self.before()
         raw.native.crew[2].healId = None
-        self.assertIsNone(self.module.read(raw, raw)[0])
+        view,reason=self.module.read(raw,raw)
+        self.assertIsNotNone(view,reason)
+        self.assertIsNone(self.module.propose(view,self.settings(minHome=0))[0])
         raw = self.before()
         raw.native.crew[3].healId = raw.native.crew[2].healId
         self.assertIsNone(self.module.read(raw, raw)[0])
@@ -157,6 +159,144 @@ class TerritoryStationingTests(unittest.TestCase):
         raw.stationReservationProof.attempted = 0
         proposal.resources.stamina = 1
         self.assertIsNone(self.module.capture(proposal, raw)[0])
+
+    def legacy_home(self, raw, slot=3):
+        raw.native.crew[slot].healId=None
+        raw.native.crew[slot].legacyDetails=lua_table(self.h.lua,{'rank':2,'cosmetic':{'hat':'plain'}})
+        return raw
+
+    def test_unidentified_home_bystander_has_no_identity_home_or_capacity_credit(self):
+        raw=self.legacy_home(self.before())
+        view,reason=self.module.read(raw,raw);self.assertIsNotNone(view,reason)
+        self.assertTrue(view.members[3].unidentified)
+        self.assertIsNone(view.members[3].key)
+        proposal,reason=self.module.propose(view,self.settings(minHome=1,maxStationed=1))
+        self.assertIsNotNone(proposal,reason)
+        self.assertEqual(proposal.intent.memberKey,'id:ally')
+        self.assertEqual(proposal.intent.homeSlots,'4')
+        self.assertIsNone(proposal.intent.homeKey3)
+        self.assertIsInstance(proposal.intent.unidentifiedHome3,str)
+        self.assertLessEqual(len(proposal.intent.unidentifiedHome3.encode()),900)
+        self.assertIsNone(self.module.propose(view,self.settings(minHome=2))[0])
+        self.assertIsNone(self.module.propose(view,self.settings(memberSlot=3,minHome=0))[0])
+        self.assertIsNotNone(self.module.capture(proposal,raw)[0])
+
+    def test_unidentified_deployed_or_ambiguous_rows_still_block_whole_roster(self):
+        for key,value in [('duty','d1'),('dutyToken','token'),('stationed',True),('recalling',True),
+                ('dutyPending',True),('dutyRemapPending',True),('training',{}),('rolling',True)]:
+            with self.subTest(key=key):
+                raw=self.legacy_home(self.before());raw.native.crew[3][key]=lua_table(self.h.lua,value)
+                self.assertIsNone(self.module.read(raw,raw)[0])
+
+    def test_unidentified_full_baseline_changes_or_reorder_prevent_settlement(self):
+        raw=self.legacy_home(self.before());view,reason=self.module.read(raw,raw)
+        self.assertIsNotNone(view,reason)
+        proposal=self.module.propose(view,self.settings(minHome=1))[0]
+        baseline,reason=self.module.capture(proposal,raw);self.assertIsNotNone(baseline,reason)
+        for change in ('none','nested','added','removed','identity','reorder'):
+            with self.subTest(change=change):
+                after=self.legacy_home(self.raw(2,True))
+                if change=='nested':after.native.crew[3].legacyDetails.cosmetic.hat='changed'
+                elif change=='added':after.native.crew[3].extra=True
+                elif change=='removed':after.native.crew[3].legacyDetails=None
+                elif change=='identity':after.native.crew[3].healId='new'
+                elif change=='reorder':after.native.crew[3],after.native.crew[4]=after.native.crew[4],after.native.crew[3]
+                self.assertEqual(self.module.evaluate(proposal,raw,after,lua_table(self.h.lua,{'ok':True}),baseline),
+                    'confirmed' if change=='none' else 'pending')
+
+    def test_unidentified_observation_is_bounded_and_rejects_cycles_or_unsupported_values(self):
+        for change in ('oversize','cycle','function','depth'):
+            with self.subTest(change=change):
+                raw=self.legacy_home(self.before());row=raw.native.crew[3]
+                if change=='oversize':row.extra='x'*1000
+                elif change=='cycle':row.extra=row
+                elif change=='function':row.extra=self.h.lua.eval('function()end')
+                else:
+                    row.extra=self.h.lua.table();at=row.extra
+                    for _ in range(12):at.child=self.h.lua.table();at=at.child
+                self.assertIsNone(self.module.read(raw,raw)[0])
+
+    def test_actual_app_queued_unidentified_bystander_drift_refuses_before_native_send(self):
+        app,runtime,executor=self.start_app()
+        try:
+            self.select(app,**{'station.custom.minHome':1})
+            raw=self.legacy_home(self.before());app.Step(app,raw)
+            self.assertIsNotNone(executor.callback,runtime.Status(runtime).reasons.station)
+            raw.native.crew[3].legacyDetails.cosmetic.hat='changed'
+            executor.callback()
+            self.assertEqual(len(executor.calls),0)
+            self.assertEqual(runtime.checkpoint.stationAttempts,0)
+            self.assertEqual(len(runtime.checkpoint.Records(runtime.checkpoint)),0)
+        finally:app.Destroy(app)
+
+    def test_actual_app_transient_codes_never_settle_positive_or_negative_across_restart(self):
+        for code in ('pending','busy'):
+            for positive in (True,False):
+                with self.subTest(code=code,positive=positive):
+                    f=TerritoryStationingTests();f.setUp()
+                    app,runtime,executor,raw=f.begin_app()
+                    try:
+                        executor.reply=lua_table(f.h.lua,{'ok':positive,'code':code});executor.callback()
+                        f.h.at(1);app.Step(app,f.raw(2,positive))
+                        self.assertEqual(len(runtime.checkpoint.Records(runtime.checkpoint)),1)
+                        self.assertEqual(runtime.checkpoint.stationAttempts,1)
+                        f.h.at(45);app.Step(app,f.raw(3,positive))
+                        self.assertEqual(runtime.Status(runtime).outcomes.station,'skipped_unconfirmed')
+                        app.Destroy(app);app,runtime,executor=f.start_app()
+                        f.h.at(46);app.Step(app,f.raw(4,positive))
+                        self.assertIsNone(runtime.Status(runtime).recoveries.station)
+                        self.assertEqual(len(runtime.checkpoint.Records(runtime.checkpoint)),1)
+                        self.assertEqual(runtime.checkpoint.stationAttempts,1)
+                        self.assertEqual(len(executor.calls),0)
+                    finally:app.Destroy(app)
+
+    def test_maximum_roster_observations_fit_flat_intent_and_saved_codec(self):
+        raw=self.before()
+        for slot in range(3,47):
+            raw.native.crew[slot]=lua_table(self.h.lua,{'name':'Legacy '+str(slot),'rarity':3})
+        view,reason=self.module.read(raw,raw);self.assertIsNotNone(view,reason)
+        proposal,reason=self.module.propose(view,self.settings(minHome=0));self.assertIsNotNone(proposal,reason)
+        self.assertLessEqual(len(list(proposal.intent.keys())),64)
+        self.assertFalse(any(str(key).startswith('homeKey') for key in proposal.intent.keys()))
+        baseline,reason=self.module.capture(proposal,raw);self.assertIsNotNone(baseline,reason)
+        pending=self.h.load('src/storage/PendingAction.luau')
+        saved,reason=pending.Capture(proposal,raw,baseline);self.assertIsNotNone(saved,reason)
+        decoded=pending.Decode(saved)
+        if isinstance(decoded,tuple):decoded,reason=decoded
+        self.assertIsNotNone(decoded,reason)
+        self.assertEqual(decoded.proposal.intent.unidentifiedHome46,proposal.intent.unidentifiedHome46)
+        self.assertIsNone(decoded.baseline.members[46].key)
+
+    def test_actual_app_unidentified_bystander_roundtrips_v2_and_recovers_exactly(self):
+        app,runtime,executor=self.start_app()
+        try:
+            self.select(app,**{'station.custom.minHome':1})
+            before=self.legacy_home(self.before());app.Step(app,before)
+            self.assertIsNotNone(executor.callback,runtime.Status(runtime).reasons.station)
+            executor.callback();self.assertEqual(len(executor.calls),1)
+            record=runtime.checkpoint.Records(runtime.checkpoint)[1]
+            data=runtime.checkpoint.Recovery(runtime.checkpoint,record.actionKey)[0]
+            self.assertTrue(data.baseline.members[3].unidentified)
+            self.assertEqual(data.baseline.members[3].originalRow.legacyDetails.cosmetic.hat,'plain')
+            self.assertEqual(data.proposal.intent.memberKey,'id:ally')
+            held=runtime.reservationOwner.Held(runtime.reservationOwner,before)[0]
+            self.assertEqual(set(held.members.keys()),{'id:ally','id:medic','slot:2','slot:4'})
+            app.Destroy(app)
+            def wire(value):
+                if not hasattr(value,'items'):return value
+                entries=dict(value.items())
+                if entries and set(entries)==set(range(1,len(entries)+1)):
+                    return [wire(entries[i]) for i in range(1,len(entries)+1)]
+                return {key:wire(child) for key,child in entries.items()}
+            for key,value in list(self.storage.data.items()):
+                self.storage.data[key]=lua_table(self.h.lua,json.loads(json.dumps(wire(value),allow_nan=False)))
+            self.h.session['session']='legacy-station-restart';self.h.at(1)
+            app,owner,transport=self.start_app()
+            app.Step(app,self.legacy_home(self.raw(2,True)))
+            self.assertEqual(owner.Status(owner).recoveries.station,'confirmed')
+            self.assertEqual(len(owner.checkpoint.Records(owner.checkpoint)),0)
+            self.assertEqual(len(transport.calls),0)
+        finally:app.Destroy(app)
 
     def start_app(self, with_residency=False):
         module = self.h.load("src/tabs/territory/Module.luau")

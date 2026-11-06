@@ -92,13 +92,18 @@ function EarnedTrophiesEvidence.evaluate(proposal, beforeHeader, after,
         or type(proposal.intent) ~= "table"
         or proposal.intent.targetId ~= baseline.targetId
         or proposal.intent.catalogKey ~= baseline.catalogKey
-        or after.catalogKey ~= baseline.catalogKey then return "pending" end
+        or after.catalogKey ~= baseline.catalogKey
+        or type(after.revision) ~= "number" or after.revision ~= after.revision
+        or after.revision >= math.huge or after.revision % 1 ~= 0
+        or after.revision <= baseline.revision
+        or reply.pending == true or reply.code == "pending" or reply.code == "no_pending"
+        or reply.code == "rate_limited" or reply.code == "busy" or reply.code == "presence" then return "pending" end
     local ready, owned = state(after, baseline.targetId)
     if ready == nil then return "pending" end
     local advanced = type(after.revision) == "number"
         and after.revision > baseline.revision
         and ready == false and owned == 1
-    if reply.ok == false then return advanced and "pending" or "rejected" end
+    if reply.ok == false then return ready == true and owned == 0 and "rejected" or "pending" end
     if reply.ok == true and advanced then return "confirmed" end
     return "pending"
 end

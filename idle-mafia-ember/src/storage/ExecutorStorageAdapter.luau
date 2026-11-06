@@ -27,6 +27,12 @@ function ExecutorStorageAdapter.new(api)
         return nil, "Missing executor storage capability"
     end
     local files = {}
+    function files:IsDirectory(path)
+        if not safePath(path) then return nil, "Unsafe directory discovery path" end
+        local ok, exists = pcall(api.isfolder, path)
+        if not ok or type(exists) ~= "boolean" then return nil, "Directory discovery unavailable" end
+        return exists
+    end
     function files:EnsureDirectory(path)
         if not safePath(path) then return false end
         local prefix = ""

@@ -127,7 +127,8 @@ class PropertyConstraintsAppTests(unittest.TestCase):
         after=self.settled();after.native.serverNow-=1;self.assertIsNone(evidence.recoverSaved(data,after))
         after=self.settled();data.reply=None;self.assertIsNone(evidence.recoverSaved(data,after))
     def test_saved_rejected_build_recovers_without_new_purchase(self):
-        self.saved_build({'ok':False});self.restart();self.h.at(1);self.app.Step(self.app,self.raw(2))
+        self.saved_build({'ok':False});self.restart();self.h.at(1)
+        after=self.raw(2);after.native.serverNow+=1;self.app.Step(self.app,after)
         self.assertEqual(self.runtime.Status(self.runtime).recoveries.properties,'rejected')
         self.assertEqual(len(self.executor.calls),0)
     def test_equal_level_highest_goal_prefers_income_before_cost(self):

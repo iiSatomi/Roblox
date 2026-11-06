@@ -74,6 +74,25 @@ class FamilyTakedownClaimTests(unittest.TestCase):
             after, lua_table(self.h.lua, {"ok": True}), baseline),
             "pending")
 
+    def test_busy_replies_keep_claim_pending_live_and_after_restart(self):
+        before = self.raw()
+        proposal = self.propose(before)[0]
+        baseline = self.evidence.capture(proposal, before)[0]
+        self.h.at(1)
+        for ok in (True, False):
+            for advanced in (True, False):
+                with self.subTest(ok=ok, advanced=advanced):
+                    after = self.raw(revision=2, now=1051,
+                        stages=[{"week": 100, "stage": 2, "expiresAt": 1300}] if advanced else None,
+                        claimed=[1] if advanced else None, attempted=[1])
+                    reply = lua_table(self.h.lua, {"ok": ok, "code": "busy"})
+                    self.assertEqual(self.evidence.evaluate(proposal, before,
+                        after, reply, baseline), "pending")
+                    after.session = "run-b"
+                    data = lua_table(self.h.lua, {"proposal": proposal, "before": before,
+                        "baseline": baseline, "reply": reply})
+                    self.assertIsNone(self.evidence.recoverSaved(data, after))
+
     def test_fractional_server_clock_keeps_earned_claim_eligible(self):
         before = self.raw(now=1050.25)
         proposal, reason = self.propose(before)

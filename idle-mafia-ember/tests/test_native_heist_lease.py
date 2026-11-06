@@ -16,6 +16,28 @@ class NativeHeistLeaseTests(unittest.TestCase):
         self.scope=lua_table(h.lua,{'account':'user-a','place':'73897506680154','jobId':'job-a','sourceKey':'a'*64})
         self.owner=self.module.new(self.port,h.clock,self.scope,self.epoch)[0]
         self.p=lua_table(h.lua,{**h.session,'feature':'heists','actionKey':'start:one','intent':{'kind':'heistStart','heistId':'h_a','sequence':5,'nativeJob':'job-a','nativeEpoch':'epoch-a','nativeSourceKey':'a'*64,'needsSequence':True}})
+    def test_inspect_is_read_only_even_after_own_lease_deadline(self):
+        self.assertIsNotNone(self.owner.Inspect)
+        view,why=self.owner.Inspect(self.owner)
+        self.assertIsNone(why)
+        self.assertEqual((view.account,view.place,view.controllerCounter),('user-a',self.h.session['place'],4))
+        self.assertEqual(self.port.writes,0)
+        self.assertTrue(self.owner.Acquire(self.owner,self.p,45)[0])
+        written=self.port.writes;token=self.port.pending
+        self.h.at(46)
+        view,why=self.owner.Inspect(self.owner)
+        self.assertIsNone(why);self.assertEqual(view.controllerCounter,5)
+        self.assertEqual(self.port.writes,written)
+        self.assertTrue(self.h.lua.eval('function(a,b)return a==b end')(token,self.port.pending))
+
+    def test_inspect_refuses_regressed_or_retired_native_source_without_writes(self):
+        self.assertIsNotNone(self.owner.Inspect)
+        self.port.counter=3
+        self.assertIsNone(self.owner.Inspect(self.owner)[0])
+        self.port.counter=4
+        self.assertIsNone(self.owner.Inspect(self.owner)[0])
+        self.assertEqual(self.port.writes,0)
+
     def test_quote_is_read_only_and_acquire_advances_native_counter_once(self):
         q,why=self.owner.Quote(self.owner);self.assertIsNone(why);self.assertEqual(q.sequence,5);self.assertEqual(self.port.writes,0)
         self.assertTrue(self.owner.Acquire(self.owner,self.p,45)[0]);self.assertEqual(self.port.counter,5)

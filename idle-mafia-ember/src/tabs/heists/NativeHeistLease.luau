@@ -60,6 +60,16 @@ local function expireOwned(self)
     if live and time and type(live.deadline) == "number" and time >= live.deadline
         and type(live.release) == "function" then pcall(live.release) end
 end
+-- Inspection never expires a lease or writes native pending/running/counter cells.
+function Methods:Inspect()
+    if self.closed then return nil, "Native Heist lease closed" end
+    local state, reason = read(self, true)
+    if not state then return nil, reason end
+    return {account = self.scope.account, place = self.scope.place,
+        controllerCounter = state.counter, nativeJob = self.scope.jobId,
+        nativeEpoch = self.epoch.id, nativeSourceKey = self.scope.sourceKey}, nil
+end
+
 function Methods:Observe()
     if self.closed then return nil, "Native Heist lease closed" end
     expireOwned(self)

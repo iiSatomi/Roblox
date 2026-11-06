@@ -26,10 +26,10 @@ function MarketResearchController.new(deps)
     local clock = deps.clock
     local catalog = deps.NativeMarketCatalog.new(deps.config, deps.fingerprint, deps.release)
     local browse = deps.MarketBrowse.new(catalog.maxPages, clock)
-    local pages = deps.MarketBrowsePages.new(catalog.maxPages, 500)
+    local pages = deps.MarketBrowsePages.new(catalog.maxPages, 500, deps.MarketBrowse.matchesItemScope)
     local rap, prices = deps.MarketRap.new(clock), deps.MarketPrices.new(clock)
     local function saleReaders()
-        return deps.MarketBrowse.new(catalog.maxPages, clock), deps.MarketBrowsePages.new(catalog.maxPages, 500),
+        return deps.MarketBrowse.new(catalog.maxPages, clock), deps.MarketBrowsePages.new(catalog.maxPages, 500, deps.MarketBrowse.matchesItemScope),
             deps.MarketRap.new(clock), deps.MarketPrices.new(clock)
     end
     local saleBrowse, salePages, saleRap, salePrices = saleReaders()
@@ -320,6 +320,9 @@ function MarketResearchController.new(deps)
             or not rapResult or not priceResult then
             return nil, "Waiting for complete current item browse, RAP and history"
         end
+        for _, row in ipairs(browseResult.rows) do
+            if row.item:find("@", 1, true) then return nil, "Variant-inclusive Market browse cannot authorize a sale" end
+        end
         return {readOnly = true, raw = raw, context = context, itemId = id, browse = browseResult,
             rap = rapResult, history = priceResult, session = raw.session,
             account = raw.account, place = raw.place, release = raw.release,
@@ -525,7 +528,7 @@ function MarketResearchController.new(deps)
             return deps.MarketWatchOpportunity.assess(all, listingId, average, history, item, itemTerms, settings, now)
         end}
         local research, reason = deps.MarketResearchView.assess(state.browse, averages, histories,
-            items, terms, state.options.watch, clock:Now(), filteredWatch)
+            items, terms, state.options.watch, clock:Now(), filteredWatch, deps.MarketBrowse.matchesItemScope)
         if not research then return nil, reason end
         local aging, agingReason
         if listings then aging, agingReason = deps.MarketAgingReview.assess(listings, averages, state.options.aging, clock:Now()) end
@@ -672,6 +675,10 @@ function MarketResearchController.new(deps)
                 local report = "Market: " .. tostring(research.totalRows) .. " listings; "
                     .. tostring(research.opportunityCount) .. " research candidates; prices ready "
                     .. tostring(view.researchedItems) .. "/" .. tostring(view.selectedItems) .. " items"
+                if (research.variantCount or 0) > 0 then
+                    report = report .. "; " .. tostring(research.variantCount)
+                        .. " upgraded variant(s); pricing and trading withheld"
+                end
                 if research.opportunities[1] then
                     local first = research.opportunities[1]
                     report = report .. "; " .. first.itemId .. " estimated margin " .. tostring(first.margin) .. " Gold"

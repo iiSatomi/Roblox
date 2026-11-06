@@ -85,6 +85,8 @@ function RuntimeAssembly.start(deps)
         snapshotAssembler = composed.snapshotAssembler,
         tabInstances = composed.tabs, readCoordinator = reads, readSources = sources,
         reservationSources = reservationSources,
+        usageCarryGuard = deps.usageCarryGuard,
+        requestHighwaterFloor = deps.requestHighwaterFloor,
     })
     if not ok or type(runtime) ~= "table" then
         if reads then reads:Close() end

@@ -89,10 +89,10 @@ function Methods:Descriptors()
     return {
         { id = "contracts", reader = d.ContractEntriesState,
             planner = d.ContractEntries,
-            evidence = d.ContractEntriesEvidence },
+            evidence = d.ContractEntriesEvidence, recoverSaved = d.ContractEntriesEvidence.recoverSaved },
         { id = "bonuses", reader = d.ContractBonusesState,
             planner = d.ContractBonuses,
-            evidence = d.ContractBonusesEvidence },
+            evidence = d.ContractBonusesEvidence, recoverSaved = d.ContractBonusesEvidence.recoverSaved },
         { id = "autoContracts", reader = d.ContractGoalState,
             planner = d.ContractGoalBlocked,
             evidence = d.ContractGoalBlocked, goals = d.ContractGoalRequests },

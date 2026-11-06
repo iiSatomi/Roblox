@@ -59,7 +59,7 @@ function Methods:Descriptors()
     local d = self.deps
     return { { id = "safehouse", reader = d.SafehouseState,
         planner = d.SafehouseUpgrades,
-        evidence = d.SafehouseUpgradesEvidence } }
+        evidence = d.SafehouseUpgradesEvidence, recoverSaved = d.SafehouseUpgradesEvidence.recoverSaved } }
 end
 
 return SafehouseTab

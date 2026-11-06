@@ -96,7 +96,7 @@ function PropertiesEvidence.capture(proposal, before)
     return { session = proposal.session, account = proposal.account,
         place = proposal.place, release = proposal.release,
         revision = proposal.revision, propId = intent.propId,
-        beforeOwned = count, beforeCash = before.native.cash,
+        beforeOwned = count, beforeCash = before.native.cash, serverNow = before.native.serverNow,
         expectedCost = intent.expectedCost, otherOwned = otherOwned,
         catalogKey = intent.catalogKey }, nil
 end
@@ -110,7 +110,9 @@ local function reconcile(proposal, beforeHeader, after,
         or not matching(proposal, after, restart)
         or not matching(proposal, baseline)
         or proposal.revision ~= baseline.revision
-        or beforeHeader.revision ~= baseline.revision then
+        or beforeHeader.revision ~= baseline.revision
+        or reply.pending == true or reply.code == "pending" or reply.code == "busy"
+        or reply.code == "rate_limited" or reply.code == "presence" then
         return "pending"
     end
     local count = owned(after, baseline.propId, baseline.catalogKey)
@@ -140,13 +142,26 @@ local function reconcile(proposal, beforeHeader, after,
     if restart and (type(beforeHeader.native) ~= "table"
         or not balance(beforeHeader.native.serverNow, 0) or not balance(native.serverNow, 0)
         or native.serverNow < beforeHeader.native.serverNow) then return "pending" end
-    local advanced = (restart or type(after.revision) == "number"
-        and after.revision > baseline.revision)
-        and count == baseline.beforeOwned + 1
-        and native.cash == baseline.beforeCash - baseline.expectedCost
-        and unchanged
-    if reply.ok == false then return advanced and "pending" or "rejected" end
-    if reply.ok == true and advanced then return "confirmed" end
+    local observed = restart or integer(after.revision, 0) and after.revision > baseline.revision
+    local originalClock = baseline.serverNow
+    if restart and originalClock == nil then originalClock = beforeHeader.native.serverNow end
+    if reply.ok == false then
+        local rejectedFrame = after.session == baseline.session and integer(after.revision, 0)
+            and after.revision > baseline.revision or restart and after.session ~= baseline.session
+                and balance(originalClock, 0) and balance(native.serverNow, 0) and native.serverNow > originalClock
+        return rejectedFrame and count == baseline.beforeOwned and unchanged
+            and native.cash == baseline.beforeCash and "rejected" or "pending"
+    end
+    local exactDebit = native.cash == baseline.beforeCash - baseline.expectedCost
+    -- Native PropertyBlock resolves an accepted build by selected owned +1.
+    -- This certifies the owned outcome, not an exact Cash debit or income rate.
+    local paidFrame = after.session == baseline.session and integer(after.revision, 0)
+        and after.revision > baseline.revision or restart and after.session ~= baseline.session
+    local paidOutcome = paidFrame and balance(originalClock, 0) and balance(native.serverNow, 0)
+        and native.serverNow > originalClock
+        and native.cash >= baseline.beforeCash - baseline.expectedCost
+    if reply.ok == true and observed and count == baseline.beforeOwned + 1
+        and unchanged and (exactDebit or paidOutcome) then return "confirmed" end
     return "pending"
 end
 
@@ -163,7 +178,10 @@ end
 function PropertiesEvidence.recoverSaved(data, after)
     if type(data) ~= "table" or type(data.baseline) ~= "table" then return nil end
     local expected = PropertiesEvidence.capture(data.proposal, data.before)
-    if not expected or not same(expected, data.baseline) then return nil end
+    if not expected then return nil end
+    -- Omit only the additive field when comparing an immutable legacy receipt.
+    if data.baseline.serverNow == nil then expected.serverNow = nil end
+    if not same(expected, data.baseline) then return nil end
     for key, value in pairs(data.proposal.resources) do
         if key ~= "cash" and value ~= 0 then return nil end
     end

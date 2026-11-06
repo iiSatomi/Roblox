@@ -119,6 +119,47 @@ class NativePrestigeBindTests(unittest.TestCase):
     def make(self):
         owner,why=self.bind();self.assertIsNotNone(owner,why);return owner
     def busy(self):return self.f.env.getupvalues(self.f.api.init)[5]
+    def test_reviewed_build_654_preserves_atomic_native_ownership_and_cleanup(self):
+        self.f.game.PlaceVersion = 654
+        owner = self.make()
+        self.assertEqual(self.f.writes, 0)
+        self.assertTrue(owner.Read(owner).controllersClear)
+        self.assertTrue(owner.Acquire(owner, self.p, 45)[0])
+        self.f.press()
+        self.assertEqual((self.f.calls, len(self.f.jobs), self.f.confirmCalls), (0, 0, 0))
+        self.assertEqual(self.h.lua.eval('type')(self.busy()), 'table')
+        self.assertTrue(owner.Release(owner, self.p)[0])
+        self.assertFalse(self.busy())
+        self.assertTrue(owner.Close(owner))
+        self.assertTrue(self.module.cleanup(self.f.registry)[0])
+        self.assertIsNotNone(self.bind()[0])
+
+    def test_654_source_mismatch_and_unreviewed_future_build_refuse_without_native_write(self):
+        self.f.game.PlaceVersion = 654
+        self.f.badSource = True
+        self.assertIsNone(self.bind()[0])
+        self.assertEqual(self.f.writes, 0)
+        for build in (655, 656, 999):
+            self.setUp()
+            self.f.game.PlaceVersion = build
+            self.assertIsNone(self.bind()[0])
+            self.assertEqual(self.f.writes, 0)
+
+    def test_654_cleanup_refuses_unresolved_physical_custody(self):
+        self.f.game.PlaceVersion = 654
+        owner = self.make()
+        self.assertTrue(owner.Acquire(owner, self.p, 45)[0])
+        self.h.lua.globals().prestigeOwner = owner
+        self.h.lua.globals().prestigeProposal = self.p
+        self.h.lua.execute('prestigeThread=coroutine.create(function() prestigeOwner:Invoke(prestigeProposal,function() coroutine.yield("rpc");return {} end) end);assert(coroutine.resume(prestigeThread))')
+        self.assertFalse(owner.Close(owner))
+        self.assertFalse(self.module.cleanup(self.f.registry)[0])
+        self.assertIsNone(self.bind()[0])
+        self.assertEqual(self.h.lua.eval('type')(self.busy()), 'table')
+        self.h.lua.execute('assert(coroutine.resume(prestigeThread))')
+        self.assertFalse(self.busy())
+        self.assertTrue(self.module.cleanup(self.f.registry)[0])
+
     def test_exact_capture_token_blocks_native_button_and_already_queued_confirmation(self):
         # A native confirm handler may have cleared its callback immediately before our atomic claim.
         self.f.press();saved=self.f.pending;self.f.pending=None
