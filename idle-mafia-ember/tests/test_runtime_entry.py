@@ -10,8 +10,8 @@ from engine_harness import Harness, lua_table
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = "e3ba6caa213d6af0819445206b6d4435c12e28e4"
-MANIFEST = "bc99488784f14e8438818c918609a02dd2c5b42d"
+SOURCE = "80b5a0a0f174ecd195dc3d6d100ce0f80248e2a5"
+MANIFEST = "50a3c243552b1fb16deb0ee5d6b3760c258db69c"
 
 
 @lru_cache(maxsize=3)
