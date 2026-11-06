@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "80b5a0a0f174ecd195dc3d6d100ce0f80248e2a5",
+  "releaseCommit": "1e6b6805f7ddf0545d433396633072a3da2e159a",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -11,7 +11,7 @@
     {
       "id": "AutomationRuntime",
       "path": "src/engine/AutomationRuntime.luau",
-      "sha256": "828176044411cc2ae55ee9144fb036a33047ed74559ec10d9916a485c2d934a5",
+      "sha256": "2c7bf580da982ff644bdc0d6f937944f669f12bb77d3a5bf8dec670166f38d5c",
       "deps": []
     },
     {
@@ -209,7 +209,7 @@
     {
       "id": "FamilyBossClaimsEvidence",
       "path": "src/features/FamilyBossClaimsEvidence.luau",
-      "sha256": "4fbc289e80c5d942ed777d45b00c0bea9d53a17ec53fc2decd31a48dbe37f176",
+      "sha256": "4f84bc7a05ab1c83c98dd48fe6f150f0e2e7b14ba52e14a0bb7b07b0483aca61",
       "deps": []
     },
     {
@@ -257,7 +257,7 @@
     {
       "id": "GlobalBossClaimEvidence",
       "path": "src/features/GlobalBossClaimEvidence.luau",
-      "sha256": "d6e9b82dfabe379a211b0b81c4ee7ad3841526607c43645b991328c98608b29e",
+      "sha256": "0118461c0f96333b0f9fad7145044c81533068f73e7bf495b64f5c9f98e26000",
       "deps": []
     },
     {
@@ -821,7 +821,7 @@
     {
       "id": "MarketBuyEvidence",
       "path": "src/tabs/blackMarket/MarketBuyEvidence.luau",
-      "sha256": "a0feee008f7a6020b572698db037236c618bad27572812db080f21f2f94845b2",
+      "sha256": "171c502f06a17fa39e23abda670cbbeff7f9a88fd9fb46ccd0aac14956eebd8f",
       "deps": []
     },
     {
@@ -833,7 +833,7 @@
     {
       "id": "MarketCollectionWithdrawEvidence",
       "path": "src/tabs/blackMarket/MarketCollectionWithdrawEvidence.luau",
-      "sha256": "d3cfc030bcb1e0e179b83da411df477735cb10db05641a71b40aa1f94e8d80d6",
+      "sha256": "487038ecd3f0731f00e0c0a5ac60f400ee80272182ea7af06382270d2b81e747",
       "deps": []
     },
     {
@@ -857,7 +857,7 @@
     {
       "id": "MarketListEvidence",
       "path": "src/tabs/blackMarket/MarketListEvidence.luau",
-      "sha256": "5b12cca48ca9386abfdddbccd4efbc0114ab1fd551504e7b31924a58c72c4b21",
+      "sha256": "6289a0fc15b1003b371d0ddd1b34dcaa5136277b36370c6018c49c53cd1aea7e",
       "deps": []
     },
     {
@@ -953,7 +953,7 @@
     {
       "id": "MarketTransactions",
       "path": "src/tabs/blackMarket/MarketTransactions.luau",
-      "sha256": "727a94ef9a7cdd685bfe2e05e0a331407cc1157cf9942b84f32b3f752b823044",
+      "sha256": "e095ff9fad0266d0fb02a115f17f49ef1ffd17502ed366d629ec91f2be8d90d5",
       "deps": []
     },
     {
@@ -1175,7 +1175,7 @@
     {
       "id": "CrewHeal",
       "path": "src/tabs/crew/CrewHeal.luau",
-      "sha256": "3f71d69596d5b9e07ffe61bfcf303b317b776292e7d9350fbba82a5d30b12f71",
+      "sha256": "7e74b5923ffe1e79652b67d95566fc035ef49c5e155434d040715d5c3d30700c",
       "deps": []
     },
     {
@@ -1205,7 +1205,7 @@
     {
       "id": "CrewReplacement",
       "path": "src/tabs/crew/CrewReplacement.luau",
-      "sha256": "06117a838f5c396267d7b2fbcadf86d679298f04cc9feea8f59b07bf624d4af1",
+      "sha256": "899df9431a595df3f8e28511cc3fcc1961141ed5dc00e7064a56030ac42f339a",
       "deps": []
     },
     {
@@ -1661,7 +1661,7 @@
     {
       "id": "Residency",
       "path": "src/tabs/territory/Residency.luau",
-      "sha256": "e7a95705c97493860b5be01eb386b36faa3021924aaca9950a3b65b7f7b9a46f",
+      "sha256": "41b06129cdd50ec32c335486637d892741f893c9d53bef53bd99e85475a7e95c",
       "deps": []
     },
     {
