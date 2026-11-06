@@ -76,6 +76,22 @@ local function rejectedOrigin(record)
     return origin
 end
 
+-- Earlier code could persist observed custody before checking the callback.
+-- Keep that exact record readable, but never treat a nonterminal observed
+-- receipt (including an acquisition origin) as permission to release custody.
+local function uncertainObserved(record)
+    if type(record) ~= "table" then return false end
+    if record.stage == "observed" then
+        local reply = record.reply
+        if reply ~= nil then
+            if type(reply) ~= "table" or reply.ok ~= true or reply.pending == true
+                or reply.code == "pending" or reply.code == "busy"
+                or reply.code == "rate_limited" or reply.code == "presence" then return true end
+        elseif record.actionKey ~= nil then return true end
+    end
+    return uncertainObserved(record.origin)
+end
+
 local function header(record, scope)
     return type(record) == "table"
         and type(record.session) == "string"
@@ -321,7 +337,9 @@ function Methods:ReservationClaims()
     local record = self.transaction
     if record == nil then return nil end
     if not valid(record, self.scope) then return nil, "Market custody invalid" end
-    if record.stage == "observed" and record.kind ~= "buy" and record.kind ~= "withdraw" then return nil end
+    local held = uncertainObserved(record)
+    local observed = record.stage == "observed" and not held
+    if observed and record.kind ~= "buy" and record.kind ~= "withdraw" then return nil end
     local claims = {members = {}, items = {}, funds = {}, allCrew = false, allItems = false}
     local feature = record.kind == "rent" and "marketRent" or "marketSell"
     if record.kind == "rent" then
@@ -331,7 +349,7 @@ function Methods:ReservationClaims()
     elseif record.kind == "buy" then
         feature = "marketFlip"
         claims.items["L:" .. record.baseline.itemId] = 1
-        if record.stage ~= "observed" then
+        if not observed then
             claims.items["L:gold_bar"] = (claims.items["L:gold_bar"] or 0) + record.baseline.price
         end
     else
@@ -339,12 +357,20 @@ function Methods:ReservationClaims()
     end
     local actionKey=record.actionKey
     if record.kind=="list" and record.origin and record.origin.kind=="buy" then feature="marketFlip" end
-    if record.kind=="buy" and record.actionKey~=nil and record.stage=="observed" then
+    if record.kind=="buy" and record.actionKey~=nil and observed then
         actionKey="market-flip-list:"..record.sourceKey..":"..tostring(self.generation+1)..":"..record.baseline.itemId
     end
     if record.kind=="withdraw" and record.actionKey~=nil then
-        if record.stage~="observed" then claims.allItems=true
+        if not observed then claims.allItems=true
         else actionKey="market-list:"..record.sourceKey..":"..tostring(self.generation+1)..":"..record.baseline.itemId end
+    end
+    local origin = record.origin
+    if held and type(origin) == "table" and uncertainObserved(origin) then
+        local itemId = origin.baseline.itemId
+        local quantity = origin.kind == "buy" and 1 or origin.plannedQuantity
+        claims.items["L:" .. itemId] = math.max(claims.items["L:" .. itemId] or 0, quantity)
+        if origin.kind == "buy" then claims.items["L:gold_bar"] = origin.baseline.price
+        else claims.allItems = true end
     end
     return {account = self.scope.account, place = self.scope.place,
         release = self.scope.release, feature = feature, actionKey = actionKey, claims = claims}, nil
@@ -389,7 +415,8 @@ end
 -- Local recovery primitives only. A future UI must additionally require pause,
 -- no active/pending generic request, and one-use expiring confirmation.
 function Methods:PreparedReview()
-    if self.closed or writers[self.key] or not self.transaction or self.transaction.stage ~= "prepared" then
+    if self.closed or writers[self.key] or not self.transaction or uncertainObserved(self.transaction)
+        or self.transaction.stage ~= "prepared" then
         return nil, "No current unsent Market preparation"
     end
     return {account = self.scope.account, place = self.scope.place, release = self.scope.release,
@@ -592,7 +619,7 @@ function Methods:RecordRuntimeUnsent(actionKey, preparedGeneration)
 end
 
 function Methods:RuntimeUnsentReview()
-    if self.closed or writers[self.key] then return nil, "Listing owner unavailable" end
+    if self.closed or writers[self.key] or uncertainObserved(self.transaction) then return nil, "Listing owner unavailable" end
     local expected = runtimeUnsentFact(self.scope, self.expected)
     if not expected or self.generation ~= expected.generation or not equal(self.transaction, expected.transaction) then
         return nil, "No current runtime listing for unsent review"
@@ -611,7 +638,7 @@ function Methods:RuntimeUnsentReceipt(actionKey, preparedGeneration)
     local ok, saved = pcall(self.storage.Read, self.storage,
         self.key .. ":unsent:" .. tostring(preparedGeneration))
     local fact = ok and runtimeUnsentFact(self.scope, saved)
-    if not fact or fact.transaction.actionKey ~= actionKey or fact.transaction.preparedGeneration ~= preparedGeneration
+    if not fact or uncertainObserved(fact.transaction) or fact.transaction.actionKey ~= actionKey or fact.transaction.preparedGeneration ~= preparedGeneration
         or self.generation ~= fact.generation + 1
         or not equal(self.transaction,fact.transaction.origin) then return nil end
     local attempted,withdrawn=fact.listingAttempts,fact.withdrawAttempts
@@ -648,7 +675,7 @@ end
 -- Local review primitives; the UI/runtime must additionally enforce pause and no pending broker action.
 function Methods:RejectedRuntimeReview(raw)
     local record = self.transaction
-    if self.closed or writers[self.key] or not record or record.stage ~= "sent"
+    if self.closed or writers[self.key] or not record or uncertainObserved(record) or record.stage ~= "sent"
         or not text(record.actionKey, 240) or type(self.listEvidence) ~= "table"
         or type(self.listEvidence.evaluate) ~= "function" or type(record.reply) ~= "table"
         or record.reply.ok ~= false then return nil, "No exactly rejected runtime listing" end
@@ -686,7 +713,7 @@ end
 function Methods:RuntimeRejectedReceipt(actionKey,preparedGeneration)
     if self.closed or not text(actionKey,240) or not integer(preparedGeneration,1,MAX) then return nil end
     local ok,fact=pcall(self.storage.Read,self.storage,self.key..":rejected:"..tostring(preparedGeneration))
-    if not ok or type(fact)~="table" or not integer(fact.generation,1,MAX)
+    if not ok or type(fact)~="table" or uncertainObserved(fact.transaction) or not integer(fact.generation,1,MAX)
         or self.generation~=fact.generation+1 or not valid(fact.transaction,self.scope)
         or fact.transaction.actionKey~=actionKey or fact.transaction.preparedGeneration~=preparedGeneration
         or not equal(self.transaction,rejectedOrigin(fact.transaction))
@@ -813,6 +840,7 @@ end
 function Methods:ListingContext(raw, now, preparedActionKey)
     self.listingProof = nil
     local record = self.transaction
+    if uncertainObserved(record) then return nil, "Observed Market callback remains uncertain" end
     if record and record.kind=="list" and record.stage=="prepared" and record.actionKey==preparedActionKey then record=record.origin end
     if not record or record.stage ~= "observed"
         or (record.kind ~= "withdraw" and record.kind ~= "buy")
@@ -859,7 +887,7 @@ end
 local function prepareFollowupList(self,proposal,before,now,runtime)
     local record, proof = self.transaction, self.listingProof
     local intent = type(proposal) == "table" and proposal.intent
-    if not record or not proof or not finite(now) or now < proof.now
+    if not record or uncertainObserved(record) or not proof or not finite(now) or now < proof.now
         or record.stage ~= "observed"
         or (record.kind ~= "withdraw" and record.kind ~= "buy")
         or type(intent) ~= "table" or intent.kind ~= "marketList"
@@ -928,7 +956,7 @@ function Methods:ListingAttempts(feature)
 end
 
 function Methods:MarkSending(maxListingAttempts)
-    if not self.transaction
+    if not self.transaction or uncertainObserved(self.transaction)
         or self.transaction.stage ~= "prepared" then
         return false, "No prepared Market transaction"
     end
@@ -959,6 +987,7 @@ end
 function Methods:Reconcile(raw)
     local record = self.transaction
     if not record then return "idle", nil end
+    if uncertainObserved(record) then return "uncertain", "Observed Market callback remains uncertain; custody retained" end
     if record.stage == "prepared" then
         return "prepared", "Send was not authorized by the durable record"
     end
@@ -1050,7 +1079,7 @@ end
 -- Explicit local release of an exactly observed withdrawal; inventory and usage stay unchanged.
 function Methods:ObservedIntermediateReview(raw,now)
     local record=self.transaction
-    if self.closed or writers[self.key] or not record or (record.kind~="withdraw" and record.kind~="buy")
+    if self.closed or writers[self.key] or not record or uncertainObserved(record) or (record.kind~="withdraw" and record.kind~="buy")
         or record.stage~="observed" or not text(record.actionKey,240) then return nil,"No observed withdrawal" end
     if not currentHeader(raw,self.scope) or not finite(now) or not finite(raw.capturedAt)
         or raw.capturedAt>now or now-raw.capturedAt>2
@@ -1069,7 +1098,7 @@ Methods.ObservedWithdrawalReview=Methods.ObservedIntermediateReview
 Methods.ReleaseObservedWithdrawal=Methods.ReleaseObservedIntermediate
 
 function Methods:ClearObserved()
-    if not self.transaction
+    if not self.transaction or uncertainObserved(self.transaction)
         or self.transaction.stage ~= "observed"
         or self.transaction.kind == "withdraw"
         or self.transaction.kind == "buy" then

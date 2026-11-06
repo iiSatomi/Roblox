@@ -119,7 +119,7 @@ class ResidencyPreviewTests(unittest.TestCase):
         after.native.derived = lua_table(self.h.lua, {})
         self.assertEqual(self.module.evaluate(proposal, raw, after,
             lua_table(self.h.lua, {"ok": True, "pending": True}), baseline), "pending")
-        after.residencyUsageProof = raw.residencyUsageProof
+        after.residencyUsageProof = lua_table(self.h.lua, dict(raw.residencyUsageProof.items()))
         after.residencyUsageProof.revision = 2
         self.assertIsNone(self.module.propose(self.module.read(after, after)[0], settings)[0])
         after.native.derived.residency = lua_table(self.h.lua, {"d": "d1", "rent": 4, "active": True, "kind":"landlord", "share":.075})

@@ -9,6 +9,25 @@ end
 local Methods = {}
 Methods.__index = Methods
 
+local function pendingCallbackHeld(spec, proposal, before, reply, checkpoint)
+    if spec.lifecycle or type(reply) ~= "table" then return false end
+    if reply.code == "pending" then return true end
+    if reply.pending ~= true then return false end
+    if reply.ok ~= true or reply.code ~= nil then return true end
+    local allow = spec.evidence.allowsPendingAcknowledgement
+    if type(allow) ~= "function" then return true end
+    -- Live Broker observation supplies only the original header. Use its exact
+    -- durable before-state, never the current view, to classify an acknowledgement.
+    if type(before) ~= "table" or type(before.native) ~= "table" then
+        local ok, data = pcall(checkpoint.Recovery, checkpoint, proposal.actionKey)
+        if not ok or type(data) ~= "table" then return true end
+        before = data.before
+    end
+    local ok, allowed = pcall(allow, proposal, before, reply)
+    if not ok or allowed ~= true then return true end
+    return false, before
+end
+
 local function exposure(checkpoint)
     local totals = {}
     for _, record in ipairs(checkpoint:Records()) do
@@ -343,9 +362,9 @@ function AutomationRuntime.new(deps)
             if not spec then return "pending" end
             -- Ordinary callback adapters cannot turn an explicitly unfinished
             -- native reply into a terminal outcome, even if its ok flag is set.
-            if not spec.lifecycle and type(reply) == "table"
-                and (reply.pending == true or reply.code == "pending") then return "pending" end
-            return spec.evidence.evaluate(proposal, before, after, reply, baseline)
+            local held, acknowledgedBefore = pendingCallbackHeld(spec, proposal, before, reply, checkpoint)
+            if held then return "pending" end
+            return spec.evidence.evaluate(proposal, acknowledgedBefore or before, after, reply, baseline)
         end,
     })
     local session = m.Session.new(broker, checkpoint, deps.identity)
@@ -717,9 +736,7 @@ function Methods:RecoverSaved(raw)
                 elseif type(recover) == "function" then
                     -- Lifecycle owners may obtain an independent terminal status.
                     -- Ordinary recovery still depends on the original callback.
-                    local reply = data.reply
-                    if owner or type(reply) ~= "table"
-                        or not (reply.pending == true or reply.code == "pending") then
+                    if not pendingCallbackHeld(spec, data.proposal, data.before, data.reply, self.checkpoint) then
                         ok, observed = pcall(recover, data, raw, now)
                     end
                 end

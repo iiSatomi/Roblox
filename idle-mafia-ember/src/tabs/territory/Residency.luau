@@ -222,6 +222,14 @@ function Residency.capture(proposal, before)
     for _, field in ipairs({ "session", "account", "place", "release" }) do baseline[field] = before[field] end
     return baseline, nil
 end
+function Residency.allowsPendingAcknowledgement(proposal, before, reply)
+    local intent = type(proposal) == "table" and proposal.intent
+    local view = type(before) == "table" and before.residencyView
+    return type(reply) == "table" and reply.ok == true and reply.pending == true and reply.code == nil
+        and type(intent) == "table" and intent.allowRequests == true
+        and type(view) == "table" and view.admission == "request"
+        and Residency.capture(proposal, before) ~= nil
+end
 local function reconcile(proposal, before, after, reply, baseline, restart)
     if type(proposal) ~= "table" or type(baseline) ~= "table" or type(reply) ~= "table"
         or type(before) ~= "table" or proposal.feature ~= "residency" or type(proposal.intent) ~= "table"
@@ -232,7 +240,9 @@ local function reconcile(proposal, before, after, reply, baseline, restart)
         or not integer(after.revision, 0, 9007199254740991)
         or not (after.session == baseline.session and after.revision > baseline.revision
             or restart and after.session ~= baseline.session and after.native.serverNow > baseline.serverNow)
-        or reply.pending == true and reply.ok ~= true or reply.code == "rate_limited" or reply.code == "presence" then return "pending" end
+        or reply.pending == true and not Residency.allowsPendingAcknowledgement(proposal, before, reply)
+        or reply.code == "pending" or reply.code == "busy"
+        or reply.code == "rate_limited" or reply.code == "presence" then return "pending" end
     for _, field in ipairs({"session", "account", "place", "release"}) do
         if proposal[field] ~= baseline[field] or before[field] ~= baseline[field]
             or (field ~= "session" or not restart) and after[field] ~= baseline[field] then return "pending" end
