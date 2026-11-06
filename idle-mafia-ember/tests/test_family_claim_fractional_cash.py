@@ -43,10 +43,10 @@ class FamilyClaimFractionalCashTests(unittest.TestCase):
         self.assertEqual(p.native.cash, 1000.25)
         self.assertEqual(list(p.runtime.checkpoint.FamilyClaimUsage(p.runtime.checkpoint, 100, 3.25).stages.values()), [1])
 
-    def test_changed_fraction_does_not_confirm_or_recover(self):
+    def test_short_fraction_does_not_confirm_or_recover(self):
         p = self.p
         p.begin_claim(); p.drain()
-        p.native.cash = 1010.5
+        p.native.cash = 1010
         p.followup()
         self.assertIsNone(p.runtime.Status(p.runtime).outcomes.familyBossClaims)
         p.restart(); p.attach_current_read(); p.step()

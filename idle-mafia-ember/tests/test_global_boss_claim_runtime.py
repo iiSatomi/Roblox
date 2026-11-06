@@ -11,8 +11,8 @@ class GlobalBossClaimRuntimeTests(unittest.TestCase):
         self.f.executor.reply=lua_table(self.h.lua,{'ok':True,'medals':2,'won':[{'i':'crate_loot','n':2}]})
         self.f.start_current()
     def tearDown(self):self.f.tearDown()
-    def raw(self,revision=1,claimed=False,medals=1,crates=3,now=2000100):
-        raw=self.g.raw(revision,now=now);raw.native.gb.claimed=claimed
+    def raw(self,revision=1,claimed=False,medals=1,crates=3,now=2000100,damage=50):
+        raw=self.g.raw(revision,now=now,damage=damage);raw.native.gb.claimed=claimed
         if claimed:raw.native.gb.medals=2;raw.native.gb.won=lua_table(self.h.lua,[{'i':'crate_loot','n':2}])
         raw.native.inventory=lua_table(self.h.lua,{'crate_loot':crates})
         raw.native.inventoryBound=lua_table(self.h.lua,{'event_medal':medals})
@@ -29,6 +29,30 @@ class GlobalBossClaimRuntimeTests(unittest.TestCase):
         self.assertEqual(call.remote,'GlobalBossAction');self.assertEqual(call.args.n,1);self.assertEqual(call.args[1],'claim')
         self.h.at(1);self.step(2,claimed=True,medals=3,crates=5,now=2000101)
         self.assertEqual(self.f.runtime.Status(self.f.runtime).outcomes.globalBossClaim,'confirmed')
+    def test_fractional_participation_claims_once_and_recovers_the_same_exact_damage(self):
+        self.choose(); self.step(damage=50.5); self.f.drain()
+        self.assertEqual(len(self.f.executor.calls), 1,
+                         str(dict(self.f.runtime.Status(self.f.runtime).reasons.items())))
+        call = self.f.executor.calls[1]
+        self.assertEqual((call.remote, call.args.n, call.args[1]), ('GlobalBossAction', 1, 'claim'))
+        records = self.f.runtime.checkpoint.Records(self.f.runtime.checkpoint)
+        data = self.f.runtime.checkpoint.Recovery(self.f.runtime.checkpoint, records[1].actionKey)[0]
+        self.assertEqual(data.baseline.mineDamage, 50.5)
+        self.assertEqual(self.f.runtime.checkpoint.globalClaimUsage.attempts, 1)
+        import json
+        from test_redundant_store import plain
+        for key, saved in list(self.f.storage.data.items()):
+            self.f.storage.data[key] = lua_table(self.h.lua, json.loads(json.dumps(plain(saved))))
+        self.f.restart()
+        self.step(0, claimed=True, medals=3, crates=5, damage=50.625, now=2000105)
+        self.assertEqual(len(self.f.runtime.checkpoint.Records(self.f.runtime.checkpoint)), 1)
+        self.h.at(1)
+        self.step(1, claimed=True, medals=3, crates=5, damage=50.5, now=2000106)
+        self.assertEqual(self.f.runtime.Status(self.f.runtime).recoveries.globalBossClaim, 'confirmed')
+        self.assertEqual(len(self.f.runtime.checkpoint.Records(self.f.runtime.checkpoint)), 0)
+        self.assertEqual(len(self.f.executor.calls), 1)
+        self.assertEqual(self.f.runtime.checkpoint.globalClaimUsage.attempts, 1)
+
     def test_claimed_marker_without_awards_is_not_success(self):
         self.begin();self.h.at(1);self.step(2,claimed=True,now=2000101)
         self.assertIsNone(self.f.runtime.Status(self.f.runtime).outcomes.globalBossClaim)

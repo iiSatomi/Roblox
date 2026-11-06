@@ -100,13 +100,13 @@ class CrewHealTests(unittest.TestCase):
             self.assertIsNone(self.feature.capture(proposal, self.before)[0], drift)
             self.before.native.crew[2].duty = None
 
-    def test_timer_decrease_without_debit_or_wrong_reduction_cannot_confirm(self):
+    def test_wrong_timer_reduction_or_transient_reply_cannot_confirm(self):
         proposal, _ = self.plan()
         baseline, _ = self.feature.capture(proposal, self.before)
         after = self.h.snapshot(revision=2, native={"fullSync": True,
             "serverNow": self.now + 1, "pools": {"stamina": 15},
             "crew": [{}, {"name": "Ally", "rarity": 4, "healId": "injury-a",
-                "injuredUntil": self.now + 300}]})
+                "injuredUntil": self.now + 301}]})
         reply = lua_table(self.h.lua, {"ok": True})
         self.assertEqual(self.feature.evaluate(proposal, self.before, after, reply, baseline), "pending")
         after.native.pools.stamina = 10

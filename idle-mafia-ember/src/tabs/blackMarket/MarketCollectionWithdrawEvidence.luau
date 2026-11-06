@@ -204,7 +204,8 @@ local function reconcile(proposal, beforeHeader, after, reply, baseline, restart
     local current = state(after, baseline.itemId)
     if not current then return "pending" end
     local advanced = MarketCollectionWithdrawEvidence.observe(baseline, after)
-    if reply.pending == true or reply.code == "rate_limited" or reply.code == "presence" then return "pending" end
+    if reply.pending == true or reply.code == "pending" or reply.code == "busy"
+        or reply.code == "rate_limited" or reply.code == "presence" then return "pending" end
     if reply.ok == false then
         local newer = after.session == baseline.session and integer(after.revision,0,9007199254740991) and after.revision > baseline.revision
             or restart and after.session ~= baseline.session and finite(after.native.serverNow) and after.native.serverNow > baseline.serverNow

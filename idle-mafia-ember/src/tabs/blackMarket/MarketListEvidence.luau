@@ -177,6 +177,8 @@ local function reconcile(proposal, beforeHeader, after, reply, baseline, restart
         or intent.itemId ~= baseline.itemId
         or intent.quantity ~= baseline.quantity
         or intent.ask ~= baseline.ask then return "pending" end
+    if reply.pending == true or reply.code == "pending" or reply.code == "busy"
+        or reply.code == "rate_limited" or reply.code == "presence" then return "pending" end
     local advanced = MarketListEvidence.observe(baseline, after)
     if reply.ok == false then
         if advanced or reply.pending == true or reply.code == "rate_limited"

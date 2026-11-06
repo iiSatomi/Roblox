@@ -43,6 +43,18 @@ local function member(raw, slot)
     return row
 end
 
+local function uniqueMember(raw, id)
+    local crew = raw.native.crew
+    if type(crew) ~= "table" or #crew < 2 or #crew > 46 then return false end
+    local rows, matches = 0, 0
+    for slot, row in pairs(crew) do
+        if not integer(slot, 1) or slot > #crew or type(row) ~= "table" then return false end
+        rows = rows + 1
+        if row.healId == id then matches = matches + 1 end
+    end
+    return rows == #crew and matches == 1
+end
+
 function CrewHeal.read(raw, context)
     if not same(raw, context) or raw.revision ~= context.revision
         or raw.capturedAt ~= context.capturedAt then
@@ -199,7 +211,8 @@ local function reconcile(proposal,before,after,reply,baseline,restart)
         or not (after.session==baseline.session and after.revision>baseline.revision
             or restart and after.session~=baseline.session and type(after.native)=="table"
                 and timestamp(after.native.serverNow) and after.native.serverNow>baseline.serverNow)
-        or reply.pending==true or reply.code=="rate_limited" or reply.code=="presence" then
+        or reply.pending==true or reply.code=="pending" or reply.code=="busy"
+        or reply.code=="rate_limited" or reply.code=="presence" then
         return "pending"
     end
     local row = member(after, baseline.slot)
@@ -218,8 +231,17 @@ local function reconcile(proposal,before,after,reply,baseline,restart)
     local healed = full and (row.injuredUntil or 0)<baseline.injuredUntil
         and (row.injuredUntil or 0) <= after.native.serverNow
         or (not full and row.injuredUntil == expected)
-    if reply.ok == true and reply.pending ~= true and reply.code ~= "rate_limited"
-        and healed and stamina == baseline.stamina - baseline.expectedCost then return "confirmed" end
+    if reply.ok == true and healed then
+        if stamina == baseline.stamina - baseline.expectedCost then return "confirmed" end
+        -- Exact owned injury reduction proves the heal independently of passive
+        -- Stamina. Preserve the quote; no regeneration amount is inferred.
+        if after.native.serverNow > baseline.serverNow
+            and after.native.serverNow < baseline.injuredUntil
+            and stamina >= baseline.stamina - baseline.expectedCost
+            and row.duty == nil and row.training == nil
+            and (row.rolling == nil or row.rolling == false)
+            and uniqueMember(after, baseline.memberId) then return "confirmed" end
+    end
     return "pending"
 end
 

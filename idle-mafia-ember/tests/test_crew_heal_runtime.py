@@ -58,7 +58,7 @@ class CrewHealRuntimeTests(unittest.TestCase):
         self.assertEqual(len(self.f.executor.calls),0)
     def test_saved_wrong_stamina_or_member_remains_held(self):
         self.choose();self.step();self.f.drain();self.f.restart()
-        after=self.raw(0,11,1301);after.native.serverNow=1005;self.f.app.Step(self.f.app,after)
+        after=self.raw(0,9,1301);after.native.serverNow=1005;self.f.app.Step(self.f.app,after)
         self.assertIsNone(self.f.runtime.Status(self.f.runtime).recoveries.crewHeal)
         self.assertEqual(len(self.f.runtime.checkpoint.Records(self.f.runtime.checkpoint)),1)
     def test_queued_disable_and_unload_prevent_heal(self):

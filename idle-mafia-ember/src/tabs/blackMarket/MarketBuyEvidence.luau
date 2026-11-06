@@ -190,7 +190,8 @@ local function reconcile(proposal, beforeHeader, after, reply, baseline, restart
         and current.boundItem == baseline.boundItem
         and sameListings(current, baseline)
     local advanced = MarketBuyEvidence.observe(baseline, after)
-    if reply.pending==true or reply.code=="rate_limited" or reply.code=="presence" then return "pending" end
+    if reply.pending==true or reply.code=="pending" or reply.code=="busy"
+        or reply.code=="rate_limited" or reply.code=="presence" then return "pending" end
     if reply.ok == false then
         local newer=after.session==baseline.session and integer(after.revision,0,9007199254740991)
             and after.revision>baseline.revision

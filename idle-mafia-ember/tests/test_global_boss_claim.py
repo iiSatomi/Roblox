@@ -65,6 +65,30 @@ class GlobalBossClaimTests(unittest.TestCase):
             after, lua_table(self.h.lua, {"ok": True,"medals":2,"won":[{"i":"crate_loot","n":2}]}), baseline),
             "pending")
 
+    def test_positive_fractional_participation_is_preserved_without_rounding(self):
+        for damage in (0.25, 50.5):
+            with self.subTest(damage=damage):
+                before = self.raw(dmg=damage)
+                proposal, reason = self.proposal(before)
+                self.assertIsNotNone(proposal, reason)
+                baseline, reason = self.evidence.capture(proposal, before)
+                self.assertIsNotNone(baseline, reason)
+                self.assertEqual(baseline.mineDamage, damage)
+                self.assertTrue(self.evidence.canDispatch(proposal, before))
+                after = self.raw(revision=2, claimed=True, attempts=1, dmg=damage, now=2000101)
+                reply = lua_table(self.h.lua, {'ok': True, 'medals': 2, 'won': [{'i': 'crate_loot', 'n': 2}]})
+                self.assertEqual(self.evidence.evaluate(proposal, before, after, reply, baseline), 'confirmed')
+                after.native.gb.dmg = damage + 0.125
+                self.assertEqual(self.evidence.evaluate(proposal, before, after, reply, baseline), 'pending')
+
+    def test_nonpositive_nonfinite_or_non_numeric_damage_cannot_capture(self):
+        proposal = self.proposal(self.raw())[0]
+        for damage in (0, -0.25, float('nan'), float('inf'), -float('inf'), '50.5', True):
+            with self.subTest(damage=damage):
+                raw = self.raw(dmg=damage)
+                self.assertIsNone(self.evidence.capture(proposal, raw)[0])
+                self.assertFalse(self.evidence.canDispatch(proposal, raw))
+
     def test_wrong_run_claimed_or_attempted_blocks(self):
         for changes in ({"claimed": True}, {"run": "other_1"},
                         {"attempts": 1}, {"dmg": 0},

@@ -965,6 +965,7 @@ function Methods:Reconcile(raw)
     if record.stage == "observed" then return "observed", nil end
     if record.actionKey ~= nil and (type(record.reply) ~= "table"
         or record.reply.ok ~= true or record.reply.pending == true
+        or record.reply.code == "pending" or record.reply.code == "busy"
         or record.reply.code == "rate_limited" or record.reply.code == "presence") then
         return "uncertain", "Matching definitive listing reply required"
     end

@@ -167,8 +167,10 @@ function FamilyBossClaimsEvidence.canDispatch(proposal, raw)
     return capture(proposal, raw, true) ~= nil
 end
 
-local function awarded(native, awards, unchanged)
-    if not cash(native.cash) or native.cash ~= awards.cashBefore + (unchanged and 0 or awards.cash) then return false end
+local function awarded(native, awards, unchanged, surplusCash)
+    local expected = awards.cashBefore + (unchanged and 0 or awards.cash)
+    if not cash(native.cash) or (surplusCash and native.cash < expected)
+        or (not surplusCash and native.cash ~= expected) then return false end
     for id, row in pairs(awards.items) do
         local loose = type(native.inventory) == "table" and (native.inventory[id] or 0)
         local bound = type(native.inventoryBound) == "table" and (native.inventoryBound[id] or 0)
@@ -195,7 +197,8 @@ local function reconcile(proposal, beforeHeader, after, reply, baseline, restart
             or restart and after.session ~= baseline.session and type(after.native) == "table"
                 and timestamp(after.native.serverNow, baseline.awards.serverNow)
                 and after.native.serverNow > baseline.awards.serverNow)
-        or reply.pending == true or reply.code == "rate_limited" or reply.code == "busy" or reply.code == "presence" then return "pending" end
+        or reply.pending == true or reply.code == "pending" or reply.code == "rate_limited"
+        or reply.code == "busy" or reply.code == "presence" then return "pending" end
     local native, state, usages = current(after)
     if not native or native.serverNow < baseline.awards.serverNow or native.serverNow >= baseline.expiresAt
         or state.week ~= baseline.currentWeek or state.famId ~= baseline.famId
@@ -209,8 +212,18 @@ local function reconcile(proposal, beforeHeader, after, reply, baseline, restart
     if reply.ok == false then
         return present == true and not claimed and awarded(native, baseline.awards, true) and "rejected" or "pending"
     end
-    return reply.ok == true and present == false and (baseline.week ~= baseline.currentWeek or claimed)
-        and awarded(native, baseline.awards, false) and "confirmed" or "pending"
+    if reply.ok ~= true or present ~= false or not (baseline.week ~= baseline.currentWeek or claimed) then return "pending" end
+    if awarded(native, baseline.awards, false) then return "confirmed" end
+    -- A consumed owned claim plus exact item awards can settle despite passive
+    -- Cash. This confirms the claim and items, not the exact Cash delivered.
+    -- Keep the original quoted Cash reward and counted stage allowance intact.
+    if native.serverNow > baseline.awards.serverNow
+        and type(baseline.awards.sourceKey) == "string" and #baseline.awards.sourceKey == 64
+        and baseline.awards.sourceKey:match("^[%x]+$")
+        and type(proposal.resources) == "table" and next(proposal.resources) == nil
+        and proposal.actionKey == "familyBossClaims:" .. tostring(baseline.week) .. ":" .. tostring(baseline.stage)
+        and awarded(native, baseline.awards, false, true) then return "confirmed" end
+    return "pending"
 end
 
 function FamilyBossClaimsEvidence.evaluate(proposal, before, after, reply, baseline)

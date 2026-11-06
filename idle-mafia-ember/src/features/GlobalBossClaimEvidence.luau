@@ -46,7 +46,7 @@ local function current(raw)
         or (event.testUserId ~= nil
             and event.testUserId ~= player.userId)
         or type(native.gb) ~= "table"
-        or not integer(native.gb.dmg, 1)
+        or not timestamp(native.gb.dmg, 0) or native.gb.dmg <= 0
         or type(native.gb.claimed) ~= "boolean" then
         return nil
     end

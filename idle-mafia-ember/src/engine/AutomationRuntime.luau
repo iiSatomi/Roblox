@@ -341,6 +341,10 @@ function AutomationRuntime.new(deps)
         confirm = function(proposal, before, after, reply, baseline)
             local spec = features[proposal.feature]
             if not spec then return "pending" end
+            -- Ordinary callback adapters cannot turn an explicitly unfinished
+            -- native reply into a terminal outcome, even if its ok flag is set.
+            if not spec.lifecycle and type(reply) == "table"
+                and (reply.pending == true or reply.code == "pending") then return "pending" end
             return spec.evidence.evaluate(proposal, before, after, reply, baseline)
         end,
     })
@@ -710,7 +714,15 @@ function Methods:RecoverSaved(raw)
                 local ok, observed = true, nil
                 if not owner and type(self.checkpoint.KnownUnsent) == "function"
                     and self.checkpoint:KnownUnsent(record) then observed = "known_unsent"
-                elseif type(recover) == "function" then ok, observed = pcall(recover, data, raw, now) end
+                elseif type(recover) == "function" then
+                    -- Lifecycle owners may obtain an independent terminal status.
+                    -- Ordinary recovery still depends on the original callback.
+                    local reply = data.reply
+                    if owner or type(reply) ~= "table"
+                        or not (reply.pending == true or reply.code == "pending") then
+                        ok, observed = pcall(recover, data, raw, now)
+                    end
+                end
                 local currentState = self.session:Status().state
                 if self.closed or currentState == "stopped" or currentState == "closed"
                     or not self.session.broker:Fresh(raw, self.clock:Now()) then return end
