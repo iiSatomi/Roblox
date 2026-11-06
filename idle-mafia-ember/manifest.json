@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "releaseCommit": "e3ba6caa213d6af0819445206b6d4435c12e28e4",
+  "releaseCommit": "80b5a0a0f174ecd195dc3d6d100ce0f80248e2a5",
   "modules": [
     {
       "id": "AllowanceReset",
@@ -341,7 +341,7 @@
     {
       "id": "MarketRap",
       "path": "src/features/MarketRap.luau",
-      "sha256": "16e5d2ce8c04b6d39a69ddf78be8426720f103f7b22225c0e4267ce7b0c3adcc",
+      "sha256": "30d25f1329ae58a849e94a78139e22c4d548b29b5b919b26d1ac4745dbfefd29",
       "deps": []
     },
     {
@@ -743,7 +743,7 @@
     {
       "id": "Settings",
       "path": "src/storage/Settings.luau",
-      "sha256": "e655794f855417b03423688fa3e9bbea356ed5b8b7803ea61f094d2eeb43a571",
+      "sha256": "89dea5b136d74fffd85e7d0fd8ff1a7a4422f21d543a60996cc47aa1c2687f68",
       "deps": []
     },
     {
@@ -755,13 +755,13 @@
     {
       "id": "StorageUpgrade",
       "path": "src/storage/StorageUpgrade.luau",
-      "sha256": "6af7732a4bc74d52fc9737593df166757310be931d6f1ec89b4b6c4b0a30591c",
+      "sha256": "606919101bdf84e0f087d5a2ed4bdea29ff61c98b8d9428cba3d70d40c7ec739",
       "deps": []
     },
     {
       "id": "StorageUsageCarry",
       "path": "src/storage/StorageUsageCarry.luau",
-      "sha256": "571bdb9bf69d5cb952210c214fda9a730f0c213b58e09c9f448afe5c1b3e4bcd",
+      "sha256": "b786f4634a755035ba691929fb3739fe4434164ac00f45cc5984d400ac43eb88",
       "deps": []
     },
     {
@@ -827,7 +827,7 @@
     {
       "id": "MarketCallPlan",
       "path": "src/tabs/blackMarket/MarketCallPlan.luau",
-      "sha256": "e7ec83571180988be3bf819b964e93b5a7bf9d04a859eacf645b6f760e506c8f",
+      "sha256": "83648856773c74d94aaa833fab18f21ffcae71d285ec92d308da260c19e13a2e",
       "deps": []
     },
     {
@@ -905,25 +905,25 @@
     {
       "id": "MarketResearchController",
       "path": "src/tabs/blackMarket/MarketResearchController.luau",
-      "sha256": "a9162c99b4d021800c8b12b05e36683da10008981096159e5cd357f62ae0b7fd",
+      "sha256": "eb3bd89f4110717f0aa3456d1e70d279706bde0b6b7f1540476255f1723019c1",
       "deps": []
     },
     {
       "id": "MarketResearchView",
       "path": "src/tabs/blackMarket/MarketResearchView.luau",
-      "sha256": "a6c8fecc50ab0a5357d0ea1665989e8fc45659c895e0fe02c6113dd9caa10549",
+      "sha256": "dbe4b2f2c35f1d6f138466bcee4967e4ed51ea4500aa791c68a1b688da39fcd7",
       "deps": []
     },
     {
       "id": "MarketSaleCustody",
       "path": "src/tabs/blackMarket/MarketSaleCustody.luau",
-      "sha256": "446c0e808f7cbdcb8cb1702fdde456467371bbc8d6b3ef4a99b0d40b10522481",
+      "sha256": "8e8eaa090eebd728b97f44289278dcdf11110ce3d219ff0c39cedad9bdb1c60f",
       "deps": []
     },
     {
       "id": "MarketSaleQuote",
       "path": "src/tabs/blackMarket/MarketSaleQuote.luau",
-      "sha256": "890933cc2c404179292ec1f494c1416ab3b109b9d2f95a62a296c2b020d5d4e6",
+      "sha256": "5447373c12e1b1b42dcaff4a30e15f9bd17d673d2174c806626c5ac5bb013e0b",
       "deps": []
     },
     {
@@ -947,7 +947,7 @@
     {
       "id": "MarketSettings",
       "path": "src/tabs/blackMarket/MarketSettings.luau",
-      "sha256": "c78b765baba38d9dbda4b9a9717c3ffb5e5eca6900dd1641107b08aea9880398",
+      "sha256": "c1cb1831ef0157415c8d144f03b84a582fe19eb7526ce7829df45d4b21386279",
       "deps": []
     },
     {
@@ -959,7 +959,7 @@
     {
       "id": "MarketWatchOpportunity",
       "path": "src/tabs/blackMarket/MarketWatchOpportunity.luau",
-      "sha256": "b5eb3af9c6432a0e268b86c0a01800547005ae3b8143437ec49ffd4134c9e2dc",
+      "sha256": "9c0e62c5ccf46d55b50d524c550fc92233f22af236f8f7648e1d43ad32b36e83",
       "deps": []
     },
     {
@@ -1391,7 +1391,7 @@
     {
       "id": "NativeHeistLease",
       "path": "src/tabs/heists/NativeHeistLease.luau",
-      "sha256": "2765995d3becdd7084daa446c63d933154fe8a2c2c6bfdb66386747ede4b82ee",
+      "sha256": "12c6b08c90b914ff15170b739b50bbbd71d30f8ac980113fafa7ffb14684cf4d",
       "deps": []
     },
     {
@@ -1547,13 +1547,13 @@
     {
       "id": "RewardsTab",
       "path": "src/tabs/rewards/Module.luau",
-      "sha256": "605d9dbb0ee1060c56a80566d8260895d5168c6ecd3ff1eeaffe0915041a630a",
+      "sha256": "4cb197fac119527f8d01f01c24c52dc7eec5bdf943affa9835308f5a6227f1be",
       "deps": []
     },
     {
       "id": "NativeRewardsCatalog",
       "path": "src/tabs/rewards/NativeRewardsCatalog.luau",
-      "sha256": "6f0b147865bcd2273b818c79f63096e29c592791a68c8638b07d7c7eeb301b95",
+      "sha256": "ec30855ab5daffc47cbc80df779f7c9c403deb702ab94b3d823bf504bfce5f16",
       "deps": []
     },
     {
@@ -1565,7 +1565,7 @@
     {
       "id": "RewardEffects",
       "path": "src/tabs/rewards/RewardEffects.luau",
-      "sha256": "ecf2c5aa030eed03b4419095db73eea8516394aa4725cfcbeac7f80149cb7495",
+      "sha256": "753fc4e851476c29c72ea4e4eda116db8d684edcae8adaece386e026bfbb9168",
       "deps": []
     },
     {
