@@ -140,6 +140,34 @@ class BootstrapTests(unittest.TestCase):
         self.assertFalse(previous.alive)
         self.assertTrue(replacement.alive)
 
+    def test_replacement_allows_only_own_destroy_coroutine_to_flush_durable_receipt(self):
+        self.adapters.executorEnv.writefile = self.h.lua.eval("""function(path, bytes)
+            flushedFiles = flushedFiles or {}; flushedFiles[path] = bytes
+        end""")
+        previous, reason = self.bootstrap.start(self.release, self.adapters, True)
+        self.assertIsNone(reason)
+        guarded_write = self.h.lua.globals().seen.dependencies.executorEnv.writefile
+        self.h.lua.globals().closingWrite = guarded_write
+        previous.Destroy = self.h.lua.eval("""function(self)
+            -- Even while final persistence yields, unrelated callbacks cannot write.
+            local other = coroutine.create(function()
+                return pcall(closingWrite, 'foreign', 'must not persist')
+            end)
+            local resumed, accepted = coroutine.resume(other)
+            assert(resumed and accepted == false, 'Foreign closing write was accepted')
+            closingWrite('terminal', 'owned settled receipt')
+            self.alive = false
+        end""")
+        replacement, reason = self.bootstrap.start(self.release, self.adapters, True)
+        self.assertIsNone(reason)
+        self.assertIsNotNone(replacement)
+        self.assertEqual(self.h.lua.globals().flushedFiles.terminal, "owned settled receipt")
+        self.assertIsNone(self.h.lua.globals().flushedFiles.foreign)
+        self.assertFalse(previous.alive)
+        # The retired writer cannot write after the new owner takes over.
+        self.assertFalse(self.h.lua.eval("function(fn) return pcall(fn, 'late', 'no') end")(
+            guarded_write)[0])
+
     def test_wrong_place_or_manifest_pin_never_calls_loader(self):
         self.h.lua.globals().fakeGame.PlaceId = 1
         self.assertIsNone(self.bootstrap.start(

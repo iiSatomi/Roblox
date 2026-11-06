@@ -90,6 +90,8 @@ class AllTabCompositionTests(unittest.TestCase):
                 "src/tabs/contracts/ContractGoalState.luau"),
             "ContractGoalBlocked": h.load(
                 "src/tabs/contracts/ContractGoalBlocked.luau"),
+            "ContractGoalRequests": h.load(
+                "src/tabs/contracts/ContractGoalRequests.luau"),
             "ContractCashQuote": h.load(
                 "src/tabs/contracts/ContractCashQuote.luau"),
             "NativeContractCatalog": h.load(
@@ -100,6 +102,8 @@ class AllTabCompositionTests(unittest.TestCase):
                 "src/tabs/trophies/TrophyFocusState.luau"),
             "TrophyFocusBlocked": h.load(
                 "src/tabs/trophies/TrophyFocusBlocked.luau"),
+            "TrophyGoalRequests": h.load(
+                "src/tabs/trophies/TrophyGoalRequests.luau"),
             "NativeSkillCatalog": h.load(
                 "src/tabs/skills/NativeSkillCatalog.luau"),
             "NativeRewardsCatalog": h.load(
@@ -237,6 +241,10 @@ class AllTabCompositionTests(unittest.TestCase):
         catalog_ids = {feature["id"] for feature in deps["Catalog"]["features"].values()}
         self.assertEqual(expected, catalog_ids,
                          "Every visible switch needs a loaded tab descriptor")
+        by_id = {spec["id"]: spec for spec in result["features"].values()}
+        for feature in ("autoContracts", "trophyFocus"):
+            self.assertIsNotNone(by_id[feature]["goals"],
+                                 "Goal routing must survive the real tab modules")
         for lane in (deps["MarketBlocked"]["watch"],
                      deps["MarketBlocked"]["trade"]):
             self.assertIsNone(lane.read()[0])

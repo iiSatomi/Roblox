@@ -1,7 +1,7 @@
 -- Read-only recovery description for a previously sent, durably owned action.
 local SequenceRecovery = {}
 
-local actions = { start = true, collect = true, sabotage = true }
+local actions = { start = true, collect = true, help = true, sabotage = true }
 
 local function nonempty(value)
     return type(value) == "string" and #value > 0 and #value <= 120
@@ -26,7 +26,7 @@ function SequenceRecovery.statusCall(record, identity)
         or type(record.sentAt)~="number" or record.sentAt~=record.sentAt
         or record.sentAt<0 or record.sentAt>9007199254740991
         or (record.actionName == "collect" and record.arg1 ~= nil)
-        or (record.actionName ~= "collect" and not nonempty(record.arg1)) then
+        or (record.actionName ~= "collect" and not nonempty(record.arg1) and not integer(record.arg1, 1)) then
         return nil, "No owned sent Heist sequence to recover"
     end
     return { kind = "statusOnly", remote = "HeistAction",
@@ -38,7 +38,7 @@ end
 
 function SequenceRecovery.classify(reply)
     if type(reply) ~= "table" then return "unresolved" end
-    if reply.pending == true or reply.code == "rate_limited" then
+    if reply.pending == true or reply.code == "rate_limited" or reply.code == "busy" or reply.code == "presence" then
         return "waiting"
     end
     if reply.code == "no_pending" then return "unresolved" end

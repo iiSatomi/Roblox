@@ -32,18 +32,35 @@ local function header(raw, release)
     return result
 end
 local function catalog(definition)
+    local medal = type(definition) == "table" and type(definition.CURRENCIES) == "table"
+        and definition.CURRENCIES.medal
     if type(definition) ~= "table" or definition.MEDAL ~= "event_medal"
+        or type(medal) ~= "table" or medal.item ~= "event_medal" or medal.paidField ~= "paidMedals"
+        or medal.tradable ~= nil and medal.tradable ~= false
         or not integer(definition.MAX_ITEM_COUNT, 1, 99) or type(definition.ROWS) ~= "table" then return nil end
     local rows, count = {}, 0
     for index, row in pairs(definition.ROWS) do
         count = count + 1
         if not integer(index, 1, 64) or type(row) ~= "table" or not id(row.key)
-            or not id(row.item) or not id(row.kind) or not integer(row.price, 1, 1000000000)
+            or not id(row.item) or not id(row.kind)
             or rows[row.key] ~= nil then return nil end
+        -- Current EventShop normalizes legacy price into prices.medal. Other
+        -- currency rows stay visible to source validation but cannot be bought here.
+        local prices = row.prices
+        if prices == nil and row.price ~= nil then prices = {medal = row.price} end
+        if type(prices) ~= "table" then return nil end
+        local currencyCount, normalized = 0, {}
+        for currency, price in pairs(prices) do
+            currencyCount = currencyCount + 1
+            if currencyCount > 16 or not id(currency) or not integer(price, 1, 1000000000) then return nil end
+            normalized[currency] = price
+        end
+        if currencyCount == 0 then return nil end
         local amount = row.count == nil and 1 or row.count
         if not integer(amount, 1, definition.MAX_ITEM_COUNT) then return nil end
         rows[row.key] = { key = row.key, kind = row.kind, item = row.item,
-            count = amount, price = row.price, supported = row.kind == "crate" or row.kind == "item" }
+            count = amount, prices = normalized, price = normalized.medal,
+            supported = normalized.medal ~= nil and (row.kind == "crate" or row.kind == "item") }
     end
     if count == 0 or count > 64 then return nil end
     for index = 1, count do if definition.ROWS[index] == nil then return nil end end
@@ -132,7 +149,8 @@ function NativeEventShopSource.new(definition, readAttributes, fingerprint, rele
     function result:CanDispatch(proposal)
         local intent = type(proposal) == "table" and proposal.intent
         return type(intent) == "table" and proposal.feature == "eventShop"
-            and intent.sourceKey == self.sourceKey and latest ~= nil and latest.open == true
+            and intent.currency == "medal" and intent.sourceKey == self.sourceKey
+            and latest ~= nil and latest.open == true
             and current(intent.sourceGeneration)
     end
     function result:Close() closed, latest, generation = true, nil, generation + 1 end

@@ -66,6 +66,8 @@ function ContractGoalRequests.derive(view, settings)
                 and settings.borrowCollect == true then
                 route = { "operations", "collect" }
                 metric = "collectedOperations"
+            elseif row.key == "hires" and settings.borrowHires == true then
+                route, metric = {"crewHire"}, "completedHires"
             end
             if route and integer(row.progress, 0)
                 and integer(row.goal, 1) and row.progress < row.goal then
@@ -93,6 +95,13 @@ function ContractGoalRequests.derive(view, settings)
         end
     end
     return result, nil
+end
+
+function ContractGoalRequests.propose(raw, context, request, spec, settings, reservations)
+    if spec.id ~= "crewHire" or request.key ~= "hires" or type(spec.planner.ForContract) ~= "function" then return nil end
+    local view = spec.reader.read(raw, context)
+    local scoped = view and spec.planner.ForContract(view, request)
+    return scoped and spec.planner.propose(scoped, settings, reservations) or nil
 end
 
 function ContractGoalRequests.observe(before, after, request)

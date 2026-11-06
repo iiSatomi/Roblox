@@ -104,9 +104,11 @@ function RuntimeHost.start(deps)
     local clientBindings
     if currentClient then
         local bound, bindings = pcall(deps.NativeClientBindings.read,
-            deps.clientGame, deps.clientRequire, deps.executorEnv and deps.executorEnv.getupvalues)
+            deps.clientGame, deps.clientRequire, deps.executorEnv and deps.executorEnv.getupvalues,
+            deps.NativeHeistController, deps.NativeRecallController)
         if not bound or type(bindings) ~= "table"
             or bindings.remotesFolder == nil
+            or bindings.uiParent == nil
             or type(bindings.nativeState) ~= "table"
             or type(bindings.gameData) ~= "table"
             or type(bindings.config) ~= "table"
@@ -173,7 +175,9 @@ function RuntimeHost.start(deps)
     appDeps.executorStorageApi = executorStorageApi
     appDeps.clock = clock
     if clientBindings then
+        appDeps.uiParent = clientBindings.uiParent
         appDeps.gameData = clientBindings.gameData
+        appDeps.cityMaps = clientBindings.cityMaps
         appDeps.marketPresence = clientBindings.marketPresence
         appDeps.config = clientBindings.config
         appDeps.gearSets = clientBindings.gearSets
@@ -228,7 +232,23 @@ function RuntimeHost.start(deps)
         resolver:Close()
         return nil, "Executor runtime startup failed"
     end
+    local heistController = currentClient and clientBindings.currentHeistController
+        or not currentClient and deps.nativeHeistController or nil
+    local heistBusy = type(heistController) == "table" and heistController.Busy
+    local recallController = currentClient and clientBindings.currentRecallController
+        or not currentClient and deps.nativeRecallController or nil
+    local recallBusy = type(recallController) == "table" and recallController.Busy
     runtimeCaps.nativeExecutor.InFlight = function()
+        if heistController then
+            if type(heistBusy) ~= "function" or heistController.Busy ~= heistBusy then return true end
+            local ok, busy = pcall(heistBusy)
+            if not ok or busy ~= false then return true end
+        end
+        if recallController then
+            if type(recallBusy) ~= "function" or recallController.Busy ~= recallBusy then return true end
+            local ok, busy = pcall(recallBusy)
+            if not ok or busy ~= false then return true end
+        end
         return resolver:InFlight()
     end
     local storageOk, storage = pcall(
@@ -252,7 +272,11 @@ function RuntimeHost.start(deps)
         callPlan = deps.NativeCallPlan.withFamily(callPlan, deps.FamilyCallPlan)
     end
     if type(deps.TerritoryCallPlan) == "table" then
-        callPlan = deps.NativeCallPlan.withTerritory(callPlan, deps.TerritoryCallPlan)
+        local territoryPlan = deps.TerritoryCallPlan
+        if type(deps.RecallTransactions) == "table" and type(territoryPlan.withRecall) == "function" then
+            territoryPlan = territoryPlan.withRecall(deps.RecallTransactions)
+        end
+        callPlan = deps.NativeCallPlan.withTerritory(callPlan, territoryPlan)
     end
     if type(deps.PrestigeReset) == "table" then
         callPlan = deps.NativeCallPlan.withPrestige(callPlan, deps.PrestigeReset)
@@ -260,6 +284,12 @@ function RuntimeHost.start(deps)
     if type(deps.EventShopBuyer) == "table" then
         callPlan = deps.NativeCallPlan.withEvents(callPlan, deps.EventShopBuyer)
     end
+    if type(deps.HeistCallPlan) == "table" then
+        callPlan = deps.NativeCallPlan.withHeists(callPlan, deps.HeistCallPlan)
+    end
+    appDeps.nativeHeistController = heistController
+    appDeps.nativeRecallController = recallController
+    appDeps.nativeUserId = currentClient and clientBindings.userId or not currentClient and deps.nativeUserId or nil
     appDeps.playerInfoSource = currentClient and clientBindings.currentPlayerInfo or not currentClient and deps.playerInfoSource or nil
     appDeps.nativePrestigeController = currentClient and clientBindings.currentPrestigeController
         or not currentClient and deps.nativePrestigeController or nil
@@ -287,6 +317,15 @@ function RuntimeHost.start(deps)
             or notifications.CombatFrame ~= nativeFrame then return nil end
         return value
     end
+    local nativeWarAccept = type(notifications) == "table" and notifications.AcceptWarStatus
+    if type(nativeWarAccept) == "function" then
+        appDeps.nativeReadSource.AcceptWarStatus = function(_, status, expected)
+            if notifications.AcceptWarStatus ~= nativeWarAccept or not appDeps.nativeReadSource:Current("GetHitList") then return false end
+            local ok, accepted = pcall(nativeWarAccept, notifications, status, expected)
+            return ok and accepted == true and notifications.AcceptWarStatus == nativeWarAccept
+                and appDeps.nativeReadSource:Current("GetHitList")
+        end
+    end
     local nativeFriendship = type(notifications) == "table" and notifications.Friendship
     appDeps.nativeReadSource.Friendship = function(_, target)
         if type(nativeFriendship) ~= "function" or notifications.Friendship ~= nativeFriendship
@@ -303,7 +342,7 @@ function RuntimeHost.start(deps)
     end
     local transportOk, transport = pcall(
         deps.NativeDispatchAdapter.new, callPlan,
-        runtimeCaps.nativeExecutor, requestLane, clock, appDeps.fightReceipts)
+        runtimeCaps.nativeExecutor, requestLane, clock, appDeps.fightReceipts, heistController)
     if not transportOk or type(transport) ~= "table" then
         if appDeps.fightReceipts then appDeps.fightReceipts:Close() end
         resolver:Close()
@@ -386,7 +425,7 @@ function RuntimeHost.start(deps)
     end
     local function closeSources()
         for _, key in ipairs({ "shopQuoteSource", "globalBossSource", "eventShopSource", "territorySeasonSource",
-            "rewardsSource", "fightReceipts", "nativePrestigeController" }) do
+            "rewardsSource", "fightReceipts", "nativePrestigeController", "nativeHeistController", "nativeRecallController" }) do
             local source = appDeps[key]
             if type(source) == "table"
                 and type(source.Close) == "function" then
@@ -481,11 +520,16 @@ function RuntimeHost.start(deps)
     function host:Destroy()
         if not self.active then return false end
         self.active = false
+        disconnect(self.handles)
+        -- App/Runtime close fences dispatch before flushing its final owned
+        -- settlement. Keep the exact receipt lease and source until that flush.
+        local closed, closeReason = pcall(function()
+            if not self.loop:Close() then self.driver:Close() end
+        end)
         requestLane:Close()
         closeSources()
         self.resolver:Close()
-        disconnect(self.handles)
-        if not self.loop:Close() then self.driver:Close() end
+        if not closed then error(closeReason, 0) end
         return true
     end
     setmetatable(host, { __index = function(_, key)

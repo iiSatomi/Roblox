@@ -62,6 +62,29 @@ class PlaytimeClaimTests(unittest.TestCase):
         return self.planner.propose(
             view, lua_table(self.h.lua, {"enabled": enabled}))
 
+    def test_fractional_replicated_seconds_are_preserved_and_compared_without_rounding(self):
+        for seconds,ready in ((299.9999,False),(300.0001,True),(23957.002699622943,True)):
+            with self.subTest(seconds=seconds):
+                raw = self.raw(seconds=seconds,claimed={})
+                view,reason = self.view(raw)
+                self.assertIsNone(reason)
+                self.assertEqual(view.todaySeconds,seconds)
+                proposal,_ = self.planner.propose(view,lua_table(self.h.lua,{"enabled":True}))
+                self.assertEqual(proposal is not None,ready)
+                if ready:
+                    self.assertEqual(proposal.intent.index,1)
+                    baseline,reason = self.evidence.capture(proposal,raw)
+                    self.assertIsNone(reason)
+                    self.assertIsNotNone(baseline)
+
+    def test_elapsed_seconds_must_be_finite_and_nonnegative_in_reader_and_capture(self):
+        proposal,_ = self.propose(self.raw(seconds=300,claimed={}))
+        for seconds in (-0.001,float('nan'),float('inf'),float('-inf'),"300"):
+            with self.subTest(seconds=seconds):
+                raw = self.raw(seconds=seconds,claimed={})
+                self.assertIsNone(self.view(raw)[0])
+                self.assertIsNone(self.evidence.capture(proposal,raw)[0])
+
     def test_weekday_and_weekend_90_minute_reward(self):
         view, reason = self.view(self.raw())
         self.assertIsNone(reason)

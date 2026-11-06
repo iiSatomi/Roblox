@@ -137,6 +137,13 @@ function FeatureRegistry.fromTabs(tabs, catalog)
             return nil, "Invalid tab descriptors"
         end
         for _, spec in ipairs(descriptors) do
+            if type(spec) == "table" and spec.goals ~= nil then
+                if type(spec.goals) ~= "table"
+                    or type(spec.goals.derive) ~= "function"
+                    or type(spec.goals.observe) ~= "function" then
+                    return nil, "Invalid goal request module"
+                end
+            end
             if type(spec) == "table" and spec.lifecycle ~= nil then
                 if type(spec.lifecycle) ~= "table" then return nil, "Invalid feature lifecycle" end
                 for _, key in ipairs({"prepare", "authorize", "returned", "resolve", "unsent"}) do
@@ -163,7 +170,7 @@ function FeatureRegistry.fromTabs(tabs, catalog)
             specs[#specs + 1] = { id = spec.id, page = tab.id,
                 reader = spec.reader, planner = spec.planner,
                 evidence = spec.evidence, canDispatch = spec.canDispatch, lifecycle = spec.lifecycle, recoverSaved = spec.recoverSaved,
-                recordOutcome = spec.recordOutcome }
+                recordOutcome = spec.recordOutcome, goals = spec.goals }
         end
     end
     return specs, nil

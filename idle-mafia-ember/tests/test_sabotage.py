@@ -70,6 +70,26 @@ class SabotageTests(unittest.TestCase):
             after, lua_table(self.h.lua, {"ok": True}), baseline),
             "pending")
 
+    def test_saved_exact_sabotage_recovers_across_session_without_replaying(self):
+        before = self.raw()
+        proposal = self.proposal(before)[0]
+        baseline = self.evidence.capture(proposal, before)[0]
+        data = lua_table(self.h.lua, {"proposal": proposal, "before": before,
+            "baseline": baseline, "reply": {"ok": True}})
+        after = self.raw(revision=0, sabos=1, favors=10, attempts=1)
+        after.session = "run-b"
+        self.assertEqual(self.evidence.evaluate(proposal, before, after, data.reply, baseline), "pending")
+        self.assertEqual(self.evidence.recoverSaved(data, after), "confirmed")
+        after.capturedAt = -1
+        for key in ("heistBoardProof", "sabotageUsageProof", "localUserIdProof"):
+            after[key].capturedAt = -1
+        self.assertIsNone(self.evidence.recoverSaved(data, after))
+        after.capturedAt = 0
+        for key in ("heistBoardProof", "sabotageUsageProof", "localUserIdProof"):
+            after[key].capturedAt = 0
+        after.localUserIdProof.userId = 43
+        self.assertIsNone(self.evidence.recoverSaved(data, after))
+
     def test_self_friend_family_help_and_cap_block(self):
         for changes in ({"owner": 42}, {"friend": True},
                         {"relation": "family"}, {"helps": 1},

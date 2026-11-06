@@ -4,6 +4,7 @@ local RecallTransactions = {}
 local Methods = {}
 Methods.__index = Methods
 local MAX = 9007199254740991
+local writers = {}
 
 local function number(value, low, high)
     return type(value) == "number" and value == value
@@ -57,7 +58,6 @@ local function own(scope)
     return type(scope) == "table" and text(scope.account, 200)
         and text(scope.place, 200) and text(scope.release, 200)
         and integer(scope.userId, 1, MAX)
-        and scope.account == string.format("%.0f", scope.userId)
 end
 local function header(raw, scope)
     return type(raw) == "table" and text(raw.session, 200)
@@ -74,20 +74,24 @@ local function targetValid(target, userId)
         and (target.at == nil or number(target.at, 0, MAX))
         and (target.deploymentId ~= nil or number(target.at, 1, MAX))
 end
-local memberFields = { "name", "rarity", "train", "duty", "token", "at",
+local memberFields = { "key", "name", "rarity", "train", "duty", "token", "at", "stationed",
     "injured", "recalled", "training", "rolling", "pending", "weapon", "armor", "vehicle" }
 local function memberValid(row)
-    if type(row) ~= "table" or not text(row.name, 64)
+    if type(row) ~= "table" or not text(row.key, 200)
+        or not (row.key:match("^id:.+") or row.key:match("^deployment:.+"))
+        or not text(row.name, 64)
         or not integer(row.rarity, 1, 20) or not integer(row.train, 0, 1000000)
         or not (row.duty == false or text(row.duty, 120))
         or not (row.token == false or id(row.token))
         or not (row.at == false or number(row.at, 0, MAX))
         or not number(row.injured, 0, MAX) or not number(row.recalled, 0, MAX)
         or type(row.training) ~= "boolean" or type(row.rolling) ~= "boolean"
-        or type(row.pending) ~= "boolean" then return false end
+        or type(row.pending) ~= "boolean" or type(row.stationed) ~= "boolean" then return false end
     for _, field in ipairs({ "weapon", "armor", "vehicle" }) do
         if row[field] ~= false and not text(row[field], 120) then return false end
     end
+    if row.key:match("^deployment:") and (not text(row.duty, 120) or not id(row.token)
+        or row.key ~= "deployment:" .. tostring(row.token)) then return false end
     return true
 end
 local function absent(value, fallback)
@@ -96,27 +100,42 @@ local function absent(value, fallback)
 end
 local function state(raw, scope)
     if not header(raw, scope) or type(raw.native) ~= "table"
+        or raw.native.userId ~= nil and raw.native.userId ~= scope.userId
         or raw.native.fullSync ~= true or not number(raw.native.serverNow, 0, MAX)
         or type(raw.native.family) ~= "table" or not id(raw.native.family.id)
         or type(raw.native.crew) ~= "table"
         or #raw.native.crew < 2 or #raw.native.crew > 46 then return nil end
-    local members, count, seen = {}, 0, {}
+    local members, count, seen, deploymentTokens = {}, 0, {}, {}
     for slot, row in pairs(raw.native.crew) do
         count = count + 1
         if not integer(slot, 1, #raw.native.crew) or type(row) ~= "table" then return nil end
         if slot > 1 then
             if row.training ~= nil and type(row.training) ~= "table"
                 or row.rolling ~= nil and type(row.rolling) ~= "boolean"
+                or row.recalling ~= nil and type(row.recalling) ~= "boolean"
+                or row.stationed ~= nil and type(row.stationed) ~= "boolean"
                 or row.dutyPending ~= nil and type(row.dutyPending) ~= "boolean"
                 or row.dutyRemapPending ~= nil and type(row.dutyRemapPending) ~= "boolean" then return nil end
-            local saved = { name = row.name, rarity = row.rarity, train = absent(row.train, 0),
+            local stable
+            if row.healId ~= nil then
+                if not text(row.healId, 128) or row.healId:find("%c") then return nil end
+                stable = "id:" .. row.healId
+            end
+            if row.dutyToken ~= nil then
+                if not id(row.dutyToken) or deploymentTokens[tostring(row.dutyToken)] then return nil end
+                deploymentTokens[tostring(row.dutyToken)] = true
+                if not stable and text(row.duty, 120) then stable = "deployment:" .. tostring(row.dutyToken) end
+            end
+            if not stable then return nil end
+            local saved = { key = stable, name = row.name, rarity = row.rarity, train = absent(row.train, 0),
                 duty = row.duty or false, token = row.dutyToken or false, at = row.dutyAt or false,
                 injured = absent(row.injuredUntil, 0), recalled = absent(row.recalledUntil, 0),
                 training = row.training ~= nil, rolling = row.rolling == true,
-                pending = row.dutyPending == true or row.dutyRemapPending == true,
+                pending = row.dutyPending == true or row.dutyRemapPending == true or row.recalling == true,
+                stationed = row.stationed == true,
                 weapon = row.weapon or false, armor = row.armor or false, vehicle = row.vehicle or false }
             if not memberValid(saved) then return nil end
-            local key = #saved.name .. ":" .. saved.name .. ":" .. saved.rarity
+            local key = saved.key
             if seen[key] then return nil end
             seen[key], members[tostring(slot)] = true, saved
         end
@@ -155,12 +174,13 @@ local function baselineValid(baseline, target)
         local slot = tonumber(key)
         if not integer(slot, 2, baseline.size) or tostring(slot) ~= key
             or not memberValid(row) then return false end
-        local stable = #row.name .. ":" .. row.name .. ":" .. row.rarity
+        local stable = row.key
         if seen[stable] then return false end
         seen[stable] = true
     end
     local selected = baseline.members[tostring(target.memberIndex)]
     return count == baseline.size - 1 and selected ~= nil
+        and selected.key:match("^id:.+") ~= nil -- Its deployment token disappears on return.
         and same(targetFor(selected, target.memberIndex, target.userId), target)
         and not selected.training and not selected.rolling and not selected.pending
         and selected.injured <= baseline.serverNow and selected.recalled <= baseline.serverNow
@@ -171,11 +191,12 @@ local function recordValid(record, scope, highwater)
         and record.userId == scope.userId and integer(record.requestId, 1, highwater)
         and record.requestId == highwater and text(record.actionKey, 200)
         and integer(record.cooldownSeconds, 1, 86400)
+        and (record.replyReceived == nil or record.replyReceived == true)
         and (record.stage == "prepared" or record.stage == "sent"
             or record.stage == "settled" or record.stage == "observed")
         and targetValid(record.target, scope.userId) and baselineValid(record.baseline, record.target)
         and record.requestId >= math.floor(record.baseline.serverNow * 1000)
-        and (record.stage == "prepared" and record.sentServerNow == nil and record.settled == nil
+        and (record.stage == "prepared" and record.sentServerNow == nil and record.settled == nil and record.replyReceived == nil
             or record.stage == "sent" and record.sentServerNow == record.baseline.serverNow and record.settled == nil
             or (record.stage == "settled" or record.stage == "observed")
                 and record.sentServerNow == record.baseline.serverNow
@@ -185,6 +206,14 @@ local function envelopeValid(value, scope)
     return type(value) == "table" and value.version == 1
         and integer(value.lastRequestId, 0, MAX)
         and (value.transaction == nil or recordValid(value.transaction, scope, value.lastRequestId))
+        and (value.receipt == nil or type(value.receipt) == "table"
+            and (value.receipt.outcome == "confirmed" or value.receipt.outcome == "known_unsent")
+            and type(value.receipt.record) == "table"
+            and integer(value.receipt.record.requestId, 1, value.lastRequestId)
+            and (value.receipt.outcome == "confirmed" and value.receipt.record.stage == "observed"
+                or value.receipt.outcome == "known_unsent" and value.receipt.record.replyReceived == nil
+                    and (value.receipt.record.stage == "prepared" or value.receipt.record.stage == "sent"))
+            and recordValid(value.receipt.record, scope, value.receipt.record.requestId))
 end
 local function key(scope)
     return "idle-mafia-ember:territory-recall:v1:" .. #scope.account .. ":" .. scope.account
@@ -211,12 +240,20 @@ function RecallTransactions.new(storage, scope, terms)
     return setmetatable({ storage = storage, scope = ownScope, key = storageKey,
         cooldownSeconds = terms.recallCooldownSeconds, saved = value, emission = false }, Methods), nil
 end
-local function persist(self, transaction, highwater)
+local function persist(self, transaction, highwater, receipt)
     local value = { version = 1, lastRequestId = highwater or self.saved.lastRequestId,
-        transaction = transaction }
+        transaction = transaction, receipt = receipt or self.saved.receipt }
     value = copy(value)
     if not envelopeValid(value, self.scope) then return false, "Invalid recall transaction" end
-    local ok, written = pcall(self.storage.Write, self.storage, self.key, copy(value))
+    if writers[self.key] then return false, "Recall persistence already in flight" end
+    writers[self.key] = self
+    local ok, written = pcall(function()
+        local current = self.storage:Read(self.key)
+        if current == nil then current = { version = 1, lastRequestId = 0 } end
+        if not same(current, self.saved) then return false end
+        return self.storage:Write(self.key, copy(value))
+    end)
+    if writers[self.key] == self then writers[self.key] = nil end
     if not ok or written ~= true then return false, "Recall persistence failed" end
     self.saved, self.emission = value, false
     return true, nil
@@ -224,19 +261,24 @@ end
 function Methods:Active()
     return self.saved.transaction and copy(self.saved.transaction) or nil
 end
+function Methods:Receipt()
+    return self.saved.receipt and copy(self.saved.receipt) or nil
+end
 -- A read-only floor for Task 24's shared allocator; this does not allocate an ID.
 function Methods:LastRequestId()
     return self.saved.lastRequestId
 end
 
 local intentKeys = { kind = true, requestId = true, districtId = true, userId = true,
-    memberIndex = true, deploymentId = true, at = true, memberName = true, rarity = true }
+    memberIndex = true, deploymentId = true, at = true, memberName = true, rarity = true,
+    memberKey = true, familyId = true, districtRevision = true, sourceKey = true,
+    minGarrison = true, maxAttempts = true, attemptedBefore = true }
 function RecallTransactions.describe(proposal)
     local intent = type(proposal) == "table" and proposal.intent
     if type(intent) ~= "table" or proposal.feature ~= "station"
         or intent.kind ~= "territoryRecall" or not integer(intent.requestId, 1, MAX)
         or not targetValid(intent, intent.userId)
-        or proposal.account ~= string.format("%.0f", intent.userId)
+        or not text(proposal.account, 200)
         or type(proposal.resources) ~= "table" or next(proposal.resources) ~= nil then
         return nil, "Reviewed own-member recall intent required"
     end
@@ -250,6 +292,12 @@ function RecallTransactions.describe(proposal)
         args = { "recallcrew", intent.requestId, { target } },
         source = "saved CrewRecall single own target" }, nil
 end
+function RecallTransactions.capture(proposal, before, scope)
+    local call = RecallTransactions.describe(proposal)
+    local baseline = state(before, scope)
+    if not call or not baseline or not baselineValid(baseline, call.args[3][1]) then return nil end
+    return {target = call.args[3][1], baseline = baseline}
+end
 function Methods:Prepare(proposal, before, now)
     if self.saved.transaction then return false, "Unresolved own-member recall exists" end
     local call = RecallTransactions.describe(proposal)
@@ -258,6 +306,7 @@ function Methods:Prepare(proposal, before, now)
         or now - baseline.capturedAt > 15 or baseline.capturedAt > now + 1
         or proposal.session ~= baseline.session or proposal.revision ~= baseline.revision
         or proposal.place ~= self.scope.place or proposal.release ~= self.scope.release
+        or proposal.account ~= self.scope.account
         or proposal.intent.userId ~= self.scope.userId or not text(proposal.actionKey, 200)
         or proposal.intent.requestId <= self.saved.lastRequestId
         or proposal.intent.requestId < math.floor(baseline.serverNow * 1000) then
@@ -265,16 +314,18 @@ function Methods:Prepare(proposal, before, now)
     end
     local target = call.args[3][1]
     if not baselineValid(baseline, target) then return false, "Exact own deployment custody required" end
-    return persist(self, { account = self.scope.account, place = self.scope.place,
+    local saved, reason = persist(self, { account = self.scope.account, place = self.scope.place,
         release = self.scope.release, userId = self.scope.userId,
         actionKey = proposal.actionKey, requestId = proposal.intent.requestId,
         target = target, baseline = baseline, stage = "prepared",
         cooldownSeconds = self.cooldownSeconds }, proposal.intent.requestId)
+    if saved then self.preparedHere = proposal.intent.requestId end
+    return saved, reason
 end
 function Methods:MarkSending(before, now)
     local record = self.saved.transaction
     local baseline = state(before, self.scope)
-    if not record or record.stage ~= "prepared" or not baseline
+    if not record or record.stage ~= "prepared" or self.preparedHere ~= record.requestId or not baseline
         or not number(now, 0, MAX) or now - baseline.capturedAt > 15
         or baseline.capturedAt > now + 1 or not same(record.baseline, baseline) then
         return false, "Fresh unchanged prepared recall custody required"
@@ -314,9 +365,20 @@ function Methods:AcceptReply(requestId, reply)
     local record = self.saved.transaction
     if record and requestId == record.requestId then self.emission = false end
     if not record or record.stage == "prepared" or requestId ~= record.requestId
-        or type(reply) ~= "table" or reply.ok ~= true or reply.pending == true
-        or reply.code == "unknown_request" or reply.code == "rate_limited"
-        or type(reply.settled) ~= "table" or #reply.settled ~= 1
+        or type(reply) ~= "table" or type(reply.ok) ~= "boolean"
+        or (reply.pending ~= nil and type(reply.pending) ~= "boolean") then
+        return false, "Owned recall reply required; do not resubmit"
+    end
+    -- Pending and negative status replies prove a return, never an unsent request.
+    -- Retain custody and the consumed attempt until an exact settlement is observed.
+    if reply.ok ~= true or reply.pending == true or reply.code == "unknown_request"
+        or reply.code == "rate_limited" or reply.settled == nil then
+        if record.replyReceived then return true, nil end
+        local received = copy(record)
+        received.replyReceived = true
+        return persist(self, received)
+    end
+    if type(reply.settled) ~= "table" or #reply.settled ~= 1
         or not targetMatches(record.target, reply.settled[1]) then
         return false, "Exact settled own deployment reply required; do not resubmit"
     end
@@ -328,7 +390,7 @@ function Methods:AcceptReply(requestId, reply)
     if count ~= 1 then return false, "Ambiguous recall settlements" end
     if record.stage == "settled" or record.stage == "observed" then return true, nil end
     local nextRecord = copy(record)
-    nextRecord.stage, nextRecord.settled = "settled", copy(record.target)
+    nextRecord.stage, nextRecord.settled, nextRecord.replyReceived = "settled", copy(record.target), true
     return persist(self, nextRecord)
 end
 local function returned(record, current)
@@ -340,14 +402,15 @@ local function returned(record, current)
         if index ~= slot then
             -- Other features may run after the broker releases its 45s gate.
             -- Preserve roster identity, without attributing their activity to recall.
-            if after.name ~= member.name or after.rarity ~= member.rarity then return false end
+            if after.key ~= member.key or after.name ~= member.name or after.rarity ~= member.rarity then return false end
         else
             for _, field in ipairs(memberFields) do
                 if field ~= "duty" and field ~= "token" and field ~= "at"
+                    and field ~= "stationed"
                     and field ~= "injured" and field ~= "recalled"
                     and after[field] ~= member[field] then return false end
             end
-            if after.duty ~= false or after.token ~= false or after.at ~= false then return false end
+            if after.duty ~= false or after.token ~= false or after.at ~= false or after.stationed then return false end
             if after.recalled > record.sentServerNow then
                 if after.injured ~= after.recalled
                     or after.recalled < record.sentServerNow + record.cooldownSeconds
@@ -383,14 +446,37 @@ function Methods:ClearObserved()
     if not self.saved.transaction or self.saved.transaction.stage ~= "observed" then
         return false, "Only a final observed recall may be cleared"
     end
-    return persist(self, nil)
+    return persist(self, nil, nil, { outcome = "confirmed", record = copy(self.saved.transaction) })
 end
 
 function Methods:DiscardPrepared()
     if not self.saved.transaction or self.saved.transaction.stage ~= "prepared" then
         return false, "Only a known-unsent prepared recall may be discarded"
     end
-    return persist(self, nil)
+    return persist(self, nil, nil, {outcome = "known_unsent", record = copy(self.saved.transaction)})
+end
+
+function Methods:RecoverPrepared()
+    local record = self.saved.transaction
+    if not record or record.stage ~= "prepared" or self.preparedHere == record.requestId then
+        return false, "Only restored known-unsent preparation may be recovered"
+    end
+    return self:DiscardPrepared()
+end
+
+-- Called only by the broker's proof that its deferred invocation never began.
+-- A restored owner cannot infer this from a sent record or absence of a reply.
+function Methods:CancelUnsent(requestId, actionKey)
+    local record = self.saved.transaction
+    local receipt = not record and self.saved.receipt
+    if receipt and receipt.outcome == "known_unsent" and receipt.record.requestId == requestId
+        and receipt.record.actionKey == actionKey then return true, nil end
+    if not record or record.requestId ~= requestId or record.actionKey ~= actionKey
+        or record.replyReceived or self.preparedHere ~= requestId
+        or (record.stage ~= "prepared" and record.stage ~= "sent") then
+        return false, "Exact locally owned unsent recall proof required"
+    end
+    return persist(self, nil, nil, {outcome = "known_unsent", record = copy(record)})
 end
 
 return RecallTransactions

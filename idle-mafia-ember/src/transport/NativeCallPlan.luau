@@ -305,7 +305,7 @@ function NativeCallPlan.withCombat(basePlan, combatPlan)
         and type(combatPlan) == "table"
         and type(combatPlan.describe) == "function",
         "Missing Combat call plan")
-    local combat = { combat = true, bosses = true, globalBossAttack = true,
+    local combat = { combat = true, warCombat = true, bosses = true, globalBossAttack = true,
         globalBossClaim = true, familyBossAttacks = true,
         familyBossClaims = true, bossShop = true }
     return { describe = function(proposal)
@@ -383,6 +383,16 @@ function NativeCallPlan.withEvents(basePlan, eventShopPlan)
         end
         return basePlan.describe(proposal)
     end }
+end
+
+function NativeCallPlan.withHeists(basePlan, heistPlan)
+    assert(type(basePlan) == "table" and type(basePlan.describe) == "function"
+        and type(heistPlan) == "table" and type(heistPlan.describe) == "function", "Missing Heist call plan")
+    local features = {heists = true, heistCollect = true, favors = true, sabotage = true}
+    return {describe = function(proposal)
+        if type(proposal) == "table" and features[proposal.feature] then return heistPlan.describe(proposal) end
+        return basePlan.describe(proposal)
+    end}
 end
 
 return NativeCallPlan

@@ -24,7 +24,7 @@ local function copy(rows)
     for index, row in ipairs(rows) do
         result[index] = { id = row.id, level = row.level,
             stake = row.stake, energy = row.energy,
-            crateCount = row.crateCount }
+            crateCount = row.crateCount, helpCash = row.helpCash, helpXp = row.helpXp }
     end
     return result
 end
@@ -40,12 +40,14 @@ function NativeHeistCatalog.new(gameData, fingerprint, release)
         assert(type(row) == "table" and type(row.id) == "string"
             and #row.id > 0 and #row.id <= 120 and not seen[row.id]
             and integer(row.level, 1) and integer(row.stake, 0)
-            and integer(row.energy, 0) and integer(row.crateCount, 0),
+            and integer(row.energy, 0) and integer(row.crateCount, 0)
+            and (row.helpCash == nil or integer(row.helpCash, 0))
+            and (row.helpXp == nil or integer(row.helpXp, 0)),
             "Invalid saved Heist definition")
         seen[row.id] = true
         rows[index] = { id = row.id, level = row.level,
             stake = row.stake, energy = row.energy,
-            crateCount = row.crateCount }
+            crateCount = row.crateCount, helpCash = row.helpCash or 0, helpXp = row.helpXp or 0 }
     end
     return setmetatable({ rows = rows,
         catalogKey = string.lower(fingerprint), release = release }, Methods)

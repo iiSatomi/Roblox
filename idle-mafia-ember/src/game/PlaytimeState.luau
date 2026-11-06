@@ -102,7 +102,7 @@ function PlaytimeState.read(raw, context)
     end
     local playtime = native.playtime
     local claimed = playtime.laddersClaimed or {}
-    if not integer(playtime.todaySeconds, 0)
+    if not timestamp(playtime.todaySeconds)
         or not integer(native.level, 1)
         or (native.maxLevel ~= nil and not integer(native.maxLevel, 0))
         or type(claimed) ~= "table" or not array(raw.ladderTiers, 4)

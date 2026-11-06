@@ -57,7 +57,7 @@ The [native reuse audit](native-reuse-audit.md) now assigns every one of the 55 
 | `groupBonus` | rewards / Rewards | Claim only for verified existing group membership and eligibility; no auto-join. |
 | `familyCash` | family / Family | Separate OFF default, amount/reserve/per-load cap, Family response/counter and cash proof. |
 | `familyStamina` | family / Family | Separate OFF default, native batch/reserve/cap, selected-perk rotation/maxed skip; hospital/stationed conditions preserve current OR semantics when both selected. |
-| `familyGold` | family / Family | Separate OFF default and default-zero cap; tradable Gold only, reserve/amount and exact contribution proof. |
+| `familyGold` | family / Family | Separate OFF default and default-zero cap. Loose-only default blocks mixed balances; a separate OFF-default native-total-Gold permission permits either origin with combined reserve, worst-case held-origin protection, exact nonincreasing-pool debit and personal contribution proof. |
 | `familyBossAttacks` | takedown / Combat | Separate free-charge weekly Takedown attacks; zero held Tickets where native action can consume them, health/stamina safety, Steady/Rank focus, exact weekly/stage proof. Combat is the sole editable home; Family may link here without duplicating the switch. |
 | `familyBossClaims` | takedown / Combat | Separate exact week/stage reward claims; fresh native response and disappearance/claimed proof, no assumed completed reward. |
 | `territoryWatch` | territory / Territory | Read-only holdings/bonuses/garrison and station advice, exact district/family/user identities; no attack, siege, orders, or station permission from watching. |

@@ -11,7 +11,7 @@ class AutomationRuntimeTests(unittest.TestCase):
         self.storage = self.h.lua.execute("""
             return { data = {}, strictRecovery = true,
                 Read = function(self, key) return self.data[key] end,
-                Write = function(self, key, value) self.data[key] = value end }
+                Write = function(self, key, value) self.data[key] = value; return true end }
         """)
         self.rewards_source = self.h.lua.execute("""return {
             release = 'release-a',

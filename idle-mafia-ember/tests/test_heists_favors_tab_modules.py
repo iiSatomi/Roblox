@@ -95,6 +95,25 @@ class HeistsFavorsTabTests(unittest.TestCase):
         board["favorsLeft"] = 0
         self.assertEqual(staged["heistBoardProof"]["board"]["favorsLeft"], 5)
 
+    def test_configured_native_owner_removes_static_sequence_blockers(self):
+        section = self.h.lua.execute("""local group={}
+            function group:Group() return self end
+            function group:Description() end
+            function group:Status(options) return {label=options.Default} end
+            return group
+        """)
+        bind = self.h.lua.eval("function() end")
+        for feature in self.catalog.features.values():
+            if feature.id in ("heists", "heistCollect", "sabotage"):
+                row = self.heists.BuildUI(section, feature, bind, True)
+            elif feature.id == "favors":
+                row = self.favors.BuildUI(section, feature, bind, self.h.lua.table(), True)
+            else:
+                continue
+            with self.subTest(feature=feature.id):
+                self.assertIsNone(row.blockedReason)
+                self.assertEqual(row.status.label, "Off")
+
 
 if __name__ == "__main__":
     unittest.main()

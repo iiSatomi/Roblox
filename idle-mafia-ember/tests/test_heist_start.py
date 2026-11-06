@@ -103,6 +103,26 @@ class HeistStartTests(unittest.TestCase):
         before["heistCatalog"][2]["stake"] = 401
         self.assertIsNone(self.evidence.capture(proposal, before)[0])
 
+    def test_saved_exact_start_recovers_across_session_without_replaying(self):
+        before = self.raw()
+        view = self.view(before)[0]
+        proposal = self.planner.propose(view, self.settings(), self.reserves())[0]
+        baseline = self.evidence.capture(proposal, before)[0]
+        data = lua_table(self.h.lua, {"proposal": proposal, "before": before,
+            "baseline": baseline, "reply": {"ok": True, "runId": "run-a"}})
+        after = self.raw(revision=0, starts=1,
+            mine={"id": "run-a", "heistId": "h_high", "endsAt": 2000000})
+        after.session = "run-b"
+        self.assertEqual(self.evidence.evaluate(proposal, before, after, data.reply, baseline), "pending")
+        self.assertEqual(self.evidence.recoverSaved(data, after), "confirmed")
+        after.capturedAt = -1
+        after.heistBoardProof.capturedAt = -1
+        self.assertIsNone(self.evidence.recoverSaved(data, after))
+        after.capturedAt = 0
+        after.heistBoardProof.capturedAt = 0
+        after.account = "other"
+        self.assertIsNone(self.evidence.recoverSaved(data, after))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -9,7 +9,7 @@ local blocked = {
     sabotage = "Mutation sequence ownership unverified",
 }
 
-function HeistsTab.BuildUI(section, feature, bind)
+function HeistsTab.BuildUI(section, feature, bind, nativeAvailable)
     assert(type(section) == "table" and type(feature) == "table"
         and feature.page == "heists" and blocked[feature.id]
         and type(bind) == "function"
@@ -28,10 +28,11 @@ function HeistsTab.BuildUI(section, feature, bind)
             Default = feature.policies[1],
         })
     end
+    local unavailable = nativeAvailable ~= true and blocked[feature.id] or nil
     local row = { feature = feature, tabOwned = true,
-        blockedReason = blocked[feature.id],
+        blockedReason = unavailable,
         status = group:Status({ Text = "Activity",
-            Default = "Blocked — " .. blocked[feature.id] }) }
+            Default = unavailable and ("Blocked — " .. unavailable) or "Off" }) }
     if feature.limits then group:Description({ Text = feature.limits }) end
     return row
 end
@@ -70,13 +71,23 @@ function HeistsTab.new(deps)
     local catalog = deps.NativeHeistCatalog.new(deps.gameData,
         deps.fingerprint, deps.release)
     local boardQuery = deps.BoardQuery.new(deps.identity)
+    local runtime = deps.heistRuntime
+    if runtime == nil and type(deps.HeistRuntime) == "table" and deps.nativeHeistController ~= nil then
+        local reason
+        runtime, reason = deps.HeistRuntime.new(deps)
+        assert(runtime, reason or "Heist lifecycle unavailable")
+        deps.heistRuntime = runtime -- Shared with the separately owned Favors tab.
+    end
     return setmetatable({ id = "heists", deps = deps,
         catalog = catalog, recovery = deps.SequenceRecovery,
-        boardQuery = boardQuery, closed = false }, Methods)
+        boardQuery = boardQuery, closed = false, runtime = runtime,
+        ownedProofs = {"heistControllerProof"} }, Methods)
 end
 
 function Methods:Enrich(snapshot)
-    return self.catalog:Enrich(snapshot)
+    local enriched, reason = self.catalog:Enrich(snapshot)
+    if not enriched then return nil, reason end
+    return self.runtime and self.runtime:Enrich(enriched) or enriched, nil
 end
 
 function Methods:StatusCall(record, identity)
@@ -101,7 +112,8 @@ end
 
 function Methods:ReadSources(reader)
     if self.closed or type(reader) ~= "table" or type(reader.AttachHeistBoard) ~= "function" then return {} end
-    return {{id = "heistBoard", interval = 5,
+    local sources = {{id = "heistBoard", interval = 5,
+        confirmFeatures = {heists = true, heistCollect = true, favors = true, sabotage = true},
         enabled = function(settings)
             for _, id in ipairs({"heists", "heistCollect", "sabotage", "favors"}) do
                 if type(settings[id]) == "table" and settings[id].enabled == true then return true end
@@ -115,9 +127,16 @@ function Methods:ReadSources(reader)
         accept = function(snapshot, _, reply) return self:StageBoard(snapshot, reply) end,
         commit = function(staged) return not self.closed and reader:AttachHeistBoard(staged) end,
     }}
+    if self.runtime then
+        for _, source in ipairs(self.runtime:ReadSources()) do sources[#sources + 1] = source end
+    end
+    return sources
 end
 
-function Methods:Close() self.closed = true end
+function Methods:Close()
+    self.closed = true
+    if self.runtime then self.runtime:Close() end
+end
 
 function Methods:NewBoardRead(budget, executor, currentSnapshot,
     onResult)
@@ -127,7 +146,7 @@ end
 
 function Methods:Descriptors()
     local deps = self.deps
-    return {
+    local features = {
         { id = "heists", reader = deps.HeistBoardState,
             planner = deps.HeistStart,
             evidence = deps.HeistStartEvidence },
@@ -138,6 +157,10 @@ function Methods:Descriptors()
             planner = deps.Sabotage,
             evidence = deps.SabotageEvidence },
     }
+    if self.runtime then
+        for index, feature in ipairs(features) do features[index] = self.runtime:Feature(feature) end
+    end
+    return features
 end
 
 return HeistsTab

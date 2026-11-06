@@ -48,9 +48,13 @@ function TerritoryState.read(raw, context)
         if candidate.held ~= nil or candidate.maximum ~= nil or candidate.checkedAt ~= nil then
             if not count(candidate.held, 0) or not count(candidate.maximum, 1)
                 or type(candidate.checkedAt) ~= "number" or candidate.checkedAt ~= candidate.checkedAt
-                or candidate.checkedAt < 0 or candidate.checkedAt > 9007199254740991
-                or type(native.serverNow) ~= "number" or native.serverNow ~= native.serverNow
-                or candidate.checkedAt > native.serverNow + 2 then return nil, "Observed Family capacity unavailable" end
+                or candidate.checkedAt < 0 or candidate.checkedAt > 9007199254740991 then
+                return nil, "Observed Family capacity unavailable"
+            end
+            -- Native TerritoryTab compares checkedAt only against checkedAt.
+            -- It is an ordering marker (current replies use epoch milliseconds),
+            -- not the seconds-valued Crew/Sync clock. The read remains bound to
+            -- this exact snapshot and Family by the coordinator and attachment.
             if not capacity or candidate.checkedAt > capacity.checkedAt then
                 capacity = {held = candidate.held, maximum = candidate.maximum, checkedAt = candidate.checkedAt,
                     available = math.max(0, candidate.maximum - candidate.held)}

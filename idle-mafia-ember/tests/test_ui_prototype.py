@@ -148,10 +148,17 @@ class PrototypeTests(unittest.TestCase):
         app, ember = self.app()
         self.assertEqual(len(app.ui.window.sections), 26)
         self.assertEqual(len(list(app.ui.features.items())), 55)
-        self.assertIs(ember.configured.Storage, False)
+        self.assertIs(ember.Config.Storage.Enabled, False)
         self.assertIs(ember.configured.Effects.RespectReducedMotion, True)
         self.assertEqual(app.ui.window.options.Keybind, "F8")
         self.assertFalse(app.ui.window.options.SaveLayout)
+
+    def test_inert_startup_disables_storage_without_reloading_external_themes(self):
+        app, ember = self.app()
+        self.assertEqual(ember.externalReads, 0)
+        self.assertIs(ember.Config.Storage.Enabled, False)
+        self.assertTrue(app.model.paused)
+        app.Destroy(app)
 
     def test_overview_owns_session_and_request_health(self):
         app, _ = self.app()
@@ -434,6 +441,8 @@ class PrototypeTests(unittest.TestCase):
             self.assertIsNone(app.ui.features[feature]["blockedReason"])
             self.assertIs(app.model["values"][feature + ".enabled"], False)
             self.assertIn(feature + ".custom.runBudget", app.ui.handles)
+        self.assertIn("familyGold.custom.allowNativeGoldPool",app.ui.handles)
+        self.assertIs(app.model["values"]["familyGold.custom.allowNativeGoldPool"],False)
 
     def test_territory_tab_owns_holdings_and_separate_change_permissions(self):
         app, _ = self.app()
@@ -451,6 +460,8 @@ class PrototypeTests(unittest.TestCase):
         self.assertIsNone(app.ui.features["autoContracts"]["blockedReason"])
         self.assertIs(app.model["values"]["autoContracts.custom.borrowJobs"], False)
         self.assertIs(app.model["values"]["autoContracts.custom.borrowOperations"], False)
+        self.assertIs(app.model["values"]["autoContracts.custom.borrowHires"], False)
+        self.assertIn("autoContracts.custom.borrowHires", app.ui.handles)
 
     def test_trophies_tab_owns_claims_and_goal_selection(self):
         app, _ = self.app()
@@ -528,15 +539,18 @@ class PrototypeTests(unittest.TestCase):
                       activity.brokerEvent.Get(activity.brokerEvent))
         self.assertEqual(app.ui.activity.Get(app.ui.activity), "Local 24")
 
-    def test_combat_tab_owns_all_controls_and_blocks_unimplemented_war_fights(self):
+    def test_combat_tab_owns_separate_bounded_ordinary_and_war_controls(self):
         app, _ = self.app()
         for feature in ("combat", "warCombat", "bosses", "bossShop",
                         "familyBossAttacks", "familyBossClaims",
                         "globalBossAttack", "globalBossClaim"):
             self.assertTrue(app.ui.features[feature]["tabOwned"])
-        for feature in ("warCombat",):
-            self.assertIn("Unavailable", app.ui.features[feature]["status"].Get(
+        for feature in ("combat", "warCombat"):
+            self.assertIn("Off", app.ui.features[feature]["status"].Get(
                 app.ui.features[feature]["status"]))
+            for cap in ("maxAttackSpend", "maxScoutSpend"):
+                handle = app.ui.handles[feature + ".custom." + cap]
+                self.assertEqual(str(handle.Get(handle)), "0")
         self.assertIn("bossShop.custom.itemId", app.ui.handles)
         self.assertIn("combat.custom.healthFloor", app.ui.handles)
         app.ui.Render(app.ui, self.table({"values": {
@@ -546,7 +560,7 @@ class PrototypeTests(unittest.TestCase):
                 "combat": True, "warCombat": True}}}))
         self.assertIn("Waiting", app.ui.features["combat"]["status"].Get(
             app.ui.features["combat"]["status"]))
-        self.assertIn("Unavailable", app.ui.features["warCombat"]["status"].Get(
+        self.assertIn("Waiting", app.ui.features["warCombat"]["status"].Get(
             app.ui.features["warCombat"]["status"]))
 
     def test_sidebar_icons_are_distinct_and_from_the_reviewed_catalog(self):
@@ -698,6 +712,62 @@ class PrototypeTests(unittest.TestCase):
         self.assertIs(app.model["values"]["jobs.enabled"], False)
         self.assertTrue(app.model.paused)
 
+    def test_control_read_failure_reports_actual_error_and_keeps_runtime_paused(self):
+        app, _ = self.app()
+        app.ui.handles["bank.custom.cashToKeep"].Get = self.lua.eval(
+            "function() error('native input is unavailable') end")
+        accepted, reason = app.Resume(app)
+        self.assertFalse(accepted)
+        self.assertIn("native input is unavailable", reason)
+        self.assertTrue(app.model.paused)
+
+    def test_verified_player_gui_parent_is_applied_before_controls_are_created(self):
+        parent = self.lua.execute("""return {Name = 'PlayerGui', Parent = {},
+            IsA = function(_, kind) return kind == 'PlayerGui' end}
+        """)
+        ember = self.module("tests/ember_double.lua")()
+        ember.requiredParent = parent
+        deps = self.table({"Ember": ember, "uiParent": parent,
+            "Catalog": self.module("src/ui/Catalog.luau"),
+            "Settings": self.module("src/storage/Settings.luau"),
+            "EmberAdapter": self.module("src/ui/EmberAdapter.luau")})
+        app = self.module("src/App.luau").start(deps)
+        self.assertTrue(app.alive)
+        self.assertEqual(app.ui.window.Gui.Parent.Name, "PlayerGui")
+
+    def test_successful_control_refresh_clears_only_a_resolved_apply_error(self):
+        app, _ = self.app()
+        handle = app.ui.handles["bank.custom.cashToKeep"]
+        original = handle.Get
+        handle.Get = self.lua.eval("function() error('temporary UI context failure') end")
+        self.assertFalse(app.Resume(app)[0])
+        self.assertIn("temporary UI context failure", app.ui.lastError)
+        handle.Get = original
+        self.assertTrue(app.Resume(app)[0])
+        self.assertIsNone(app.ui.lastError)
+
+    def test_queued_observation_reconciles_with_new_planning_disabled(self):
+        runtime = self.lua.execute("""return {features = {jobs = true},
+            Status = function() return {state = 'paused', availableFeatures = {}} end,
+            Step = function(self, _, settings) self.received = settings end,
+            Pause = function() end, Resume = function() end,
+            Stop = function() end, Close = function() end}
+        """)
+        deps = self.table({"Ember": self.module("tests/ember_double.lua")(),
+            "Catalog": self.module("src/ui/Catalog.luau"),
+            "Settings": self.module("src/storage/Settings.luau"),
+            "EmberAdapter": self.module("src/ui/EmberAdapter.luau"),
+            "automationRuntimeInstance": runtime})
+        app = self.module("src/App.luau").start(deps)
+        app.Set(app, "jobs.enabled", True)
+        app.Resume(app)
+        app.Step(app, self.table({}), True)
+        self.assertFalse(runtime.received.jobs.enabled)
+        self.assertTrue(app.model["values"]["jobs.enabled"])
+        self.assertFalse(app.model.paused)
+        app.Step(app, self.table({}))
+        self.assertTrue(runtime.received.jobs.enabled)
+
     def test_startup_callbacks_do_not_hydrate_or_resume(self):
         app, ember = self.app(forceInitial=True)
         ember.Flush(True)
@@ -742,6 +812,16 @@ class BuilderTests(unittest.TestCase):
     def test_unreviewed_ember_bytes_are_refused(self):
         with self.assertRaisesRegex(ValueError, "fingerprint"):
             self.builder.prototype_source(b"return {} -- changed dependency")
+
+    def test_current_reviewed_private_dependency_builds_and_tampering_is_refused(self):
+        dependency = ROOT / ".private/ember-2026-11-06.lua"
+        if not dependency.is_file():
+            self.skipTest("Private reviewed Ember input is unavailable")
+        ember = dependency.read_bytes()
+        source = self.builder.prototype_source(ember)
+        self.assertIn(ember.decode("utf-8"), source)
+        with self.assertRaisesRegex(ValueError, "fingerprint"):
+            self.builder.prototype_source(ember + b"\n-- altered")
 
     def test_embedded_modules_compile_before_any_module_executes(self):
         runtime = LuaRuntime(unpack_returned_tuples=True)

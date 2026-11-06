@@ -228,9 +228,15 @@ function Methods:AttachFamilyContribution(staged)
     native.fullSync = true
     if not equal(staged.native, native) then return false end
     local proof = copied(staged.familyContributionProof)
+    local actor = copied(staged.familyActorProof)
+    if type(actor) ~= "table" or actor.sourceKey ~= self.sourceKey or actor.name ~= self.identity.account
+        or type(actor.userId) ~= "number" or actor.userId < 1 or actor.userId > 9007199254740991
+        or actor.userId % 1 ~= 0 or actor.userId ~= native.userId
+        or actor.revision ~= self.revision or actor.capturedAt ~= self.capturedAt then return false end
+    for _, key in ipairs(identityKeys) do if actor[key] ~= self.identity[key] then return false end end
     if type(proof) ~= "table" or self.sourceKey == nil or proof.sourceKey ~= self.sourceKey
         or type(proof.family) ~= "table" or type(native.family) ~= "table"
-        or proof.family.familyId ~= native.family.id or proof.family.actorId ~= tonumber(self.identity.account)
+        or proof.family.familyId ~= native.family.id or proof.family.actorId ~= actor.userId
         or proof.revision ~= self.revision or proof.capturedAt ~= self.capturedAt then return false end
     for _, key in ipairs(identityKeys) do if proof[key] ~= self.identity[key] then return false end end
     self.familyContributionProof = proof

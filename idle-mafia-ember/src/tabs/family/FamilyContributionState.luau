@@ -41,10 +41,29 @@ local function copied(source)
     return result
 end
 
-function FamilyContributionState.parseFamily(family, actorId)
+local function capacityTerms(source)
+    if type(source) ~= "table" or not integer(source.baseCap, 1, 1000)
+        or not integer(source.maxCap, source.baseCap, 1000)
+        or not integer(source.capPerLevel, 0, 1000) or not integer(source.capSlotMax, 0, 1000) then return nil end
+    return {baseCap = source.baseCap, maxCap = source.maxCap,
+        capPerLevel = source.capPerLevel, capSlotMax = source.capSlotMax}
+end
+local function memberCapacity(family, terms)
+    terms = capacityTerms(terms)
+    if not terms or type(family) ~= "table" or not integer(family.level, 1, 1000000000) then return nil end
+    local slots = family.capSlots
+    if slots == nil then slots = 0 end -- Native Config.familyMemberCap defaults missing slots to zero.
+    if not integer(slots, 0, terms.capSlotMax) then return nil end
+    local cap = math.min(terms.baseCap + terms.capPerLevel * (family.level - 1), terms.maxCap) + slots
+    if family.memberCap ~= nil and family.memberCap ~= cap then return nil end
+    return cap, slots
+end
+
+function FamilyContributionState.parseFamily(family, actorId, terms)
+    local cap, slots = memberCapacity(family, terms)
     if type(family) ~= "table" or not id(family.id)
         or not integer(actorId, 1, 9007199254740991)
-        or type(family.members) ~= "table" or #family.members < 1 or #family.members > 50 then
+        or not cap or type(family.members) ~= "table" or #family.members < 1 or #family.members > cap then
         return nil
     end
     local perks = map(family.perks, 25)
@@ -67,12 +86,15 @@ function FamilyContributionState.parseFamily(family, actorId)
         ledger[resource] = value
     end
     return { familyId = family.id, actorId = actorId, ledger = ledger,
+        level = family.level, capSlots = slots, memberCap = cap, memberCount = count,
         perks = perks, progress = progress }
 end
 
-function FamilyContributionState.new(config, fingerprint, release)
+function FamilyContributionState.new(config, fingerprint, release, playerSource)
     local source = type(config) == "table" and config.FAMILY
+    local capacity = capacityTerms(source)
     assert(type(source) == "table" and integer(source.donateMin, 1, 1000000000)
+        and capacity ~= nil
         and integer(source.contributeMax, 1, 25)
         and type(source.staminaPerkCosts) == "table" and #source.staminaPerkCosts >= 1
         and #source.staminaPerkCosts <= 25 and type(source.perkTracks) == "table"
@@ -96,26 +118,52 @@ function FamilyContributionState.new(config, fingerprint, release)
     end
     return setmetatable({ release = release, key = fingerprint:lower(),
         donateMin = source.donateMin, contributeMax = source.contributeMax,
-        costs = costs, tracks = tracks }, Methods)
+        costs = costs, tracks = tracks, capacity = capacity, playerSource = playerSource,
+        playerCurrent = type(playerSource) == "table" and playerSource.Current or nil,
+        playerRead = type(playerSource) == "table" and playerSource.Read or nil }, Methods)
 end
 
+local function actorProof(self, snapshot)
+    local source, current, read = self.playerSource, self.playerCurrent, self.playerRead
+    if type(source) ~= "table" or type(current) ~= "function" or type(read) ~= "function"
+        or source.Current ~= current or source.Read ~= read or not same(snapshot, snapshot)
+        or snapshot.release ~= self.release or type(snapshot.native) ~= "table"
+        or snapshot.native.fullSync ~= true then return nil end
+    local native, bound = snapshot.native, {}
+    for _, field in ipairs(headers) do bound[field] = snapshot[field] end
+    local userId, serverNow = native.userId, native.serverNow
+    if not integer(userId, 1, 9007199254740991) or not finite(serverNow, 0, 9007199254740991) then return nil end
+    local checked, active = pcall(current, source)
+    if not checked or active ~= true then return nil end
+    local ok, player = pcall(read, source, native)
+    local checkedAfter, stillActive = pcall(current, source)
+    if not ok or type(player) ~= "table" or not integer(player.userId, 1, 9007199254740991)
+        or player.userId ~= userId or player.name ~= snapshot.account
+        or not checkedAfter or stillActive ~= true or source.Current ~= current or source.Read ~= read
+        or not same(snapshot, bound) or snapshot.native ~= native
+        or native.userId ~= userId or native.serverNow ~= serverNow then return nil end
+    bound.sourceKey, bound.userId, bound.name = self.key, userId, player.name
+    return bound
+end
 function Methods:Enrich(snapshot)
     if not same(snapshot, snapshot) or snapshot.release ~= self.release
         or type(snapshot.native) ~= "table" or snapshot.native.fullSync ~= true then
         return nil, "Current full Family Sync required"
     end
     local result = copied(snapshot)
+    result.familyActorProof = actorProof(self, snapshot)
     result.familyContributionCatalog = { key = self.key, release = self.release,
         donateMin = self.donateMin, contributeMax = self.contributeMax,
-        staminaCosts = copied(self.costs), staminaTracks = copied(self.tracks) }
+        staminaCosts = copied(self.costs), staminaTracks = copied(self.tracks), capacity = copied(self.capacity) }
     return result, nil
 end
 
 function Methods:Stage(snapshot, reply)
     local native = type(snapshot) == "table" and snapshot.native
-    local actorId = type(snapshot) == "table" and tonumber(snapshot.account)
+    local actor = actorProof(self, snapshot)
+    local actorId = actor and actor.userId
     local family = type(reply) == "table" and reply.family
-    local parsed = FamilyContributionState.parseFamily(family, actorId)
+    local parsed = FamilyContributionState.parseFamily(family, actorId, self.capacity)
     if not same(snapshot, snapshot) or snapshot.release ~= self.release
         or type(native) ~= "table" or native.fullSync ~= true
         or type(native.family) ~= "table" or not parsed
@@ -125,7 +173,7 @@ function Methods:Stage(snapshot, reply)
     for _, field in ipairs(headers) do proof[field] = snapshot[field] end
     proof.family = parsed
     proof.sourceKey = self.key
-    result.familyContributionProof = proof
+    result.familyContributionProof, result.familyActorProof = proof, actor
     return result, nil
 end
 
@@ -133,17 +181,23 @@ function FamilyContributionState.read(raw, context)
     if not same(raw, context) then return nil, "Family contribution snapshot changed" end
     local proof, native, catalog = raw.familyContributionProof, raw.native, raw.familyContributionCatalog
     local family = type(proof) == "table" and proof.family
-    if not same(proof, context) or type(family) ~= "table"
+    local capacity = type(catalog) == "table" and capacityTerms(catalog.capacity)
+    local memberCap = memberCapacity(family, capacity)
+    local actor = raw.familyActorProof
+    if not same(proof, context) or not same(actor, context) or type(family) ~= "table"
+        or not memberCap or not integer(family.memberCount, 1, memberCap)
         or not integer(family.actorId, 1, 9007199254740991)
-        or family.actorId ~= tonumber(context.account)
+        or family.actorId ~= actor.userId or actor.name ~= context.account
+        or not integer(actor.userId, 1, 9007199254740991)
         or type(family.ledger) ~= "table"
         or type(native) ~= "table" or native.fullSync ~= true
         or type(native.family) ~= "table" or family.familyId ~= native.family.id
         or not id(family.familyId) or not finite(native.cash, 0, 9007199254740991)
         or type(native.pools) ~= "table" or not finite(native.pools.stamina, 0, 1000000000)
         or type(native.inventory) ~= "table" or type(native.inventoryBound) ~= "table"
+        or native.userId ~= actor.userId
         or type(catalog) ~= "table" or catalog.release ~= context.release
-        or proof.sourceKey ~= catalog.key
+        or proof.sourceKey ~= catalog.key or actor.sourceKey ~= catalog.key
         or type(catalog.key) ~= "string" or #catalog.key ~= 64
         or not catalog.key:match("^[%x]+$")
         or not integer(catalog.donateMin, 1, 1000000000)
@@ -179,7 +233,8 @@ function FamilyContributionState.read(raw, context)
         ledger = ledger, perks = perks, progress = progress, cash = native.cash,
         stamina = native.pools.stamina, gold = gold, boundGold = bound,
         donateMin = catalog.donateMin, contributeMax = catalog.contributeMax,
-        staminaCosts = copied(catalog.staminaCosts), staminaTracks = copied(catalog.staminaTracks) }
+        staminaCosts = copied(catalog.staminaCosts), staminaTracks = copied(catalog.staminaTracks),
+        capacity = capacity }
     for _, field in ipairs(headers) do view[field] = raw[field] end
     if same(raw.familyUsageProof, context) and type(raw.familyUsageProof.usage) == "table" then
         local usage = {}

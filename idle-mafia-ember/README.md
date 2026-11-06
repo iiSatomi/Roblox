@@ -1,72 +1,33 @@
 # Idle Mafia - Ember recode
 
-> **Recovery update — November 6, 2026:** Source recovered from GitHub, with
-> development files restored from history and updated for the current source.
-> Fresh verification: **626 Python tests passed, 1 optional analyzer test skipped,
-> 110 subtests passed; 12 Node preview tests passed**. All **297 Luau files**
-> compiled in the connected Potassium client without executing the compiled modules.
-> There are now **26 tabs**. The live game is `0.26.646.1`, while the published
-> runtime pins `0.26.555.1`; the hosted Ember hash has also changed.
-> **This is a recovered development baseline, not a verified gameplay release.**
-> Follow the [recovery report and setup instructions](docs/recovery-2026-11-06.md).
-> The milestone descriptions below are historical and may describe earlier source.
+The current development source contains 26 UI pages and 55 feature switches,
+composed through 21 gameplay tab modules. See the [feature completion matrix](docs/feature-completion-matrix.md)
+for the actual request paths, regression coverage and live prerequisites, and the
+[completion plan](docs/completion-plan.md) for acceptance criteria.
 
-Fresh Idle Mafia hub, planned around Ember UI and separate maintainable Luau modules.
+This is an actively tested development build. Registration, syntax compilation
+and offline tests do not establish gameplay completion. The coordinating agent
+owns the current-client integration and bounded live-test queue; unavailable
+account, war, event or seasonal prerequisites remain explicit open items.
+Ordinary Jobs has now produced a confirmed live action with an exact reply and
+newer native progress. See the coordinating agent's [live validation ledger](docs/live-validation-2026-11-06.md) for current outcomes and unmet prerequisites.
 
-The [tab completion plan](docs/plans/2026-10-22-tab-completion.md) tracks
-all 25 UI tabs. All 25 `src/tabs/<tab>/` entries now own their UI;
-the gameplay tabs also own the existing
-offline action descriptors and explicit blocked contracts. Jobs, Operations
-and Heists have saved-source catalog adapters; Combat has bounded read-only
-target queries, and Crew has a read-only roster and border-custody slice.
-The production modular release and final integration remain to be built.
+Current repairs include composed Contract/Trophy goal routing, independently
+bounded war Combat with authoritative enemy-roster checks, and contract-owned
+empty-slot Crew hires. Hire borrowing starts off and still requires the separate
+hire switch, selected tier, positive limits and a current incomplete native hire
+contract. All account-changing actions retain their evidence and recovery guards.
 
-**Status: The user reported Ember UI prototype 0.1.1 running without console errors or executor Problems. Inert preview 0.1.38 now starts in a current 0.26.530 client without new console errors, and its ScreenGui is enabled; detailed visual and interaction checks remain open. All 25 tabs are offline-complete with explicit boundaries; shared integration is active. Current `MWClient.State`/`MW.Remotes` bindings and a selected public-contract fingerprint have been live-read, but the production bootstrap, full source validation and gameplay outcomes remain unverified. Collection and Bank have offline-tested same-Sync proof producers; Shop, Rewards and Territory have read-only source/read adapters. Native Crew Auto Roll, player/war Combat, Heist mutations, Property replacement, Prestige reset, Black Market trades, Family contributions, Territory mutations, Event Shop and Contract/Trophy goal borrowing remain blocked. The distributed prototype remains inert, with no gameplay or account I/O.**
-
-The offline engine now includes copied request contracts, a monotonic fake
-clock, one-request broker, one-second pacing, exact 45-second uncertainty
-handling, a bounded journal, initial native Jobs ownership/resource arbitration,
-and a fake-storage-tested session/checkpoint ledger. A commit-pinned release
-validator/loader is fake-adapter-tested. Its bootstrap now requires an
-independent exact commit pin; `tools/build_release_manifest.py` only emits a
-manifest when every Luau source matches that Git commit. Read-only economic and effective
-buff contexts and a bounded background-read gate are fake-adapter-tested.
-The personal Heist board has a read-only offline adapter contract. An opt-in
-runtime host now constructs the executor file, event and remote adapters behind
-an account/place/version/source gate; real current-client bindings and the
-production commit-pinned manifest remain open. Jobs and Operations state, planning, request evidence and
-an injected shared App runtime now pass local tests, but there is no verified
-game transport, production release or live confirmation. [The next-slices plan](docs/plans/2026-10-20-engine-jobs.md)
-tracks the remaining engine and ordinary Jobs work.
-
-A [pure native call plan](docs/m2-native-call-plan.md) records saved-client
-argument shapes for the supported offline features, and an injected
-adapter preserves trailing nil arguments without connecting a Roblox
-remote. A [read-only snapshot boundary](docs/m2-native-snapshot-reader.md)
-distinguishes observed full Syncs from ordinary State ticks. Neither is
-connected to the distributed UI.
-
-This folder is reserved exclusively for the new recode. Legacy scripts elsewhere in the repository are not part of it. All future recode source, UI, loader, tests, release metadata and documentation belong under this folder.
-
-## Actual Ember prototype
-
-The first fresh Luau UI slice is implemented: 25 tabs, 55 feature choices,
-validated in-memory profiles, exclusive gear strategies, pause/stop and unload.
-It is **inert**: gameplay transport and account I/O are absent. The private local
-executor file is `.private/IdleMafia-Ember-UI-0.1.1.lua`; see
-[build/run instructions and verification limits](docs/ember-ui-prototype.md).
-The user confirmed that version 0.1.1 runs without console errors or executor
-Problems. Detailed interaction/lifecycle checks and gameplay verification remain
-separate from this initial execution result.
-
-The current direction is to automate ordinary native actions for Jobs, city
-Bosses and similar systems. Paid-controller unlocking is no longer a recode
-task. Existing active native automation must still be detected and yielded to.
+The inert UI preview and historical milestone documents describe earlier work;
+the completion matrix takes precedence for current source status. Recovery setup
+and starting observations are in the [November 6 recovery report](docs/recovery-2026-11-06.md).
+The published release and its pins must be rebuilt and verified before a release
+is called ready. No private account snapshots or native source captures are shipped.
 
 ## Planning documents
 
 - [Design and Ember UI layout](docs/design.md)
-- [Feature parity register](docs/parity.md) - all 50 current feature IDs and supporting systems
+- [Feature parity register](docs/parity.md) - historical feature IDs and supporting systems
 - [Delivery roadmap](docs/roadmap.md)
 - [Next implementation tasks: engine and Jobs](docs/plans/2026-10-20-engine-jobs.md)
 - [Offline ordinary Operations evidence](docs/m4-operations.md)

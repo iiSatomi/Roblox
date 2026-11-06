@@ -36,8 +36,7 @@ function CombatTab.BuildUI(section, feature, bind, numeric)
             Default = feature.policies[1],
         })
     end
-    local reason = feature.id == "warCombat"
-        and "Unavailable: verified active-war enemy contract not implemented" or nil
+    local reason
     local row = { feature = feature, tabOwned = true, blockedReason = reason,
         alwaysShowCustom = feature.id == "combat" or feature.id == "warCombat",
         status = group:Status({ Text = "Activity",
@@ -111,7 +110,7 @@ function CombatTab.new(deps)
     if type(deps.PlayerProfileQuery) == "table" and type(deps.PlayerProfileQuery.new) == "function"
         and type(deps.nativeReadSource) == "table" and type(deps.fingerprint) == "string" then
         playerProfiles = deps.PlayerProfileQuery.new(deps.identity, deps.fingerprint, hitListQuery, deps.nativeReadSource, deps.PlayerScoutEvidence)
-        warProfiles = deps.PlayerProfileQuery.new(deps.identity, deps.fingerprint, warRosterQuery, deps.nativeReadSource)
+        warProfiles = deps.PlayerProfileQuery.new(deps.identity, deps.fingerprint, warRosterQuery, deps.nativeReadSource, deps.PlayerScoutEvidence)
     end
     local playerPlannerReady = false
     if playerEvidence and playerLedger and not playerLedgerFault and playerProfiles
@@ -120,6 +119,12 @@ function CombatTab.new(deps)
         local planner = deps.PlayerFightPlanner.new(deps.TargetSelection)
         player = {read = deps.PlayerTargetState.readSelection, propose = planner.propose}
         playerPlannerReady = true
+    end
+    local warPlannerReady = playerPlannerReady and warProfiles ~= nil
+        and type(deps.PlayerTargetState.readWarSelection) == "function"
+    if warPlannerReady then
+        war = {read = deps.PlayerTargetState.readWarSelection,
+            propose = deps.PlayerFightPlanner.new(deps.TargetSelection, "warCombat").propose}
     end
     local bossCatalog
     if type(deps.NativeBossCatalog) == "table"
@@ -136,7 +141,7 @@ function CombatTab.new(deps)
         hitListQuery = hitListQuery, warRosterQuery = warRosterQuery, playerProfiles = playerProfiles, warProfiles = warProfiles,
         nativeReadSource = deps.nativeReadSource,
         frameReader = type(deps.nativeReadSource) == "table" and deps.nativeReadSource.CombatFrame or nil,
-        targetReader = deps.PlayerTargetState, playerPlannerReady = playerPlannerReady,
+        targetReader = deps.PlayerTargetState, playerPlannerReady = playerPlannerReady, warPlannerReady = warPlannerReady,
         historyStats = type(deps.TargetSelection) == "table" and deps.TargetSelection.history or nil,
         fightReceipts = deps.fightReceipts, playerEvidence = playerEvidence, scoutEvidence = deps.PlayerScoutEvidence,
         playerLedger = playerLedger, playerLedgerFault = playerLedgerFault,
@@ -175,6 +180,42 @@ function Methods:CurrentHitList(snapshot, roster)
     return proof
 end
 
+-- The roster proves enemy membership; a separate native search proves the quote.
+-- Neither read confers ordinary attack permission or invents a Stamina price.
+function Methods:CurrentWarTargets(snapshot)
+    local roster = self.warRosterQuery:Read(snapshot)
+    local quotes = self:CurrentHitList(snapshot, roster)
+    if not roster then return nil end
+    local sameWar = quotes and quotes.war and roster.war and roster.war.active == true
+        and quotes.war.active == true and quotes.war.enemyFamilyId == roster.war.enemyFamilyId
+    for _, row in ipairs(roster.rows) do
+        row.stamina, row.shielded = nil, nil
+        if sameWar then
+            for _, quote in ipairs(quotes.rows) do
+                if quote.userId == row.userId and quote.name == row.name and quote.level == row.level
+                    and quote.familyId == row.familyId then row.stamina, row.shielded = quote.stamina, quote.shielded end
+            end
+        end
+    end
+    return roster
+end
+
+function Methods:WarQuoteTarget(snapshot)
+    if self.closed or not self.warPlannerReady then return nil end
+    local roster = self:CurrentWarTargets(snapshot)
+    local war = roster and roster.war
+    if not war or war.active ~= true or war.canScore ~= true or war.enemyFamilyId == nil
+        or not self.hitListQuery:Read(snapshot) then return nil end
+    local candidates = {}
+    for _, row in ipairs(roster.rows) do
+        local allowance = row.warStatus
+        if row.stamina == nil and row.familyId == war.enemyFamilyId and type(allowance) == "table"
+            and allowance.canScore == true and allowance.remaining > 0 and allowance.attacksRemaining > 0
+            and allowance.pairRemaining > 0 then candidates[#candidates + 1] = row end
+    end
+    return self.hitListQuery:PickSavedSearch(snapshot, candidates, 32)
+end
+
 function Methods:Enrich(snapshot, settings)
     local result = {}
     for key, value in pairs(snapshot) do result[key] = value end
@@ -197,7 +238,7 @@ function Methods:Enrich(snapshot, settings)
         result.playerFightProof = self.fightReceipts:Read(result)
     end
     if not self.closed then
-        result.warRosterProof = self.warRosterQuery:Read(result)
+        result.warRosterProof = self:CurrentWarTargets(result)
         if result.warRosterProof and self.warProfiles then
             result.warRosterProof.profiles = self.warProfiles:Read(result) or {}
         end
@@ -205,19 +246,22 @@ function Methods:Enrich(snapshot, settings)
         if result.hitListProof and self.playerProfiles then
             result.hitListProof.profiles = self.playerProfiles:Read(result) or {}
         end
-        if result.hitListProof and type(settings) == "table" and type(settings.combat) == "table"
-            and settings.combat.enabled == true and type(self.frameReader) == "function"
-            and self.nativeReadSource.CombatFrame == self.frameReader then
-            local ok, frame = pcall(self.frameReader, self.nativeReadSource, result.native, result.hitListProof.rows)
-            if ok and type(frame) == "table" then
-                local bound = {}
-                for key, value in pairs(frame) do bound[key] = value end
-                bound.header = {serverNow = result.native.serverNow}
-                for _, key in ipairs({"session", "account", "place", "release", "revision", "capturedAt"}) do
-                    bound.header[key] = result[key]
+        for _, feature in ipairs({"combat", "warCombat"}) do
+            local proof = result[feature == "combat" and "hitListProof" or "warRosterProof"]
+            if proof and type(settings) == "table" and type(settings[feature]) == "table"
+                and settings[feature].enabled == true and type(self.frameReader) == "function"
+                and self.nativeReadSource.CombatFrame == self.frameReader then
+                local ok, frame = pcall(self.frameReader, self.nativeReadSource, result.native, proof.rows)
+                if ok and type(frame) == "table" then
+                    local bound = {}
+                    for key, value in pairs(frame) do bound[key] = value end
+                    bound.header = {serverNow = result.native.serverNow}
+                    for _, key in ipairs({"session", "account", "place", "release", "revision", "capturedAt"}) do
+                        bound.header[key] = result[key]
+                    end
+                    bound.sourceKey = proof.sourceKey
+                    proof.nativeFrame = bound
                 end
-                bound.sourceKey = result.hitListProof.sourceKey
-                result.hitListProof.nativeFrame = bound
             end
         end
     end
@@ -317,12 +361,40 @@ function Methods:ReadSources(reader)
         sources[#sources + 1] = {id = "combatHitList", interval = 1,
             enabled = function(settings, _, snapshot)
                 local current = snapshot or self.latestBossSnapshot
-                return not self.closed and type(settings.combat) == "table" and settings.combat.enabled == true
+                return not self.closed and (type(settings.combat) == "table" and settings.combat.enabled == true
+                    or type(settings.warCombat) == "table" and settings.warCombat.enabled == true)
                     and (not current or self.hitListQuery:NeedsRead(current))
             end,
             prepare = function(snapshot) return self.hitListQuery:Prepare(snapshot) end,
             accept = function(snapshot, request, reply) return self.hitListQuery:Accept(snapshot, request, reply) end,
             commit = function(staged) return self.hitListQuery:Commit(staged) end}
+    end
+    if self.warPlannerReady then
+        local target, enemy
+        sources[#sources + 1] = {id = "combatWarQuote", interval = 60,
+            enabled = function(settings, _, snapshot)
+                return not self.closed and type(settings.warCombat) == "table" and settings.warCombat.enabled == true
+                    and self:WarQuoteTarget(snapshot or self.latestBossSnapshot) ~= nil
+            end,
+            prepare = function(snapshot)
+                target = self:WarQuoteTarget(snapshot)
+                local roster = target and self.warRosterQuery:Read(snapshot)
+                enemy = roster and roster.war and roster.war.enemyFamilyId
+                if not target or not enemy then return nil, "Current enemy quote identity required" end
+                return self.hitListQuery:PrepareSavedSearch(snapshot, target)
+            end,
+            accept = function(snapshot, request, reply)
+                local roster = self.warRosterQuery:Read(snapshot)
+                local found = false
+                if roster and roster.war and roster.war.enemyFamilyId == enemy and target then
+                    for _, row in ipairs(roster.rows) do
+                        if row.userId == target.userId and row.name == target.name and row.familyId == enemy then found = true end
+                    end
+                end
+                if not found then return nil, "Enemy roster changed during quote lookup" end
+                return self.hitListQuery:AcceptSavedSearch(snapshot, request, reply)
+            end,
+            commit = function(staged) return self.hitListQuery:CommitSavedSearch(staged) end}
     end
     if self.playerPlannerReady and self.playerLedger and type(self.playerLedger.SavedTargets) == "function"
         and type(self.historyStats) == "function" then
@@ -429,16 +501,22 @@ end
 
 function Methods:CanDispatchPlayer(p)
     local raw, i = self.latestPlayerSnapshot, type(p) == "table" and p.intent
-    if self.closed or not self.playerPlannerReady or type(raw) ~= "table" or type(i) ~= "table"
-        or p.feature ~= "combat" or not self.playerProfiles then return false end
+    local feature = type(p) == "table" and p.feature
+    local warMode = feature == "warCombat"
+    local profilesOwner = warMode and self.warProfiles or self.playerProfiles
+    if self.closed or not self.playerPlannerReady or warMode and not self.warPlannerReady
+        or type(raw) ~= "table" or type(i) ~= "table"
+        or (feature ~= "combat" and not warMode) or not profilesOwner then return false end
     for _, key in ipairs({"session", "account", "place", "release", "revision"}) do if p[key] ~= raw[key] then return false end end
-    local proof, profiles = self:CurrentHitList(raw), self.playerProfiles:Read(raw)
+    local proof
+    if warMode then proof = self:CurrentWarTargets(raw) else proof = self:CurrentHitList(raw) end
+    local profiles = profilesOwner:Read(raw)
     local profile = profiles and profiles[tostring(i.target)]
     if not proof or proof.sourceKey ~= i.sourceKey or type(proof.war) ~= "table"
         or type(proof.war.active) ~= "boolean"
-        or proof.war.active and (proof.war.enemyFamilyId == nil or i.excludedWarFamilyId ~= proof.war.enemyFamilyId
+        or not warMode and proof.war.active and (proof.war.enemyFamilyId == nil or i.excludedWarFamilyId ~= proof.war.enemyFamilyId
             or i.familyId == proof.war.enemyFamilyId)
-        or not proof.war.active and i.excludedWarFamilyId ~= nil
+        or not warMode and not proof.war.active and i.excludedWarFamilyId ~= nil
         or not profile or profile.userId ~= i.target or profile.name ~= i.targetName or profile.level ~= i.targetLevel
         or profile.familyId ~= i.familyId or profile.friend ~= false or profile.friendshipStatus ~= "reported"
         or profile.shieldUntil ~= nil and (type(profile.shieldUntil) ~= "number" or profile.shieldUntil ~= profile.shieldUntil
@@ -447,6 +525,15 @@ function Methods:CanDispatchPlayer(p)
     for _, row in ipairs(proof.rows) do if row.userId == i.target then target = row end end
     if not target or target.name ~= i.targetName or target.level ~= i.targetLevel or target.familyId ~= i.familyId
         or target.shielded ~= false or target.stamina ~= i.attackQuote or type(i.scoutMaxAge) ~= "number" or i.scoutMaxAge < 1 or i.scoutMaxAge > 1800 then return false end
+    if warMode then
+        local war, allowance = proof.war, target.warStatus
+        if war.active ~= true or war.canScore ~= true or war.enemyFamilyId ~= i.warEnemyFamilyId
+            or i.familyId ~= i.warEnemyFamilyId or type(raw.native.family) ~= "table"
+            or raw.native.family.id ~= i.warOwnFamilyId or i.warDay ~= math.floor(raw.native.serverNow / 86400)
+            or i.warStatusServerNow ~= war.statusServerNow or type(allowance) ~= "table"
+            or allowance.canScore ~= true or allowance.day ~= i.warDay or allowance.remaining < 1
+            or allowance.attacksRemaining < 1 or allowance.pairRemaining < 1 then return false end
+    end
     if i.dailyOnly ~= nil and type(i.dailyOnly) ~= "boolean" or i.highValueOnly ~= nil and type(i.highValueOnly) ~= "boolean" then return false end
     if i.dailyOnly == true then
         if type(self.frameReader) ~= "function" or self.nativeReadSource.CombatFrame ~= self.frameReader then return false end
@@ -462,13 +549,13 @@ function Methods:CanDispatchPlayer(p)
             or count ~= nil and count ~= 0 then return false end
     end
     if i.highValueOnly == true and (not self.playerLedger or self.playerLedger:IsHighValue(raw, i.target) ~= true) then return false end
-    local stats = profile.statsHidden == false and {at = profile.observedServerNow, defense = profile.defense} or nil
+    local stats = not warMode and profile.statsHidden == false and {at = profile.observedServerNow, defense = profile.defense} or nil
     if type(profile.scout) == "table" and (not stats or profile.scout.at > stats.at) then stats = profile.scout end
     local fresh = stats and type(stats.at) == "number" and stats.at <= raw.native.serverNow
         and raw.native.serverNow - stats.at <= i.scoutMaxAge
     if i.kind == "playerScout" then
         return i.allowScout == true and profile.scoutCost == i.expectedStaminaCost
-            and profile.statsHidden == true and not fresh
+            and (warMode or profile.statsHidden == true) and not fresh
     end
     return i.kind == "playerAttack" and target.stamina == i.expectedStaminaCost
         and fresh == true and i.statsAt == stats.at and i.defense == stats.defense
@@ -494,7 +581,7 @@ function Methods:Descriptors()
         } or descriptor.evidence
         result[index] = { id = descriptor.id, reader = descriptor.reader, planner = descriptor.planner,
             evidence = evidence,
-            canDispatch = descriptor.id == "combat" and self.playerPlannerReady and function(p) return self:CanDispatchPlayer(p) end or nil,
+            canDispatch = (descriptor.id == "combat" or descriptor.id == "warCombat") and self.playerPlannerReady and function(p) return self:CanDispatchPlayer(p) end or nil,
             recoverSaved = self.playerEvidence and function(data, after)
                 local e = type(data) == "table" and owner(data.proposal)
                 return e and e.recoverSaved(data, after) or nil
@@ -503,8 +590,9 @@ function Methods:Descriptors()
                 if self.closed then return false, "Player outcome owner closed" end
                 local p = type(data) == "table" and data.proposal
                 if type(p) == "table" and type(p.intent) == "table" and p.intent.kind == "playerScout" then
-                    if not self.playerProfiles then return false, "Owned Scout cache unavailable" end
-                    return self.playerProfiles:RecordScout(data, after)
+                    local profiles = p.feature == "warCombat" and self.warProfiles or self.playerProfiles
+                    if not profiles then return false, "Owned Scout cache unavailable" end
+                    return profiles:RecordScout(data, after)
                 end
                 if not self.playerLedger or self.playerLedgerFault then
                     return false, self.playerLedgerFault or "Durable player history unavailable"

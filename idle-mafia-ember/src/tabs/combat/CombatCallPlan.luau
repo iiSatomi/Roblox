@@ -34,12 +34,16 @@ function CombatCallPlan.describe(proposal)
     if type(intent) ~= "table" then
         return nil, "Missing Combat call intent"
     end
-    if proposal.feature == "combat" and (intent.kind == "playerAttack" or intent.kind == "playerScout")
+    if (proposal.feature == "combat" or proposal.feature == "warCombat") and (intent.kind == "playerAttack" or intent.kind == "playerScout")
         and integer(intent.target, 1, 9007199254740991) and key(intent.targetName) and integer(intent.targetLevel, 1, 1000000)
         and type(intent.sourceKey) == "string" and #intent.sourceKey == 64 and intent.sourceKey:match("^[%x]+$")
         and integer(intent.expectedStaminaCost, 1, 5) and integer(intent.maxStaminaExposure, intent.expectedStaminaCost, 5)
         and type(proposal.resources) == "table" and proposal.resources.stamina == intent.maxStaminaExposure
-        and (intent.kind ~= "playerScout" or intent.allowScout == true) then
+        and (intent.kind ~= "playerScout" or intent.allowScout == true)
+        and (proposal.feature ~= "warCombat" or familyId(intent.warEnemyFamilyId)
+            and intent.warEnemyFamilyId == intent.familyId and familyId(intent.warOwnFamilyId)
+            and intent.warOwnFamilyId ~= intent.warEnemyFamilyId
+            and integer(intent.warDay, 0, 1000000000)) then
         return {remote = intent.kind == "playerScout" and "ScoutPlayer" or "Attack", method = "InvokeServer",
             arity = 1, args = {intent.target}, source = "current native ordinary player target call"}, nil
     end

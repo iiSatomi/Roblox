@@ -13,6 +13,7 @@ class SessionTests(unittest.TestCase):
                 Write = function(self, key, value)
                     if self.failWrite then error('disk unavailable') end
                     self.data[key] = value
+                    return true
                 end,
             }
         """)

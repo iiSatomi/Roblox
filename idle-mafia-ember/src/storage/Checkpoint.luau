@@ -677,7 +677,7 @@ function Methods:Commit(records, favorUsage, bossUsage,
     end)
     if writers[writeKey] == self then writers[writeKey] = nil end
     self.writing = nil
-    if not ok or result == false then
+    if not ok or result ~= true then
         self.fault = "Checkpoint write failed"
         if requestHighwater and attempted then return false, self.fault, requestHighwater end
         return false, self.fault
@@ -876,7 +876,8 @@ function Methods:Save(raw, before, baseline)
         end
         residencyAttempts = residencyAttempts + 1
     end
-    if record.feature == "station" and raw.intent and raw.intent.kind == "territoryStation" then
+    if record.feature == "station" and raw.intent
+        and (raw.intent.kind == "territoryStation" or raw.intent.kind == "territoryRecall") then
         local intent = raw.intent
         if intent.attemptedBefore ~= stationAttempts or not integer(intent.maxAttempts, 1)
             or intent.maxAttempts > 1000 or stationAttempts >= intent.maxAttempts then
@@ -1240,11 +1241,17 @@ function Methods:Resolve(actionKey, outcome)
             if outcome == "schedule_failed" and record.feature == "station" and record.recovery then
                 local data = self.pendingModule and self.pendingModule.Decode(record.recovery, record)
                 local intent = data and data.proposal.intent
-                if not intent or intent.kind ~= "territoryStation" or data.reply ~= nil
+                if not intent or (intent.kind ~= "territoryStation" and intent.kind ~= "territoryRecall") or data.reply ~= nil
                     or not integer(intent.attemptedBefore, 0) or stationAttempts ~= intent.attemptedBefore + 1 then
                     return false, "Station unsent attempt proof changed"
                 end
                 stationAttempts = intent.attemptedBefore
+            end
+            if outcome == "schedule_failed" and (record.familyCharge or record.eventCharge) then
+                local data = record.recovery and self.pendingModule and self.pendingModule.Decode(record.recovery, record)
+                if not data or data.reply ~= nil then
+                    return false, "Family or Event Shop unsent attempt proof changed"
+                end
             end
             if outcome == "schedule_failed" and record.familyCharge then
                 familyContributionUsage = self.familyUsageModule.rollback(familyContributionUsage, record.familyCharge)
@@ -1255,6 +1262,8 @@ function Methods:Resolve(actionKey, outcome)
                 if not eventShopUsage then return false, "Event Shop unsent charge changed" end
             end
             if outcome=="schedule_failed" and record.hireCharge then
+                local data = record.recovery and self.pendingModule and self.pendingModule.Decode(record.recovery, record)
+                if not data or data.reply ~= nil then return false, "Hire unsent attempt proof changed" end
                 crewHireUsage=self.hireUsageModule.rollback(crewHireUsage,record.hireCharge)
                 if not crewHireUsage then return false,"Hire unsent allowance changed" end
             end
@@ -1268,6 +1277,8 @@ function Methods:Resolve(actionKey, outcome)
                 if not playerFightUsage then return false, "Player unsent Stamina allowance changed" end
             end
             if outcome == "schedule_failed" and record.rentCharge then
+                local data = record.recovery and self.pendingModule and self.pendingModule.Decode(record.recovery, record)
+                if not data or data.reply ~= nil then return false, "Rental unsent attempt proof changed" end
                 marketRentUsage = self.rentUsageModule.rollback(marketRentUsage, record.rentCharge)
                 if not marketRentUsage then return false, "Rental unsent charge changed" end
             end

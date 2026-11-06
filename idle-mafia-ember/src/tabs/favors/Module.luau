@@ -5,7 +5,7 @@ Methods.__index = Methods
 
 local sequenceReason = "Mutation sequence ownership unverified"
 
-function FavorsTab.BuildUI(section, feature, bind, numeric)
+function FavorsTab.BuildUI(section, feature, bind, numeric, nativeAvailable)
     assert(type(section) == "table" and type(feature) == "table"
         and feature.id == "favors" and feature.page == "favors"
         and type(bind) == "function"
@@ -43,11 +43,12 @@ function FavorsTab.BuildUI(section, feature, bind, numeric)
         end
     end
     if feature.limits then group:Description({ Text = feature.limits }) end
+    local unavailable = nativeAvailable ~= true and sequenceReason or nil
     return { feature = feature, tabOwned = true,
         custom = custom,
-        blockedReason = sequenceReason,
+        blockedReason = unavailable,
         status = group:Status({ Text = "Activity",
-            Default = "Blocked — " .. sequenceReason }) }
+            Default = unavailable and ("Blocked — " .. unavailable) or "Off" }) }
 end
 
 function FavorsTab.new(deps)
@@ -64,7 +65,7 @@ function FavorsTab.new(deps)
         and type(deps.BoardReadRuntime) == "table"
         and type(deps.BoardReadRuntime.new) == "function",
         "Missing Favors tab modules")
-    return setmetatable({ id = "favors", deps = deps,
+    return setmetatable({ id = "favors", deps = deps, runtime = deps.heistRuntime,
         boardQuery = deps.BoardQuery.new(deps.identity) }, Methods)
 end
 
@@ -84,8 +85,11 @@ end
 
 function Methods:Descriptors()
     local deps = self.deps
-    return { { id = "favors", reader = deps.FavorsState,
-        planner = deps.FavorHelp, evidence = deps.FavorHelpEvidence } }
+    local spec = { id = "favors", reader = deps.FavorsState,
+        planner = deps.FavorHelp, evidence = deps.FavorHelpEvidence }
+    return {self.runtime and self.runtime:Feature(spec) or spec}
 end
+
+function Methods:Close() if self.runtime then self.runtime:Close() end end
 
 return FavorsTab

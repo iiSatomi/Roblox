@@ -6,8 +6,8 @@ Methods.__index = Methods
 local known = { territoryWatch = true, station = true,
     residency = true }
 local limitations = {
-    station = "Station one selected member using current ownership, home reserves and limits. Recall is unavailable until native request ownership is connected.",
-    residency = "Selected admission requires current terms and explicit limits. Replacement ends the prior lease; effective bonus optimization remains unavailable.",
+    station = "Station or recall one selected own member using current deployment identity, defense reserves and a bounded deployment attempt limit. Uncertain recalls remain held for status checks.",
+    residency = "Compare the selected resident contribution and rent using current native bonuses and caps. Replacement must improve the same bonus without higher rent, or lower rent without losing that bonus. Different bonus kinds and unverified tradeoffs are unavailable.",
 }
 
 function TerritoryTab.BuildUI(section, feature, bind, numeric)
@@ -71,7 +71,7 @@ function TerritoryTab.new(deps)
     if type(deps.Stationing) == "table" and type(deps.config) == "table"
         and type(deps.config.TERRITORY) == "table" and type(deps.gameData) == "table"
         and type(deps.gameData.DISTRICTS_BY_ID) == "table" then
-        station = deps.Stationing.new(deps.config, deps.gameData, deps.fingerprint, deps.release)
+        station = deps.Stationing.new(deps.config, deps.gameData, deps.fingerprint, deps.release, deps.cityMaps)
     end
     local season = deps.territorySeasonSource
     if season ~= nil then
@@ -82,24 +82,40 @@ function TerritoryTab.new(deps)
     end
     local readOwner
     if type(deps.TerritoryReadSources) == "table" then readOwner = deps.TerritoryReadSources.new(deps) end
+    local recall, recallReason
+    if station and type(deps.RecallRuntime) == "table" and type(deps.storage) == "table"
+        and deps.storage.strictRecovery == true and type(deps.identity) == "table" then
+        recall, recallReason = deps.RecallRuntime.new(deps)
+        assert(recall, recallReason or "Recall custody unavailable")
+    end
     return setmetatable({ id = "territory", ownedProofs = {"stationCatalogProof"}, deps = deps, station = station,
-        season = season, readOwner = readOwner }, Methods)
+        season = season, readOwner = readOwner, recall = recall }, Methods)
 end
 
 function Methods:ReadSources(reader)
-    return self.readOwner and self.readOwner:Sources(reader) or {}
+    local sources = self.readOwner and self.readOwner:Sources(reader) or {}
+    if self.recall then
+        for _, source in ipairs(self.recall:ReadSources()) do sources[#sources + 1] = source end
+    end
+    return sources
+end
+
+function Methods:ReservationSources()
+    return self.recall and self.recall:ReservationSources() or {}
 end
 
 function Methods:Close()
     self.closed, self.latestSnapshot = true, nil
     if self.readOwner then self.readOwner:Close() end
     if self.season then self.season:Close() end
+    if self.recall then self.recall:Close() end
 end
 
 function Methods:Enrich(snapshot)
     local result = snapshot
     if self.station then result = self.station:Enrich(result) or result end
     if self.season then result = self.season:Enrich(result) or result end
+    if self.recall then result = self.recall:Enrich(result) or result end
     self.latestSnapshot = result
     return result, nil
 end
@@ -251,6 +267,7 @@ function Methods:Descriptors()
             canDispatch = function(proposal) return not self.closed and d.Residency.canDispatch(proposal, self.latestSnapshot) end }
         or { id = "residency", reader = d.TerritoryState,
             planner = d.TerritoryBlocked, evidence = d.TerritoryBlocked }
+    if self.station and self.recall then station = self.recall:Feature(station) end
     return {
         { id = "territoryWatch", reader = watchReader,
             planner = watchPlanner, evidence = d.TerritoryBlocked },

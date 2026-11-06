@@ -35,6 +35,13 @@ class HeistSequenceRecoveryTests(unittest.TestCase):
         self.assertIsNone(call["args"][2])
         self.assertEqual(call["args"][3], 7)
 
+    def test_help_recovery_polls_its_exact_owned_sequence(self):
+        self.record.actionName = "help"
+        self.record.arg1 = "row-a"
+        call, reason = self.module.statusCall(self.record, self.identity)
+        self.assertIsNone(reason)
+        self.assertEqual([call.args[i] for i in (1, 2, 3)], ["status", "row-a", 7])
+
     def test_unknown_ownership_or_unsent_record_is_blocked(self):
         self.record["sent"] = False
         self.assertIsNone(self.module.statusCall(
@@ -43,6 +50,19 @@ class HeistSequenceRecoveryTests(unittest.TestCase):
         self.record["release"] = "other"
         self.assertIsNone(self.module.statusCall(
             self.record, self.identity)[0])
+
+    def test_numeric_foreign_run_argument_is_preserved_for_status(self):
+        self.record.actionName = "sabotage"
+        self.record.arg1 = 731
+        call, reason = self.module.statusCall(self.record, self.identity)
+        self.assertIsNone(reason)
+        self.assertEqual(call.args[2], 731)
+
+    def test_transient_negative_replies_do_not_become_terminal_receipts(self):
+        for code in ("busy", "presence", "rate_limited"):
+            with self.subTest(code=code):
+                self.assertEqual(self.module.classify(lua_table(self.h.lua,
+                    {"ok": False, "code": code})), "waiting")
 
     def test_no_pending_is_unresolved_not_permission_to_replay(self):
         self.assertEqual(self.module.classify(lua_table(self.h.lua,

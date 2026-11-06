@@ -26,4 +26,12 @@ function TerritoryCallPlan.describe(proposal)
     end
     return nil, "Unreviewed Territory mutation signature"
 end
+function TerritoryCallPlan.withRecall(recall)
+    assert(type(recall) == "table" and type(recall.describe) == "function", "Missing reviewed Recall call plan")
+    return {describe = function(proposal)
+        if type(proposal) == "table" and type(proposal.intent) == "table"
+            and proposal.intent.kind == "territoryRecall" then return recall.describe(proposal) end
+        return TerritoryCallPlan.describe(proposal)
+    end}
+end
 return TerritoryCallPlan

@@ -41,7 +41,8 @@ function Evidence.capture(p, before)
         end
     end
     for k in pairs(p.resources) do if k ~= "stamina" then return nil, "Unsupported Scout charge" end end
-    local proof, usage, pools = before.hitListProof, before.playerFightUsageProof, before.native.pools
+    local proof = before[p.feature == "warCombat" and "warRosterProof" or "hitListProof"]
+    local usage, pools = before.playerFightUsageProof, before.native.pools
     if type(proof) ~= "table" or proof.account ~= p.account or proof.capturedAt ~= before.capturedAt
         or proof.sourceKey ~= i.sourceKey or type(proof.rows) ~= "table" or #proof.rows > 128
         or type(proof.profiles) ~= "table" or type(usage) ~= "table" or usage.account ~= p.account
@@ -67,6 +68,19 @@ function Evidence.capture(p, before)
         or i.serverNow - profile.observedServerNow > 30 or not number(profile.observedAt, 0)
         or profile.observedAt > before.capturedAt or before.capturedAt - profile.observedAt > 30 then
         return nil, "Scout target or current profile quote changed"
+    end
+    if p.feature == "warCombat" then
+        local war, allowance = proof.war, selected.warStatus
+        local nativeWar = type(before.native.derived) == "table" and before.native.derived.war
+        if type(war) ~= "table" or war.active ~= true or war.canScore ~= true
+            or war.enemyFamilyId ~= i.warEnemyFamilyId or selected.familyId ~= i.warEnemyFamilyId
+            or type(before.native.family) ~= "table" or before.native.family.id ~= i.warOwnFamilyId
+            or i.warOwnFamilyId == i.warEnemyFamilyId or i.warDay ~= math.floor(i.serverNow / 86400)
+            or i.warStatusServerNow ~= war.statusServerNow or type(nativeWar) ~= "table" or nativeWar.state ~= "active"
+            or nativeWar.enemyId ~= nil and nativeWar.enemyId ~= i.warEnemyFamilyId
+            or type(allowance) ~= "table" or allowance.day ~= i.warDay or allowance.canScore ~= true
+            or not integer(allowance.remaining, 1) or not integer(allowance.attacksRemaining, 1)
+            or not integer(allowance.pairRemaining, 1) then return nil, "Exact scoring enemy Scout baseline required" end
     end
     local b = {revision = p.revision, capturedAt = before.capturedAt, target = i.target, targetName = i.targetName,
         targetLevel = i.targetLevel, familyId = i.familyId, staminaCost = i.expectedStaminaCost,

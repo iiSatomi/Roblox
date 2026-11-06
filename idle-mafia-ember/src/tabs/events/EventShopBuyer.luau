@@ -70,7 +70,7 @@ local function plan(view, settings)
         revision = view.revision, feature = "eventShop", actionKey = "event-shop:" .. row.key .. ":" .. view.attempted,
         resources = { event_medal = row.price }, intent = { kind = "eventShopBuy", offerKey = row.key,
             item = row.item, itemCount = row.count, rowKind = row.kind, price = row.price,
-            quantity = 1, sourceKey = view.sourceKey, sourceGeneration = view.sourceGeneration,
+            quantity = 1, currency = "medal", sourceKey = view.sourceKey, sourceGeneration = view.sourceGeneration,
             medalsBefore = view.medals, attemptedBefore = view.attempted, spentBefore = view.spent,
             itemLooseBefore = view.inventory[row.item] or 0, itemBoundBefore = view.inventoryBound[row.item] or 0,
             medalReserve = settings.medalReserve, maxSpend = settings.maxSpend,
@@ -186,7 +186,7 @@ function EventShopBuyer.describe(proposal)
     local intent = type(proposal) == "table" and proposal.intent
     if type(intent) ~= "table" or proposal.feature ~= "eventShop" or intent.kind ~= "eventShopBuy"
         or not id(intent.offerKey) or not id(intent.item) or intent.item == "event_medal"
-        or (intent.rowKind ~= "item" and intent.rowKind ~= "crate") or intent.quantity ~= 1
+        or (intent.rowKind ~= "item" and intent.rowKind ~= "crate") or intent.quantity ~= 1 or intent.currency ~= "medal"
         or not integer(intent.itemCount, 1, 99) or not integer(intent.price, 1, 1000000000)
         or not integer(intent.itemLooseBefore, 0, 1000000000) or not integer(intent.itemBoundBefore, 0, 1000000000)
         or not integer(intent.medalReserve, 0, 1000000000) or not integer(intent.medalsBefore, intent.price + intent.medalReserve, 1000000000)
@@ -198,11 +198,11 @@ function EventShopBuyer.describe(proposal)
         return nil, "Reviewed single Event Shop acquisition and explicit budget required"
     end
     local allowed = { kind = true, offerKey = true, item = true, itemCount = true, rowKind = true, price = true,
-        quantity = true, sourceKey = true, sourceGeneration = true, medalsBefore = true, attemptedBefore = true,
+        quantity = true, currency = true, sourceKey = true, sourceGeneration = true, medalsBefore = true, attemptedBefore = true,
         spentBefore = true, itemLooseBefore = true, itemBoundBefore = true, medalReserve = true,
         maxSpend = true, maxAttempts = true, endsAt = true, restricted = true }
     for field in pairs(intent) do if not allowed[field] then return nil, "Unknown Event Shop buy intent field" end end
-    return { remote = "EventShopAction", method = "InvokeServer", arity = 3,
-        args = { "buy", intent.offerKey, 1 }, source = "saved EventShopTab single offer purchase" }, nil
+    return { remote = "EventShopAction", method = "InvokeServer", arity = 4,
+        args = { "buy", intent.offerKey, 1, "medal" }, source = "current EventShopTab earned-Medal single offer purchase" }, nil
 end
 return EventShopBuyer

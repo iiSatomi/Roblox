@@ -20,6 +20,7 @@ local function state(raw, index, day)
         or native.serverNow < 0 or native.serverNow >= math.huge
         or type(playtime) ~= "table"
         or type(playtime.todaySeconds) ~= "number"
+        or playtime.todaySeconds ~= playtime.todaySeconds
         or playtime.todaySeconds < 0
         or playtime.todaySeconds >= math.huge
         or type(claimed) ~= "table" then return nil end

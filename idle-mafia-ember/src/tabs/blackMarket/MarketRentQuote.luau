@@ -40,8 +40,8 @@ function MarketRentQuote.assess(raw, context, terms, settings, attempted)
         or not finite(raw.native.serverNow, 0, 9007199254740991)
         or not integer(raw.native.market.shopUntil,
             0, 9007199254740991)
-        or not integer(raw.native.inventory.gold_bar, 0, 1000000000)
-        or not integer(raw.native.inventoryBound.gold_bar, 0, 1000000000)
+        or (raw.native.inventory.gold_bar ~= nil and not integer(raw.native.inventory.gold_bar, 0, 1000000000))
+        or (raw.native.inventoryBound.gold_bar ~= nil and not integer(raw.native.inventoryBound.gold_bar, 0, 1000000000))
         or type(raw.native.derived.marketShop) ~= "boolean"
         or type(terms) ~= "table"
         or terms.release ~= raw.release
@@ -57,6 +57,7 @@ function MarketRentQuote.assess(raw, context, terms, settings, attempted)
         return nil, "Current Market rental state and terms required"
     end
     local native = raw.native
+    local looseGold, boundGold = native.inventory.gold_bar or 0, native.inventoryBound.gold_bar or 0
     local cost = terms.rentPerPeriod
     local duration = terms.rentPeriodHours * 3600
     local now = native.serverNow
@@ -72,9 +73,8 @@ function MarketRentQuote.assess(raw, context, terms, settings, attempted)
         return nil, "Market rental attempt cap reached"
     end
     if cost > settings.maxGoldSpend
-        or native.inventory.gold_bar < cost
-        or native.inventory.gold_bar
-            + native.inventoryBound.gold_bar - cost
+        or looseGold + boundGold < cost
+        or looseGold + boundGold - cost
                 < settings.goldReserve then
         return nil, "Market rental Gold limit or reserve reached"
     end

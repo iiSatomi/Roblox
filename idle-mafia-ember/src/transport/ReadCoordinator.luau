@@ -1,9 +1,9 @@
 -- Fair bounded reads use the same lease as writes. No independent remote loop.
 local ReadCoordinator = {}
 local fields = {"session", "account", "place", "release", "revision", "capturedAt"}
-local arities = {HeistAction = {board = 1}, FamilyAction = {info = 1},
+local arities = {HeistAction = {board = 1, status = 3}, FamilyAction = {info = 1},
     FamilyBossAction = {state = 2}, TerritoryView = {map = 2, district = 4},
-    TerritoryAction = {fortview = 2}, ResidencyAction = {view = 3},
+    TerritoryAction = {fortview = 2}, TerritoryStatus = {recallstatus = 3}, ResidencyAction = {view = 3},
     MarketAction = {browse = 4, prices = 4, rap = 4}}
 local function finite(value)
     return type(value) == "number" and value == value and value >= 0 and value < math.huge
@@ -45,6 +45,11 @@ local function callCopy(call)
     local expected = (call.remote == "GetHitList" or call.remote == "SearchTarget" or call.remote == "PlayerProfile") and 1
         or arities[call.remote] and arities[call.remote][call.args[1]]
     if not expected or call.arity ~= expected then return nil end
+    local statusOnly = call.remote == "HeistAction" and call.args[1] == "status"
+        or call.remote == "TerritoryStatus" and call.args[1] == "recallstatus"
+    if statusOnly and call.kind ~= "statusOnly" then return nil end
+    if call.remote == "HeistAction" and statusOnly and (not finite(call.args[3])
+        or call.args[3] < 1 or call.args[3] % 1 ~= 0 or call.args[3] > 9007199254740991) then return nil end
     if call.remote == "PlayerProfile" and (not finite(call.args[1]) or call.args[1] < 1
         or call.args[1] % 1 ~= 0 or call.args[1] > 9007199254740991) then return nil end
     local args = {}
@@ -54,7 +59,7 @@ local function callCopy(call)
         if not valid then return nil end
         args[key] = copied
     end
-    return {remote = call.remote, method = call.method, arity = expected, args = args}
+    return {remote = call.remote, method = call.method, arity = expected, args = args, statusOnly = statusOnly}
 end
 function ReadCoordinator.new(deps)
     assert(type(deps) == "table" and type(deps.clock) == "table" and type(deps.clock.Now) == "function"
@@ -92,6 +97,11 @@ function ReadCoordinator.new(deps)
     end
     local closed, active, enabled, reasons = false, nil, {}, {}
     local lane, budget, clock, executor = deps.lane, deps.budget, deps.clock, deps.executor
+    local function nativeBusy()
+        if type(executor.InFlight) ~= "function" then return false end
+        local ok, busy = pcall(executor.InFlight, executor)
+        return not ok or busy ~= false
+    end
     local function owns(job)
         return not closed and active == job and enabled[job.id] == true
             and budget:Owns(job.budgetToken) and lane:Owns(job.lease)
@@ -126,6 +136,7 @@ function ReadCoordinator.new(deps)
                 finish(job, false, "Read disabled or source snapshot changed")
             else return "in_flight" end
         end
+        if nativeBusy() then return "busy" end
         local bound = header(snapshot, clock:Now())
         if not bound then return "blocked" end
         local status = lane:Status()
@@ -169,11 +180,12 @@ function ReadCoordinator.new(deps)
         local scheduled, accepted = pcall(executor.Schedule, executor, function()
             local raw = current(job)
             if not raw then finish(job, false, "Read dispatch owner changed"); return end
+            if nativeBusy() then finish(job, false, "Native worker still owns physical invocation"); return end
             local ok, reply = pcall(executor.InvokeOwned, executor, lease, call.remote, call.method,
                 table.unpack(call.args, 1, call.arity))
             raw = current(job)
             if not raw then finish(job, false, "Read result owner changed"); return end
-            if not ok or type(reply) ~= "table" or reply.ok ~= true or reply.pending == true
+            if not ok or type(reply) ~= "table" or (reply.ok ~= true and not (call.statusOnly and reply.ok == false)) or reply.pending == true
                 or reply.code == "rate_limited" or reply.code == "busy" then
                 finish(job, false, "Read reply unavailable"); return
             end

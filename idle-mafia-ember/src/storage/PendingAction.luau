@@ -4,7 +4,7 @@ local MAX = 9007199254740991
 local identity = {"session", "account", "place", "release"}
 local function finite(value) return type(value) == "number" and value == value and math.abs(value) <= MAX end
 local function text(value) return type(value) == "string" and #value > 0 and #value <= 1000 end
-local function convert(value, decode)
+local function convert(value, decode, validateOnly)
     local seen, nodes, bytes = {}, 0, 0
     local function walk(child, depth)
         nodes = nodes + 1
@@ -17,11 +17,12 @@ local function convert(value, decode)
             if not finite(child) then error("Recovery number invalid") end
             bytes = bytes + #tostring(child)
         elseif kind ~= "boolean" and kind ~= "table" then error("Recovery value invalid") end
-        if bytes > 262144 then error("Recovery data exceeds byte limit") end
+        if not validateOnly and bytes > 262144 then error("Recovery data exceeds byte limit") end
         if kind ~= "table" then return child end
         if seen[child] or getmetatable(child) ~= nil then error("Recovery table invalid") end
         seen[child] = true
-        local source, output = child, {}
+        local source, output = child, nil
+        if not validateOnly then output = {} end
         if decode then
             if type(child.entries) ~= "table" then error("Recovery encoding invalid") end
             for field in pairs(child) do if field ~= "entries" then error("Unknown recovery encoding field") end end
@@ -42,10 +43,12 @@ local function convert(value, decode)
             elseif finite(key) and key % 1 == 0 then encoded = "n:" .. tostring(key)
             else error("Recovery key invalid") end
             bytes = bytes + #encoded + 16 -- Includes conservative JSON wrapper overhead.
-            if bytes > 262144 then error("Recovery data exceeds byte limit") end
-            output[decode and restored or encoded] = walk(entry, depth + 1)
+            if not validateOnly and bytes > 262144 then error("Recovery data exceeds byte limit") end
+            local copied = walk(entry, depth + 1)
+            if not validateOnly then output[decode and restored or encoded] = copied end
         end
         seen[child] = nil
+        if validateOnly then return true end
         return decode and output or {entries = output}
     end
     local ok, result = pcall(walk, value, 0)
@@ -83,9 +86,124 @@ local function valid(data, record)
     end
     return true
 end
--- Target catalogs are selection data, not durable outcome evidence. Keep only
--- this action's high-only membership; current full history stays in the live owner.
+-- Explicit capture dependencies; unknown feature contracts retain the full snapshot.
+local recoveryFields = {
+    jobs = {catalogKey = true, jobCatalog = true, masteryRules = true},
+    heists = {catalogKey = true, heistCatalog = true, heistBoardProof = true},
+    heistCollect = {catalogKey = true, heistCatalog = true, heistBoardProof = true, heistControllerProof = true},
+    favors = {catalogKey = true, heistCatalog = true, heistBoardProof = true, favorUsageProof = true},
+    sabotage = {catalogKey = true, heistCatalog = true, heistBoardProof = true,
+        sabotageUsageProof = true, localUserIdProof = true},
+    combat = {hitListProof = true, playerFightProof = true, playerFightUsageProof = true, playerFightHistoryProof = true},
+    warCombat = {warRosterProof = true, playerFightProof = true, playerFightUsageProof = true},
+    bosses = {bossStageProof = true, bossUsageProof = true},
+    bossShop = {bossShopProof = true, bossShopUsageProof = true},
+    globalBossAttack = {globalBossProof = true, localUserIdProof = true, globalAttackUsageProof = true},
+    globalBossClaim = {globalBossProof = true, localUserIdProof = true, globalClaimUsageProof = true},
+    familyBossAttacks = {familyTakedownProof = true, familyAttackProof = true, familyAttackUsageProof = true},
+    familyBossClaims = {familyTakedownProof = true, familyClaimUsageProof = true, familyClaimUsageProofs = true},
+    operations = {catalogKey = true, operationCatalog = true},
+    collect = {catalogKey = true, operationCatalog = true},
+    playtime = {catalogKey = true, ladderCatalog = true, ladderTiers = true, weekendBuff = true},
+    monthlyRewards = {catalogKey = true, monthlyConfig = true},
+    groupBonus = {catalogKey = true, groupConfig = true, groupMembership = true},
+    bank = {bankConfig = true, purchaseSavings = true},
+    withdraw = {fundingRequest = true},
+    safehouse = {catalogKey = true, safehouseCatalog = true},
+    properties = {catalogKey = true, propertyCatalog = true, propertyProof = true},
+    shop = {catalogKey = true, shopCatalog = true, shopQuoteProof = true},
+    contracts = {catalogKey = true, contractConfig = true},
+    bonuses = {catalogKey = true, contractConfig = true, contractBonusConfig = true},
+    trophies = {catalogKey = true, trophyCatalog = true},
+    briefcases = {catalogKey = true, caseEvent = true, briefcaseRules = true},
+    skills = {catalogKey = true, skillRules = true},
+    marketSell = {}, marketFlip = {}, marketManage = {},
+    marketRent = {marketRentTermsProof = true, marketRentUsageProof = true},
+    station = {territoryMap = true, territoryDistrict = true, stationCatalogProof = true, stationReservationProof = true},
+    residency = {residencyView = true, residencyUsageProof = true},
+    familyCash = {familyContributionCatalog = true, familyContributionProof = true, familyActorProof = true, familyUsageProof = true},
+    familyStamina = {familyContributionCatalog = true, familyContributionProof = true, familyActorProof = true, familyUsageProof = true},
+    familyGold = {familyContributionCatalog = true, familyContributionProof = true, familyActorProof = true, familyUsageProof = true},
+    eventShop = {eventShopProof = true, eventShopUsageProof = true},
+    crewRoll = {crewReplacementSourceKey = true, economyProof = true,
+        crewReplacementUsageProof = true, crewReplacementOwnerProof = true},
+    crew = {}, crewGear = {}, crewSort = {}, cosmetics = {},
+    crewHeal = {healRules = true},
+    crewTrain = {trainingCatalog = true},
+    crewHealItems = {healItemCatalog = true},
+    chests = {ownedCrateCatalog = true, crateLuckProof = true},
+    restoratives = {restorativeCatalog = true},
+    collectionDonate = {collectionCatalog = true, collectionProtection = true},
+    prestige = {catalogKey = true, prestigeCatalog = true, prestigeUsageProof = true},
+    crewHire = {catalogKey = true, contractTemplates = true, hireCatalog = true,
+        economyProof = true, crewHireUsageProof = true},
+}
+local commonRecoveryFields = {session = true, account = true, place = true,
+    release = true, revision = true, capturedAt = true, fullSync = true, native = true}
+
+local function sameNative(first, second)
+    local seenFirst, seenSecond, nodes = {}, {}, 0
+    local function compare(a, b, depth)
+        nodes = nodes + 1
+        if nodes > 24000 or depth > 12 or type(a) ~= type(b) then return false end
+        local kind = type(a)
+        if kind ~= "table" then
+            return (kind == "string" or kind == "boolean" or kind == "number" and finite(a)) and a == b
+        end
+        if getmetatable(a) ~= nil or getmetatable(b) ~= nil then return false end
+        if rawequal(a, b) then return true end -- The retained native copy is still validated by convert.
+        if seenFirst[a] or seenSecond[b] then return false end
+        seenFirst[a], seenSecond[b] = true, true
+        for key, value in pairs(a) do
+            if not compare(value, b[key], depth + 1) then return false end
+        end
+        for key in pairs(b) do if a[key] == nil then return false end end
+        seenFirst[a], seenSecond[b] = nil, nil
+        return true
+    end
+    return type(first) == "table" and type(second) == "table" and compare(first, second, 0)
+end
+local function selectedStationCatalog(proposal, before)
+    local intent, catalog = proposal.intent, before.stationCatalogProof
+    local source = before.territoryDistrict
+    local district = type(source) == "table" and source.district
+    if proposal.feature ~= "station" or type(intent) ~= "table"
+        or (intent.kind ~= "territoryStation" and intent.kind ~= "territoryRecall")
+        or type(intent.districtId) ~= "string" or #intent.districtId == 0 or #intent.districtId > 120
+        or type(district) ~= "table" or district.id ~= intent.districtId
+        or type(catalog) ~= "table" or type(catalog.cities) ~= "table" or type(catalog.caps) ~= "table"
+        or type(catalog.cities[intent.districtId]) ~= "string" then return catalog end
+    -- Stationing.read/capture consult only this exact district's city/cap.
+    -- Keep the source identity and full current district/map/reservation proofs.
+    local saved = {}
+    for key, value in pairs(catalog) do if key ~= "cities" and key ~= "caps" then saved[key] = value end end
+    saved.cities = {[intent.districtId] = catalog.cities[intent.districtId]}
+    saved.caps = {[intent.districtId] = catalog.caps[intent.districtId]}
+    return saved
+end
 local function recoveryBefore(proposal, before)
+    -- NativeSnapshotReader exposes one Sync through both names. Store its full
+    -- native evidence once; decoded historical copies may have lost the alias.
+    if type(before) == "table" and getmetatable(before) == nil and before.data ~= nil then
+        if not sameNative(before.data, before.native) then return nil, "Duplicate native recovery data differs" end
+        local saved = {}
+        for key, value in pairs(before) do if key ~= "data" then saved[key] = value end end
+        before = saved
+    end
+    local fields = recoveryFields[proposal.feature]
+    if fields and type(before) == "table" and getmetatable(before) == nil then
+        -- Projection may discard selection data, never a malformed graph. The
+        -- retained action payload still obeys the original byte limit below.
+        if not convert(before, false, true) then return nil, "Recovery snapshot graph invalid" end
+        local saved = {}
+        for key, value in pairs(before) do
+            if commonRecoveryFields[key] or fields[key] then saved[key] = value end
+        end
+        before = saved
+        if proposal.feature == "station" then before.stationCatalogProof = selectedStationCatalog(proposal, before) end
+    end
+    -- Target catalogs are selection data, not durable outcome evidence. Keep only
+    -- this action's high-only membership; current full history stays in the live owner.
     local ledger = type(before) == "table" and before.playerFightHistoryProof
     if type(ledger) ~= "table" or ledger.highValue == nil or getmetatable(before) ~= nil or getmetatable(ledger) ~= nil then return before end
     local saved, history = {}, {}
@@ -109,7 +227,9 @@ function PendingAction.Capture(proposal, before, baseline, reply)
     for _, key in ipairs({"session", "account", "place", "release", "revision", "feature", "actionKey", "resources", "intent", "requestId"}) do
         request[key] = proposal[key]
     end
-    local data = {proposal = request, before = recoveryBefore(request, before), baseline = baseline, reply = reply}
+    local savedBefore, reason = recoveryBefore(request, before)
+    if savedBefore == nil then return nil, reason or "Complete recovery intent and baseline required" end
+    local data = {proposal = request, before = savedBefore, baseline = baseline, reply = reply}
     if not valid(data) then return nil, "Complete recovery intent and baseline required" end
     local encoded = convert(data, false)
     if not encoded then return nil, "Recovery data invalid or exceeds bounded storage" end

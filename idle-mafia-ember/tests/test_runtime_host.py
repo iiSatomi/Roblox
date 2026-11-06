@@ -46,6 +46,7 @@ class RuntimeHostTests(unittest.TestCase):
                     files = deps.files,
                     shopQuoteSource = deps.shopQuoteSource,
                     rewardsSource = deps.rewardsSource,
+                    uiParent = deps.uiParent,
                     Step = function(self, raw)
                         self.seen = self.seen + 1
                         return true
@@ -170,11 +171,11 @@ class RuntimeHostTests(unittest.TestCase):
         self.assertIsNotNone(host.app.transport.Send)
         self.assertIsNotNone(host.app.files.ReadFile)
         self.events.sync(lua_table(self.h.lua, {"cash": 10}))
-        self.assertEqual(host.app.seen, 1)
+        self.assertEqual(host.app.seen, 0)
         self.events.changed(lua_table(self.h.lua, {"cash": 11}))
-        self.assertEqual(host.app.seen, 2)
+        self.assertEqual(host.app.seen, 0)
         self.timer.callback()
-        self.assertEqual(host.app.seen, 3)
+        self.assertEqual(host.app.seen, 2)
         host.app.Destroy(host.app)
         self.assertFalse(host.alive)
         self.assertFalse(host.active)
@@ -196,6 +197,42 @@ class RuntimeHostTests(unittest.TestCase):
         self.assertIsNone(self.host_module.start(self.deps)[0])
         self.assertIsNone(self.events.sync)
 
+    def test_destroy_keeps_receipt_source_and_lease_until_app_final_flush(self):
+        self.h.lua.globals().flushLane = None
+        self.h.lua.globals().receiptSource = self.h.lua.execute("""return {
+            closed=false, Close=function(self) self.closed=true end,
+            Begin=function() end, Bind=function() end, Release=function() end}
+        """)
+        self.deps["FightReceipts"] = self.h.lua.execute("""return {
+            new=function() return receiptSource end}
+        """)
+        self.deps["nativeFightNotifications"] = self.h.lua.table()
+        self.deps["fingerprint"] = "a" * 64
+        original = self.app_module.start
+        self.app_module.start = self.h.lua.eval("""function(original)
+            return function(deps)
+                local app=original(deps)
+                local destroy=app.Destroy
+                function app:Destroy()
+                    assert(not receiptSource.closed, 'Receipt source retired before final flush')
+                    assert(flushLane:Owns(flushToken), 'Receipt lease retired before final flush')
+                    finalFlushReached=true
+                    return destroy(self)
+                end
+                return app
+            end
+        end""")(original)
+        host, reason = self.host_module.start(self.deps)
+        self.assertIsNone(reason)
+        self.h.lua.globals().flushLane = host.requestLane
+        self.h.lua.globals().flushToken = host.requestLane.TryAcquire(
+            host.requestLane, "mutation", "owned:fight", 45)[0]
+        self.assertTrue(host.Destroy(host))
+        self.assertTrue(self.h.lua.globals().finalFlushReached)
+        self.assertTrue(self.h.lua.globals().receiptSource.closed)
+        self.assertFalse(host.requestLane.Owns(host.requestLane, self.h.lua.globals().flushToken))
+        self.assertFalse(host.active)
+
     def test_current_client_mode_uses_resolved_bindings_and_observer(self):
         self.h.lua.globals().real_folder = self.deps["remotesFolder"]
         self.h.lua.globals().real_state = self.deps["nativeState"]
@@ -208,6 +245,7 @@ class RuntimeHostTests(unittest.TestCase):
         }""")
         self.deps["activateCurrentClient"] = True
         self.deps["clientGame"] = self.h.lua.table()
+        self.deps["uiParent"] = lua_table(self.h.lua, {"Name": "CallerGui"})
         self.deps["clientRequire"] = self.h.lua.eval("function() end")
         self.deps["clientHash"] = self.h.lua.eval("function() end")
         self.deps["NativeClientBindings"] = self.h.lua.execute("""return {
@@ -215,6 +253,8 @@ class RuntimeHostTests(unittest.TestCase):
                 remotesFolder = real_folder, nativeState = real_state,
                 gameData = {}, gearSets = {}, combatRules = {},
                 currentDailyBuffRules = real_rewards_rule,
+                uiParent = {Name = 'NativePlayerGui', Parent = {},
+                    IsA = function(_, kind) return kind == 'PlayerGui' end},
                 config = { GROUP = { id = 123 } },
                 groupLookup = function(id) return id == 123 end,
             } end,
@@ -253,6 +293,7 @@ class RuntimeHostTests(unittest.TestCase):
         self.assertIsNotNone(host)
         self.assertIsNotNone(self.events.sync)
         self.assertEqual(host.app.rewardsSource.groupId, 123)
+        self.assertEqual(host.app.uiParent.Name, "NativePlayerGui")
         self.assertTrue(host.app.rewardsSource.IsWeekend(
             host.app.rewardsSource, 0))
         host.Destroy(host)

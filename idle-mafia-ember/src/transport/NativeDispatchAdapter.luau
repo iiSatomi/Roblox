@@ -3,7 +3,27 @@ local NativeDispatchAdapter = {}
 local Methods = {}
 Methods.__index = Methods
 
-function NativeDispatchAdapter.new(plan, executor, lane, clock, fightReceipts)
+local function sameArgument(a, b, depth, budget)
+    budget.nodes = budget.nodes + 1
+    if budget.nodes > 256 or type(a) ~= type(b) then return false end
+    local kind = type(a)
+    if kind ~= "table" then
+        return a == b and (kind == "nil" or kind == "boolean"
+            or kind == "string" and #a <= 512
+            or kind == "number" and a == a and math.abs(a) <= 9007199254740991)
+    end
+    if depth > 4 or getmetatable(a) ~= nil or getmetatable(b) ~= nil then return false end
+    for key, value in pairs(a) do
+        local keyType = type(key)
+        if not (keyType == "string" and #key <= 120
+            or keyType == "number" and key % 1 == 0 and key >= 1 and key <= 128)
+            or not sameArgument(value, b[key], depth + 1, budget) then return false end
+    end
+    for key in pairs(b) do if a[key] == nil then return false end end
+    return true
+end
+
+function NativeDispatchAdapter.new(plan, executor, lane, clock, fightReceipts, heistController)
     assert(type(plan) == "table" and type(plan.describe) == "function",
         "Missing native call plan")
     assert(type(executor) == "table"
@@ -17,12 +37,23 @@ function NativeDispatchAdapter.new(plan, executor, lane, clock, fightReceipts)
     assert(fightReceipts == nil or (lane ~= nil and type(fightReceipts) == "table"
         and type(fightReceipts.Begin) == "function" and type(fightReceipts.Bind) == "function"
         and type(fightReceipts.Release) == "function"), "Invalid fight receipt owner")
+    assert(heistController == nil or (lane ~= nil and type(heistController) == "table"
+        and type(heistController.Current) == "function" and type(heistController.Start) == "function"
+        and type(heistController.Busy) == "function"), "Invalid native Heist owner")
     return setmetatable({ plan = plan, executor = executor, fightReceipts = fightReceipts,
+        heistController = heistController, heistCurrent = heistController and heistController.Current,
+        heistStart = heistController and heistController.Start, heistBusy = heistController and heistController.Busy,
         lane = lane, clock = clock, lease = nil,
         invoking = nil }, Methods)
 end
 
 function Methods:InFlight()
+    if self.heistController then
+        local source = self.heistController
+        local ok, busy = pcall(self.heistBusy)
+        if source.Current ~= self.heistCurrent or source.Start ~= self.heistStart or source.Busy ~= self.heistBusy
+            or not ok or busy ~= false then return true end
+    end
     if self.lane then
         local status = self.lane:Status()
         return status.closed or status.now == nil or status.active ~= nil
@@ -82,6 +113,15 @@ function Methods:Validate(proposal)
         or type(self.fightReceipts.CheckScout) ~= "function") then
         return false, "Current owned Scout preflight unavailable"
     end
+    if call.remote == "HeistAction" then
+        local source = self.heistController
+        if call.nativeAct ~= true or call.arity ~= 2 or not source
+            or source.Current ~= self.heistCurrent or source.Start ~= self.heistStart or source.Busy ~= self.heistBusy then
+            return false, "Current shared native Heist owner unavailable"
+        end
+        local checked, current = pcall(self.heistCurrent)
+        if not checked or current ~= true then return false, "Native Heist source changed" end
+    end
     local token = {}
     self.validated = { proposal = proposal, call = call, token = token }
     return true, nil, token
@@ -100,6 +140,7 @@ function Methods:Send(proposal, onReturn, canDispatch, preflightToken, onUnsent,
     end
     local call = self.validated.call
     self.validated = nil
+    if call.nativeAct == true and type(authorize) ~= "function" then return false end
     local lease
     if self.lane then
         local token = self.lane:TryAcquire("mutation", proposal.actionKey, self.clock:Now() + 45)
@@ -118,12 +159,22 @@ function Methods:Send(proposal, onReturn, canDispatch, preflightToken, onUnsent,
             if type(onUnsent) == "function" then onUnsent() end
             return
         end
+        local nativeSequence, recordHeistReturn
         if authorize ~= nil then
             local authorized, exact = pcall(authorize)
             local same = authorized and type(exact) == "table" and exact.remote == call.remote
                 and exact.method == call.method and exact.arity == call.arity and type(exact.args) == "table"
             if same then
-                for index = 1, call.arity do if exact.args[index] ~= call.args[index] then same = false; break end end
+                local budget = {nodes = 0}
+                for index = 1, call.arity do
+                    if not sameArgument(exact.args[index], call.args[index], 0, budget) then same = false; break end
+                end
+            end
+            if same and call.nativeAct == true then
+                nativeSequence, recordHeistReturn = exact.nativeSequence, exact.recordHeistReturn
+                same = type(nativeSequence) == "number" and nativeSequence % 1 == 0
+                    and nativeSequence >= 1 and nativeSequence <= 9007199254740991
+                    and type(recordHeistReturn) == "function"
             end
             -- Authorizing a durable stage can yield while writing. Recheck all
             -- runtime/selection/deadline/lease guards after that write.
@@ -155,6 +206,29 @@ function Methods:Send(proposal, onReturn, canDispatch, preflightToken, onUnsent,
         end
         local invocation = { proposal = proposal }
         self.invoking = invocation
+        if call.nativeAct == true then
+            local source = self.heistController
+            local checked, accepted = false, false
+            if source and source.Current == self.heistCurrent and source.Start == self.heistStart
+                and source.Busy == self.heistBusy then
+                checked, accepted = pcall(self.heistStart, nativeSequence, call.args[1], call.args[2], function(reply)
+                    -- This sink also runs after the broker deadline. Persist exact
+                    -- native success before an expired broker can discard its callback.
+                    local stored, saved = pcall(recordHeistReturn, reply)
+                    if stored and saved == true and (not lease or self.lane:Owns(lease.token)) then
+                        if lease then lease.returned = true end
+                        onReturn(reply)
+                    end
+                end)
+            end
+            if self.invoking == invocation then self.invoking = nil end
+            if checked and accepted == false then
+                self:ReleaseResolved(proposal, "heist_dispatch_refused")
+                if type(onUnsent) == "function" then onUnsent() end
+            end
+            -- An exception after entering native act is uncertain; never mark it unsent.
+            return
+        end
         local ok, reply
         if lease then
             ok, reply = pcall(self.executor.InvokeOwned, self.executor, lease.token,

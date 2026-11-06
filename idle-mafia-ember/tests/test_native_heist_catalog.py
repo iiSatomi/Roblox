@@ -40,6 +40,18 @@ class NativeHeistCatalogTests(unittest.TestCase):
         self.assertIsNone(adapter.Enrich(adapter,
             self.h.snapshot(native={"fullSync": False}))[0])
 
+    def test_native_help_rewards_are_copied_for_favor_planning(self):
+        self.source.HEISTS[1].helpCash = 120
+        self.source.HEISTS[1].helpXp = 7
+        adapter = self.adapter()
+        raw = self.h.snapshot(native={"fullSync": True})
+        rows = adapter.Enrich(adapter, raw)[0].heistCatalog
+        self.assertEqual((rows[1].helpCash, rows[1].helpXp), (120, 7))
+        self.assertEqual((rows[2].helpCash, rows[2].helpXp), (0, 0))
+        self.source.HEISTS[1].helpCash = -1
+        with self.assertRaises(Exception):
+            self.adapter()
+
     def test_duplicate_or_malformed_definition_is_rejected(self):
         self.source["HEISTS"][2]["id"] = "heist_cornerstore"
         with self.assertRaises(Exception):

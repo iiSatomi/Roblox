@@ -178,7 +178,8 @@ function CrewTab.new(deps)
     local self = setmetatable({ id = "crew", roster = deps.RosterState,
         autoEquip = deps.AutoEquipCrew, sort = deps.CrewSort,
         heal = deps.CrewHeal, train = deps.CrewTrain,
-        hire = deps.CrewHire, healItems = deps.CrewHealItems,
+        hire = type(deps.ContractGoalState) == "table" and type(deps.CrewHire.new) == "function"
+            and deps.CrewHire.new(deps.ContractGoalState) or deps.CrewHire, healItems = deps.CrewHealItems,
         gear = gear, roll = deps.CrewRollState, replacement = replacement,
         replacementTransactions = deps.CrewReplacementTransactions,
         reservationModule = deps.ResourceReservations,

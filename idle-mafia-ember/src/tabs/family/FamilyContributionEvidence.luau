@@ -10,19 +10,28 @@ local function same(a, b)
     return true
 end
 
-local function balance(raw, resource)
+local function goldCustody(raw)
+    local native = type(raw) == "table" and raw.native
+    if type(native) ~= "table" or native.fullSync ~= true or type(native.inventory) ~= "table"
+        or type(native.inventoryBound) ~= "table" then return nil end
+    local loose, bound = native.inventory.gold_bar, native.inventoryBound.gold_bar
+    if loose == nil then loose = 0 end
+    if bound == nil then bound = 0 end
+    for _, value in ipairs({loose, bound}) do
+        if type(value) ~= "number" or value ~= value or value % 1 ~= 0 or value < 0 or value > 1000000000 then return nil end
+    end
+    return loose, bound
+end
+local function balance(raw, resource, nativeGoldPool)
     local native = type(raw) == "table" and raw.native
     if type(native) ~= "table" or native.fullSync ~= true then return nil end
     local value
     if resource == "cash" then value = native.cash
     elseif resource == "stamina" and type(native.pools) == "table" then value = native.pools.stamina
-    elseif resource == "gold_bar" and type(native.inventory) == "table"
-        and type(native.inventoryBound) == "table" then
-        local bound = native.inventoryBound.gold_bar
-        if bound == nil then bound = 0 end
-        if bound ~= 0 then return nil end
-        value = native.inventory.gold_bar
-        if value == nil then value = 0 end
+    elseif resource == "gold_bar" then
+        local loose, bound = goldCustody(raw)
+        if loose == nil or not nativeGoldPool and bound ~= 0 then return nil end
+        value = nativeGoldPool and loose + bound or loose
     end
     if type(value) == "number" and value == value and value >= 0
         and value <= 9007199254740991 then return value end
@@ -42,6 +51,8 @@ function FamilyContributionEvidence.new(state)
             or intent.familyId ~= view.familyId or intent.ledgerBefore ~= view.ledger[intent.resource]
             or type(intent.amount) ~= "number" or intent.amount % 1 ~= 0 or intent.amount < 1
             or intent.amount > 1000000000000000 then return nil, "Personal Family baseline changed" end
+        if intent.allowNativeGoldPool ~= nil and (intent.resource ~= "gold_bar"
+            or type(intent.allowNativeGoldPool) ~= "boolean") then return nil, "Family Gold permission changed" end
         local usage = type(view.usage) == "table" and view.usage[proposal.feature]
         if type(usage) ~= "table" or usage.spent ~= intent.spentBefore
             or usage.attempted ~= intent.attemptsBefore
@@ -57,7 +68,7 @@ function FamilyContributionEvidence.new(state)
         local resourceCount = 0
         for _ in pairs(proposal.resources) do resourceCount = resourceCount + 1 end
         if resourceCount ~= 1 then return nil, "Unexpected Family resource exposure" end
-        local current = balance(before, intent.resource)
+        local current = balance(before, intent.resource, intent.allowNativeGoldPool == true)
         if not current or current - intent.amount < intent.reserve then
             return nil, "Family resource baseline missing"
         end
@@ -76,8 +87,13 @@ function FamilyContributionEvidence.new(state)
             amount = intent.amount, ledger = intent.ledgerBefore, perkId = intent.perkId,
             perkLevel = intent.perkLevelBefore, progress = intent.perkProgressBefore,
             cost = intent.perkCost, serverNow = before.native.serverNow,
+            capacity = view.capacity,
             sourceKey = before.familyContributionCatalog.key }
         for _, key in ipairs({ "session", "account", "place", "release" }) do baseline[key] = before[key] end
+        if intent.resource == "gold_bar" then
+            baseline.goldLoose, baseline.goldBound = goldCustody(before)
+            baseline.allowNativeGoldPool = intent.allowNativeGoldPool == true
+        end
         return baseline, nil
     end
     local function reconcile(proposal, before, after, reply, baseline, restart)
@@ -88,12 +104,14 @@ function FamilyContributionEvidence.new(state)
             or type(intent) ~= "table" or intent.kind ~= "familyContribution"
             or features[proposal.feature] ~= baseline.resource
             or intent.resource ~= baseline.resource or intent.amount ~= baseline.amount
+            or baseline.resource == "gold_bar" and (intent.allowNativeGoldPool == true) ~= baseline.allowNativeGoldPool
             or intent.ledgerBefore ~= baseline.ledger or intent.actorId ~= baseline.actorId
             or intent.perkId ~= baseline.perkId or intent.perkLevelBefore ~= baseline.perkLevel
             or intent.perkProgressBefore ~= baseline.progress or intent.perkCost ~= baseline.cost
             or intent.familyId ~= baseline.familyId or proposal.revision ~= baseline.revision
             or before.revision ~= baseline.revision or type(reply) ~= "table"
             or type(after.native) ~= "table" or type(after.native.family) ~= "table"
+            or after.native.userId ~= baseline.actorId
             or after.native.family.id ~= baseline.familyId
             or type(after.revision) ~= "number" or after.revision % 1 ~= 0 or after.revision < 0
             or type(baseline.serverNow) ~= "number" or baseline.serverNow < 0 or baseline.serverNow == math.huge
@@ -104,19 +122,26 @@ function FamilyContributionEvidence.new(state)
             or type(after.familyContributionCatalog) ~= "table"
             or after.familyContributionCatalog.key ~= baseline.sourceKey
             or reply.pending == true or reply.code == "rate_limited" or reply.code == "presence" then return "pending" end
-        local current = balance(after, baseline.resource)
+        local current = balance(after, baseline.resource, baseline.allowNativeGoldPool)
         if not current then return "pending" end
+        local loose, bound
+        if baseline.resource == "gold_bar" then
+            loose, bound = goldCustody(after)
+            if loose == nil or type(baseline.goldLoose) ~= "number" or type(baseline.goldBound) ~= "number"
+                or loose > baseline.goldLoose or bound > baseline.goldBound then return "pending" end
+        end
         if reply.ok == false then
-            local receipt = reply.family ~= nil and state.parseFamily(reply.family, baseline.actorId)
+            local receipt = reply.family ~= nil and state.parseFamily(reply.family, baseline.actorId, baseline.capacity)
             if reply.family ~= nil and (not receipt or receipt.familyId ~= baseline.familyId
                 or receipt.ledger[baseline.resource] ~= baseline.ledger) then return "pending" end
-            return current == baseline.balance and "rejected" or "pending"
+            return current == baseline.balance and (baseline.resource ~= "gold_bar"
+                or loose == baseline.goldLoose and bound == baseline.goldBound) and "rejected" or "pending"
         end
         if reply.ok ~= true or reply.pending == true or reply.code == "rate_limited"
             or current ~= baseline.balance - baseline.amount then
             return "pending"
         end
-        local receipt = state.parseFamily(reply.family, baseline.actorId)
+        local receipt = state.parseFamily(reply.family, baseline.actorId, baseline.capacity)
         if not receipt or receipt.familyId ~= baseline.familyId
             or receipt.ledger[baseline.resource] ~= baseline.ledger + baseline.amount then return "pending" end
         if baseline.resource == "stamina" then

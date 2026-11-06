@@ -373,7 +373,7 @@ local function persist(self, nextRecord, listingAttempts, withdrawAttempts, buyA
         return self.storage:Write(self.key, nextEnvelope)
     end)
     if writers[self.key] == self then writers[self.key] = nil end
-    if not ok or result == false then
+    if not ok or result ~= true then
         return false, "Market transaction persistence failed"
     end
     self.flipListingAttempts=flipListingAttempts
@@ -588,7 +588,7 @@ function Methods:RecordRuntimeUnsent(actionKey, preparedGeneration)
     if not read or (existing ~= nil and not equal(existing, fact)) then return false, "Unsent fact changed" end
     if existing ~= nil then return true, nil end
     local wrote, result = pcall(self.storage.Write, self.storage, factKey, fact)
-    return wrote and result ~= false, (not wrote or result == false) and "Unsent evidence write failed" or nil
+    return wrote and result == true, (not wrote or result ~= true) and "Unsent evidence write failed" or nil
 end
 
 function Methods:RuntimeUnsentReview()
@@ -679,7 +679,7 @@ function Methods:ReleaseRejectedRuntimeList(review, raw)
         listingAttempts=self.listingAttempts,withdrawAttempts=self.withdrawAttempts,buyAttempts=self.buyAttempts,buySpent=self.buySpent,flipListingAttempts=self.flipListingAttempts}
     local wrote,result=pcall(self.storage.Write,self.storage,
         self.key..":rejected:"..tostring(current.transaction.preparedGeneration),fact)
-    if not wrote or result==false then return false,"Rejected cleanup receipt write failed" end
+    if not wrote or result~=true then return false,"Rejected cleanup receipt write failed" end
     return persist(self, rejectedOrigin(current.transaction)) -- Retain charged attempt and intermediate item custody.
 end
 

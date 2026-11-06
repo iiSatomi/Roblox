@@ -1,6 +1,10 @@
 -- Locate the current public MWClient State and replicated Remotes instances.
 local NativeClientBindings = {}
 
+local function reviewedVersion(version)
+    return version == 654 or version == 655
+end
+
 local function child(parent, name, class)
     if parent == nil then return nil end
     local value = parent:FindFirstChild(name)
@@ -9,7 +13,7 @@ local function child(parent, name, class)
     return value
 end
 
-local function resolve(game, requireModule, readUpvalues)
+local function resolve(game, requireModule, readUpvalues, heistControllerModule, recallControllerModule)
     local players = game:GetService("Players")
     local player = players and players.LocalPlayer
     local scripts = player and child(player, "PlayerScripts", "PlayerScripts")
@@ -30,7 +34,7 @@ local function resolve(game, requireModule, readUpvalues)
     end
     local latest = state.latest()
     if type(latest) ~= "table" then return nil end
-    local dailyBuffRules, config, gameData, gearSets
+    local dailyBuffRules, config, gameData, gearSets, cityMaps
     local dailyModule = child(mw, "DailyBuffRules", "ModuleScript")
     if dailyModule then
         local ok, value = pcall(requireModule, dailyModule)
@@ -53,6 +57,12 @@ local function resolve(game, requireModule, readUpvalues)
     if gearSetsModule then
         local ok, value = pcall(requireModule, gearSetsModule)
         if ok and type(value) == "table" then gearSets = value end
+    end
+    local cityMapsModule = child(mw, "CityMaps", "ModuleScript")
+    if cityMapsModule then
+        local ok, value = pcall(requireModule, cityMapsModule)
+        if ok and type(value) == "table" and type(value.BY_ID) == "table"
+            and type(value.BY_NAME) == "table" then cityMaps = value end
     end
     if type(config) ~= "table" or type(config.COMBAT) ~= "table"
         or type(gameData) ~= "table" or type(gearSets) ~= "table"
@@ -196,7 +206,7 @@ local function resolve(game, requireModule, readUpvalues)
     -- Use the game's own wrapper; never read, store or reconstruct its validation value.
     local nativeRemoteLink
     local remoteLinkModule = child(client, "RemoteLink", "ModuleScript")
-    if game.PlaceVersion == 648 and not remoteLinkModule then return nil end
+    if reviewedVersion(game.PlaceVersion) and not remoteLinkModule then return nil end
     if remoteLinkModule then
         local remoteLink = requireModule(remoteLinkModule)
         if type(remoteLink) ~= "table" or type(remoteLink.wrap) ~= "function" then return nil end
@@ -241,7 +251,7 @@ local function resolve(game, requireModule, readUpvalues)
         end
         local fightModule, fight, attackFunction, remainingFunction, cooldownFunction
         local function nativeFunctions()
-            if not current() or game.PlaceVersion ~= 648 or type(readUpvalues) ~= "function"
+            if not current() or not reviewedVersion(game.PlaceVersion) or type(readUpvalues) ~= "function"
                 or child(mw, "Config", "ModuleScript") ~= configModule then error("Native fight guard unavailable") end
             local module = child(client, "FightTab", "ModuleScript")
             if not module or fightModule and fightModule ~= module then error("Native FightTab changed") end
@@ -271,8 +281,125 @@ local function resolve(game, requireModule, readUpvalues)
         local function finite(value)
             return type(value) == "number" and value == value and value >= 0 and value <= 9007199254740991
         end
+        local warSnapshot, warTarget, warAccept
+        local function warAllowed(up, data, intent, target)
+            local source, native = up[5], type(data.derived) == "table" and data.derived.war
+            if type(source.snapshot) ~= "function" or type(source.targetOf) ~= "function"
+                or warSnapshot and warSnapshot ~= source.snapshot or warTarget and warTarget ~= source.targetOf then return false end
+            warSnapshot, warTarget = source.snapshot, source.targetOf
+            local status, row = source.snapshot(), source.targetOf(target)
+            local now, own = data.serverNow, type(data.family) == "table" and data.family.id
+            local function integer(value, low) return finite(value) and value % 1 == 0 and value >= low end
+            if not finite(now) or type(status) ~= "table" or not finite(status.serverNow)
+                or math.abs(now - status.serverNow) > 10 or status.day ~= math.floor(now / 86400)
+                or intent.warDay ~= status.day or not finite(intent.warStatusServerNow)
+                or math.abs(now - intent.warStatusServerNow) > 10
+                or type(native) ~= "table" or native.state ~= "active"
+                or own == nil or own == 0 or own ~= intent.warOwnFamilyId
+                or type(status.summary) ~= "table" or status.summary.canScore ~= true
+                or not integer(status.summary.ownRemaining, 0) or not integer(status.summary.ownCap, 0)
+                or status.summary.ownRemaining > status.summary.ownCap
+                or status.summary.eligibleAt ~= nil and (not finite(status.summary.eligibleAt) or status.summary.eligibleAt > now)
+                or type(status.targets) ~= "table" or #status.targets > 128 then return false end
+            local enemy = status.summary.enemyId or (status.targets[1] and status.targets[1].familyId)
+            if enemy ~= intent.warEnemyFamilyId or enemy ~= intent.familyId or enemy == own
+                or type(enemy) ~= type(own) or native.enemyId ~= nil and native.enemyId ~= enemy
+                or type(row) ~= "table" or row.userId ~= target or row.familyId ~= enemy
+                or row.name ~= intent.targetName or row.level ~= intent.targetLevel then return false end
+            local found, seen, count = false, {}, 0
+            for key, item in pairs(status.targets) do
+                count = count + 1
+                if not integer(key, 1) or key > #status.targets or type(item) ~= "table"
+                    or not integer(item.userId, 1) or seen[item.userId] or item.familyId ~= enemy then return false end
+                seen[item.userId] = true
+                if item == row then found = true end
+            end
+            local allowance = row.warStatus
+            return found and count == #status.targets and type(allowance) == "table"
+                and allowance.day == status.day and allowance.canScore == true
+                and integer(allowance.remaining, 1) and integer(allowance.cap, 1) and allowance.remaining <= allowance.cap
+                and integer(allowance.attacksRemaining, 1) and integer(allowance.attacksCap, 1)
+                and allowance.attacksRemaining <= allowance.attacksCap and integer(allowance.pairRemaining, 1)
+        end
+        local function acceptWarStatus(raw, expected)
+            local up = nativeFunctions()
+            local source, data = up[5], state.latest()
+            local function scopeEqual(a, b)
+                if type(a) ~= "table" or type(b) ~= "table" or a.serverNow ~= b.serverNow then return false end
+                local af, bf = type(a.family) == "table" and a.family.id, type(b.family) == "table" and b.family.id
+                local aw = type(a.derived) == "table" and a.derived.war
+                local bw = type(b.derived) == "table" and b.derived.war
+                return af == bf and type(aw) == type(bw)
+                    and (type(aw) ~= "table" or aw.state == bw.state and aw.enemyId == bw.enemyId)
+            end
+            if not scopeEqual(data, expected) or expected.fullSync ~= true or not finite(data.serverNow)
+                or type(source.accept) ~= "function" or type(source.snapshot) ~= "function"
+                or type(source.targetOf) ~= "function" or warAccept and warAccept ~= source.accept
+                or warSnapshot and warSnapshot ~= source.snapshot or warTarget and warTarget ~= source.targetOf then return false end
+            warAccept, warSnapshot, warTarget = source.accept, source.snapshot, source.targetOf
+            local nodes, bytes, seen = 0, 0, {}
+            local function copy(value, depth)
+                nodes = nodes + 1
+                if nodes > 8192 or depth > 8 then error("War cache payload exceeds bounds") end
+                local kind = type(value)
+                if kind == "string" then
+                    bytes = bytes + #value
+                    if #value > 8192 or bytes > 262144 then error("War cache strings exceed bounds") end
+                elseif kind == "number" then
+                    if value ~= value or math.abs(value) > 9007199254740991 then error("Invalid war cache number") end
+                elseif kind ~= "table" and kind ~= "boolean" and kind ~= "nil" then error("Invalid war cache value") end
+                if kind ~= "table" then return value end
+                if seen[value] or getmetatable(value) ~= nil then error("Invalid war cache graph") end
+                seen[value] = true
+                local out = {}
+                for key, childValue in pairs(value) do
+                    if type(key) ~= "string" and type(key) ~= "number" then error("Invalid war cache key") end
+                    out[copy(key, depth + 1)] = copy(childValue, depth + 1)
+                end
+                seen[value] = nil
+                return out
+            end
+            local payload = copy(raw, 0)
+            if type(payload) ~= "table" or not finite(payload.serverNow) or math.abs(data.serverNow - payload.serverNow) > 10
+                or payload.day ~= math.floor(payload.serverNow / 86400) or payload.day ~= math.floor(data.serverNow / 86400)
+                or type(payload.targets) ~= "table" or #payload.targets > 128 then return false end
+            local count, ids = 0, {}
+            local nativeWar = type(data.derived) == "table" and data.derived.war
+            local active = type(nativeWar) == "table" and nativeWar.state == "active"
+            local enemy = type(payload.summary) == "table" and (payload.summary.enemyId or (payload.targets[1] and payload.targets[1].familyId))
+            local function integer(value, low) return finite(value) and value % 1 == 0 and value >= low end
+            if type(payload.summary) == "table" then
+                local summary = payload.summary
+                if type(summary.canScore) ~= "boolean" or not integer(summary.ownRemaining, 0) or not integer(summary.ownCap, 0)
+                    or summary.ownRemaining > summary.ownCap
+                    or summary.eligibleAt ~= nil and not finite(summary.eligibleAt) then return false end
+            end
+            for key, row in pairs(payload.targets) do
+                count = count + 1
+                if not finite(key) or key % 1 ~= 0 or key < 1 or key > #payload.targets or type(row) ~= "table"
+                    or not integer(row.userId, 1) or ids[row.userId] or not integer(row.level, 1)
+                    or type(row.name) ~= "string" or #row.name < 1 or #row.name > 64 or row.name:find("[%c]")
+                    or active and row.familyId ~= enemy then return false end
+                local allowance = row.warStatus
+                if type(allowance) ~= "table" or allowance.day ~= payload.day or type(allowance.canScore) ~= "boolean"
+                    or not integer(allowance.remaining, 0) or not integer(allowance.cap, 0) or allowance.remaining > allowance.cap
+                    or not integer(allowance.attacksRemaining, 0) or not integer(allowance.attacksCap, 0)
+                    or allowance.attacksRemaining > allowance.attacksCap or not integer(allowance.pairRemaining, 0) then return false end
+                ids[row.userId] = true
+            end
+            if count ~= #payload.targets or active and (type(payload.summary) ~= "table" or enemy == nil
+                    or type(data.family) ~= "table" or enemy == data.family.id or type(enemy) ~= type(data.family.id)
+                    or nativeWar.enemyId ~= nil and nativeWar.enemyId ~= enemy)
+                or not active and (payload.summary ~= nil or count ~= 0) then return false end
+            if not scopeEqual(state.latest(), expected) then return false end
+            local accepted = warAccept(payload)
+            local latestUp = nativeFunctions()
+            return accepted == true and latestUp[5] == source and source.accept == warAccept
+                and source.snapshot == warSnapshot and source.targetOf == warTarget
+                and scopeEqual(state.latest(), expected) and source.snapshot() == payload
+        end
         local function canAttack(proposal, target)
-            if type(proposal) ~= "table" or proposal.feature ~= "combat"
+            if type(proposal) ~= "table" or (proposal.feature ~= "combat" and proposal.feature ~= "warCombat")
                 or type(proposal.intent) ~= "table" or proposal.intent.kind ~= "playerAttack"
                 or proposal.intent.target ~= target or not finite(target) or target % 1 ~= 0 or target < 1
                 or target == player.UserId or type(proposal.resources) ~= "table" then
@@ -302,7 +429,13 @@ local function resolve(game, requireModule, readUpvalues)
                 or not finite(data.serverNow) or not finite(data.shieldUntil)
                 or data.shieldUntil > data.serverNow then return false, "Native busy, shield or resource guard" end
             local row = {userId = target, familyId = proposal.intent.familyId}
-            if not (type(row.familyId) == "string" and #row.familyId <= 120 or row.familyId == 0)
+            local validFamily = type(row.familyId) == "string" and #row.familyId <= 120 or row.familyId == 0
+            if proposal.feature == "warCombat" then
+                validFamily = (type(row.familyId) == "string" and #row.familyId > 0 and #row.familyId <= 120
+                    and not row.familyId:find("[%c]") or finite(row.familyId) and row.familyId % 1 == 0 and row.familyId >= 1)
+                    and warAllowed(up, data, proposal.intent, target)
+            end
+            if not validFamily
                 or up[3](row) ~= false or up[5].warning(target) ~= nil then
                 return false, "Native Family or war warning requires manual handling"
             end
@@ -425,7 +558,10 @@ local function resolve(game, requireModule, readUpvalues)
             return ok and type(value) == "function" and value or nil
         end
         local isFriends = friendshipMethod()
-        currentFightNotifications = {Current = current, CombatFrame = function(_, native, targets)
+        currentFightNotifications = {Current = current, AcceptWarStatus = function(_, raw, expected)
+            local ok, accepted = pcall(acceptWarStatus, raw, expected)
+            return ok and accepted == true
+        end, CombatFrame = function(_, native, targets)
             local ok, value = pcall(combatFrame, native, targets)
             return ok and value or nil
         end, Friendship = function(_, target)
@@ -464,7 +600,7 @@ local function resolve(game, requireModule, readUpvalues)
     local incomeFunction = config.fightIncomeMult
     local propertyRows = gameData.PROPERTIES
     local function playerInfoCurrent()
-        return game.PlaceVersion == 648 and players.LocalPlayer == player
+        return reviewedVersion(game.PlaceVersion) and players.LocalPlayer == player
             and child(scripts, "MWClient", "LocalScript") == client
             and child(client, "State", "ModuleScript") == stateModule
             and child(replicated, "MW", "Folder") == mw
@@ -508,8 +644,8 @@ local function resolve(game, requireModule, readUpvalues)
     local currentPrestigeController
     if type(readUpvalues) == "function" and nativeRemoteLink then
         local ok, source = pcall(function()
-            local placeVersion = 648 -- Verified source contract; never recapture after a yielding require.
-            if game.PlaceId ~= 73897506680154 or game.PlaceVersion ~= placeVersion then return nil end
+            local placeVersion = game.PlaceVersion -- Capture only an explicitly reviewed contract before yielding requires.
+            if game.PlaceId ~= 73897506680154 or not reviewedVersion(placeVersion) then return nil end
             local modalModule = child(client, "PrestigeModal", "ModuleScript")
             local fightModule = child(client, "FightTab", "ModuleScript")
             local rulesModule = child(mw, "Prestige", "ModuleScript")
@@ -603,6 +739,14 @@ local function resolve(game, requireModule, readUpvalues)
         end)
         if ok then currentPrestigeController = source end
     end
+    local currentHeistController
+    if type(heistControllerModule) == "table" and type(heistControllerModule.bind) == "function" then
+        currentHeistController = heistControllerModule.bind(game, requireModule, readUpvalues)
+    end
+    local currentRecallController
+    if type(recallControllerModule) == "table" and type(recallControllerModule.bind) == "function" then
+        currentRecallController = recallControllerModule.bind(game, requireModule, readUpvalues)
+    end
     local groupLookup
     if type(player.IsInGroup) == "function" then
         groupLookup = function(groupId)
@@ -610,9 +754,11 @@ local function resolve(game, requireModule, readUpvalues)
         end
     end
     return { moduleFolder = mw, remotesFolder = remotes,
+        userId = player.UserId,
+        uiParent = child(player, "PlayerGui", "PlayerGui"),
         nativeState = state, stateModule = stateModule,
         currentDailyBuffRules = dailyBuffRules,
-        config = config, gameData = gameData,
+        config = config, gameData = gameData, cityMaps = cityMaps,
         gearSets = gearSets, combatRules = config.COMBAT,
         groupLookup = groupLookup, currentShop = currentShop,
         marketPresence = marketPresence,
@@ -620,16 +766,18 @@ local function resolve(game, requireModule, readUpvalues)
         currentGlobalBoss = currentGlobalBoss,
         currentFightNotifications = currentFightNotifications, currentPrestigeController = currentPrestigeController,
         nativeRemoteLink = nativeRemoteLink, currentPlayerInfo = currentPlayerInfo,
+        currentHeistController = currentHeistController,
+        currentRecallController = currentRecallController,
         currentEventShop = currentEventShop,
         currentTerritorySeason = currentTerritorySeason,
         currentCrateLuck = currentCrateLuck }
 end
 
-function NativeClientBindings.read(game, requireModule, readUpvalues)
+function NativeClientBindings.read(game, requireModule, readUpvalues, heistControllerModule, recallControllerModule)
     if game == nil or type(requireModule) ~= "function" then
         return nil, "Missing current-client bindings"
     end
-    local ok, result = pcall(resolve, game, requireModule, readUpvalues)
+    local ok, result = pcall(resolve, game, requireModule, readUpvalues, heistControllerModule, recallControllerModule)
     if not ok or result == nil then
         return nil, "Current MWClient State or Remotes unavailable"
     end

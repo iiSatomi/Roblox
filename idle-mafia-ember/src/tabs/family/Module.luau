@@ -27,6 +27,9 @@ function FamilyTab.BuildUI(section, feature, bind, numeric)
             numeric[key] = true
             bind(custom, "Input", key, { Text = field.label,
                 Default = tostring(field.value), FireOnBlur = true })
+        elseif field.type == "boolean" then
+            bind(custom, "Toggle", key, { Text = field.label, Default = false,
+                RevertOnClose = true, RevertTo = false })
         else
             assert(field.type == "select", "Invalid Family preference")
             bind(custom, "Dropdown", key, { Text = field.label,
@@ -55,10 +58,11 @@ function FamilyTab.new(deps)
         and type(deps.FamilyContributions) == "table"
         and type(deps.FamilyContributionEvidence) == "table"
         and type(deps.config) == "table" and type(deps.config.FAMILY) == "table" then
-        state = deps.FamilyContributionState.new(deps.config, deps.fingerprint, deps.release)
+        state = deps.FamilyContributionState.new(deps.config, deps.fingerprint, deps.release, deps.playerInfoSource)
         evidence = deps.FamilyContributionEvidence.new(deps.FamilyContributionState)
     end
     return setmetatable({ id = "family", deps = deps, state = state, closed = false,
+        ownedProofs = {"familyActorProof"},
         infoQuery = deps.FamilyQuery.new(state),
         evidence = evidence }, Methods)
 end

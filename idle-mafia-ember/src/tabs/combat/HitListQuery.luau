@@ -40,6 +40,7 @@ function HitListQuery.new(identity, fingerprint, nativeSource, mode)
     return setmetatable({ account = identity.account, session = identity.session,
         warOnly = mode == "war", proofField = mode == "war" and "warRosterProof" or "hitListProof",
         nativeSource = nativeSource, sourceCurrent = nativeSource and nativeSource.Current,
+        acceptWarStatus = nativeSource and nativeSource.AcceptWarStatus,
         place = identity.place, release = identity.release,
         sourceKey = fingerprint and fingerprint:lower() or nil }, Methods)
 end
@@ -136,6 +137,29 @@ local function clone(value)
     local out = {}
     for k, child in pairs(value) do out[k] = clone(child) end
     return out
+end
+local function warCachePayload(raw)
+    local nodes, bytes, seen = 0, 0, {}
+    local function valid(value, depth)
+        nodes = nodes + 1
+        if nodes > 8192 or depth > 8 then return false end
+        local kind = type(value)
+        if kind == "string" then
+            bytes = bytes + #value
+            return #value <= 8192 and bytes <= 262144
+        end
+        if kind == "number" then return finite(value) and math.abs(value) <= 9007199254740991 end
+        if kind ~= "table" then return kind == "boolean" or kind == "nil" end
+        if seen[value] or getmetatable(value) ~= nil then return false end
+        seen[value] = true
+        for key, childValue in pairs(value) do
+            if type(key) ~= "string" and type(key) ~= "number"
+                or not valid(key, depth + 1) or not valid(childValue, depth + 1) then return false end
+        end
+        seen[value] = nil
+        return true
+    end
+    return valid(raw, 0) and clone(raw) or nil
 end
 local function equal(a, b)
     if type(a) ~= type(b) then return false end
@@ -339,6 +363,8 @@ function Methods:Accept(snapshot, request, reply)
     self.pending = nil
     if not staged or reply.pending == true or reply.code == "presence" or reply.code == "rate_limited"
         or reply.search ~= nil then return nil, why or "Current hit-list reply unavailable" end
+    local cachePayload = self.warOnly and warCachePayload(reply.warStatus) or nil
+    if self.warOnly and not cachePayload then return nil, "War cache payload exceeds reviewed bounds" end
     local proof = staged[self.proofField]
     for _, row in ipairs(proof.rows) do
         row.nativeShielded = row.shielded
@@ -350,6 +376,7 @@ function Methods:Accept(snapshot, request, reply)
         and proof.war.statusServerNow < self.warHighwater then proof.war = nil end
     proof.quoteScope = quoteScope(snapshot)
     self.staged = {value = staged, proof = clone(proof)}
+    if self.warOnly then self.staged.nativeWarStatus = cachePayload end
     return staged, nil
 end
 function Methods:Commit(staged)
@@ -359,6 +386,11 @@ function Methods:Commit(staged)
         or not equal(header(self, staged), pending.proof.header)
         or not equal(warScope(staged), pending.proof.warScope) or not equal(quoteScope(staged), pending.proof.quoteScope)
         or not equal(staged[self.proofField], pending.proof) then return false end
+    if self.warOnly and self.acceptWarStatus ~= nil then
+        if type(self.acceptWarStatus) ~= "function" or self.nativeSource.AcceptWarStatus ~= self.acceptWarStatus then return false end
+        local ok, accepted = pcall(self.acceptWarStatus, self.nativeSource, pending.nativeWarStatus, staged.native)
+        if not ok or accepted ~= true or not equal(header(self, staged), pending.proof.header) then return false end
+    end
     self.observed = pending.proof
     if pending.proof.war then self.warHighwater = pending.proof.war.statusServerNow end
     self.generation = (self.generation or 0) + 1

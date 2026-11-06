@@ -87,7 +87,7 @@ local function quote(raw, catalog, tier)
         * (100 + pct) / 100 + 0.5)), proof.revision, pct
 end
 
-function CrewHire.read(raw, context)
+function CrewHire.read(raw, context, goalReader)
     if not same(raw, context) or raw.revision ~= context.revision
         or raw.capturedAt ~= context.capturedAt
         or not integer(raw.revision, 0)
@@ -108,13 +108,40 @@ function CrewHire.read(raw, context)
         revision = context.revision, capturedAt = context.capturedAt,
         usage={attempted=proof.attempted,spent=proof.spent},cash = raw.native.cash, emptySlot = slot,
         count = count, catalog = raw.hireCatalog,
-        proof = raw.economyProof, cityId = raw.native.cityId }, nil
+        proof = raw.economyProof, cityId = raw.native.cityId,
+        contractGoals = goalReader and goalReader.read(raw, context) or nil }, nil
+end
+
+local function contractRow(view, request)
+    local goals = type(view) == "table" and view.contractGoals
+    if type(goals) ~= "table" or type(request) ~= "table" or not same(view, request)
+        or request.revision ~= view.revision or request.origin ~= "autoContracts" or request.key ~= "hires"
+        or request.catalogKey ~= goals.catalogKey or not integer(request.index, 1) or request.index > 5
+        or (request.period ~= "daily" and request.period ~= "weekly")
+        or request.reset ~= (request.period == "daily" and goals.dayReset or goals.weekReset)
+        or not integer(request.progress, 0) or not integer(request.goal, 1) or request.progress >= request.goal then return nil end
+    for _, row in ipairs(goals.rows) do
+        if row.period == request.period and row.index == request.index and row.id == request.contractId
+            and row.key == "hires" and row.status == "mapped" and row.progress == request.progress
+            and row.goal == request.goal then return row end
+    end
+    return nil
+end
+
+function CrewHire.ForContract(view, request)
+    if not contractRow(view, request) then return nil, "Exact current incomplete hires contract required" end
+    local scoped = {}
+    for key, value in pairs(view) do scoped[key] = value end
+    scoped.contractGoal = request
+    return scoped, nil
 end
 
 function CrewHire.propose(view, settings)
     if type(view) ~= "table" or type(settings) ~= "table"
         or not same(view, view) then return nil, "Missing Crew hire input" end
     if settings.enabled ~= true then return nil, "Crew hire disabled" end
+    local goal = view.contractGoal
+    if not contractRow(view, goal) then return nil, "Explicitly borrowed current hires contract required" end
     local tier = settings.policy
     local custom = type(settings.custom) == "table"
         and settings.custom or settings
@@ -145,10 +172,22 @@ function CrewHire.propose(view, settings)
             cost = cost, maxCost = custom.maxCost, reserve = custom.cashReserve,
             attemptedBefore=view.usage.attempted,spentBefore=view.usage.spent,maxAttempts=custom.maxAttempts,maxSpend=custom.maxSpend,
             catalogKey = view.catalog.catalogKey,
-            decreeRevision = revision, hirePct = pct } }, nil
+            decreeRevision = revision, hirePct = pct,
+            contractPeriod = goal.period, contractIndex = goal.index, contractId = goal.contractId,
+            contractReset = goal.reset, contractProgress = goal.progress, contractGoal = goal.goal,
+            contractCatalogKey = goal.catalogKey } }, nil
 end
 
-function CrewHire.capture(proposal, before)
+local function intentGoal(proposal)
+    local intent = proposal.intent
+    return {session = proposal.session, account = proposal.account, place = proposal.place,
+        release = proposal.release, revision = proposal.revision, origin = "autoContracts", key = "hires",
+        period = intent.contractPeriod, index = intent.contractIndex, contractId = intent.contractId,
+        reset = intent.contractReset, progress = intent.contractProgress, goal = intent.contractGoal,
+        catalogKey = intent.contractCatalogKey}
+end
+
+function CrewHire.capture(proposal, before, goalReader)
     local intent = type(proposal) == "table" and proposal.intent
     if type(proposal) ~= "table" or proposal.feature ~= "crewHire"
         or type(intent) ~= "table" or intent.kind ~= "crewHire"
@@ -161,7 +200,8 @@ function CrewHire.capture(proposal, before)
     end
     local view = CrewHire.read(before, { session = before.session, account = before.account,
         place = before.place, release = before.release, revision = before.revision,
-        capturedAt = before.capturedAt, hireCatalogKey = intent.catalogKey })
+        capturedAt = before.capturedAt, hireCatalogKey = intent.catalogKey }, goalReader)
+    view = view and CrewHire.ForContract(view, intentGoal(proposal))
     local planned = view and CrewHire.propose(view, { enabled = true, policy = intent.tier,
         maxCost = intent.maxCost, cashReserve = intent.reserve,maxAttempts=intent.maxAttempts,maxSpend=intent.maxSpend })
     if not planned or not equal(planned.intent, intent) or not equal(planned.resources, proposal.resources)
@@ -189,7 +229,7 @@ function CrewHire.capture(proposal, before)
         intent = planned.intent, actionKey = planned.actionKey }, nil
 end
 
-local function reconcile(proposal,before,after,reply,baseline,restart)
+local function reconcile(proposal,before,after,reply,baseline,restart,goalReader)
     if type(proposal) ~= "table" or type(reply) ~= "table"
         or not same(proposal,before) or type(after)~="table"
         or (not restart and not same(proposal,after))
@@ -215,9 +255,19 @@ local function reconcile(proposal,before,after,reply,baseline,restart)
         local row=crew[index]
         if type(row)~="table" or row.name~=original.name or row.rarity~=original.rarity or row.healId~=original.memberId then return "pending" end
     end
+    local goals = goalReader and goalReader.read(after, after)
+    local intent, progress = proposal.intent, nil
+    if type(goals) ~= "table" or goals.catalogKey ~= intent.contractCatalogKey
+        or intent.contractReset ~= (intent.contractPeriod == "daily" and goals.dayReset or goals.weekReset) then return "pending" end
+    for _, row in ipairs(goals.rows) do
+        if row.period == intent.contractPeriod and row.index == intent.contractIndex and row.id == intent.contractId
+            and row.key == "hires" and row.goal == intent.contractGoal then progress = row.progress end
+    end
+    if not integer(progress, 0) then return "pending" end
     if reply.ok == false then
         return type(native) == "table" and native.fullSync == true and native.cash == baseline.cash
             and type(member) == "table" and member.rarity == nil and member.rolling ~= true
+            and progress == intent.contractProgress
             and "rejected" or "pending"
     end
     if reply.ok ~= true or reply.pending == true or reply.code == "rate_limited"
@@ -234,18 +284,26 @@ local function reconcile(proposal,before,after,reply,baseline,restart)
         or member.name ~= returned.name
         or member.rarity ~= returned.rarity
         or member.atk ~= returned.atk
-        or member.def ~= returned.def then return "pending" end
+        or member.def ~= returned.def or progress ~= intent.contractProgress + 1 then return "pending" end
     return "confirmed"
 end
 
-function CrewHire.evaluate(proposal,before,after,reply,baseline)
-    return reconcile(proposal,before,after,reply,baseline,false)
+function CrewHire.evaluate(proposal,before,after,reply,baseline,goalReader)
+    return reconcile(proposal,before,after,reply,baseline,false,goalReader)
 end
-function CrewHire.recoverSaved(data,after)
+function CrewHire.recoverSaved(data,after,goalReader)
     if type(data)~="table" or type(data.reply)~="table" then return nil end
-    local baseline=CrewHire.capture(data.proposal,data.before)
+    local baseline=CrewHire.capture(data.proposal,data.before,goalReader)
     if not baseline or not equal(baseline,data.baseline) then return nil end
-    local outcome=reconcile(data.proposal,data.before,after,data.reply,baseline,true)
+    local outcome=reconcile(data.proposal,data.before,after,data.reply,baseline,true,goalReader)
     return (outcome=="confirmed" or outcome=="rejected") and outcome or nil
+end
+function CrewHire.new(goalReader)
+    assert(type(goalReader) == "table" and type(goalReader.read) == "function", "Current Contract goal reader required")
+    return {read = function(raw, context) return CrewHire.read(raw, context, goalReader) end,
+        propose = CrewHire.propose, ForContract = CrewHire.ForContract,
+        capture = function(p, before) return CrewHire.capture(p, before, goalReader) end,
+        evaluate = function(p, before, after, reply, baseline) return CrewHire.evaluate(p, before, after, reply, baseline, goalReader) end,
+        recoverSaved = function(data, after) return CrewHire.recoverSaved(data, after, goalReader) end}
 end
 return CrewHire

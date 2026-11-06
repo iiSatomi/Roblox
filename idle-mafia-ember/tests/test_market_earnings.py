@@ -99,7 +99,7 @@ class MarketEarningsTests(unittest.TestCase):
             self.h.clock, adapter, self.h.journal, policy)
         store = self.h.lua.execute("""return { data = {}, strictRecovery = true,
             Read = function(self, key) return self.data[key] end,
-            Write = function(self, key, value) self.data[key] = value end,
+            Write = function(self, key, value) self.data[key] = value; return true end,
         }""")
         checkpoint = self.h.load("src/storage/Checkpoint.luau").new(store)
         session = self.h.load("src/engine/Session.luau").new(

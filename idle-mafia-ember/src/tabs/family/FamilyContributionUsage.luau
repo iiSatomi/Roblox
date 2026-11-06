@@ -16,7 +16,8 @@ function FamilyContributionUsage.copy(raw)
         local row
         if raw == nil then row = {attempted = 0, spent = 0} else row = raw.lanes[feature] end
         if type(row) ~= "table" or not integer(row.attempted, 0, 1000)
-            or not integer(row.spent, 0, MAX_SPENT) then return nil end
+            or not integer(row.spent, 0, MAX_SPENT) or row.spent < row.attempted
+            or (row.attempted == 0 and row.spent ~= 0) then return nil end
         for key in pairs(row) do if key ~= "attempted" and key ~= "spent" then return nil end end
         copied.lanes[feature] = {attempted = row.attempted, spent = row.spent}
     end
@@ -26,6 +27,7 @@ function FamilyContributionUsage.copyCharge(raw, feature, exposure)
     if not resources[feature] or type(raw) ~= "table" or raw.feature ~= feature
         or not integer(raw.amount, 1, MAX_SPENT) or not integer(raw.attemptedBefore, 0, 999)
         or not integer(raw.spentBefore, 0, MAX_SPENT - raw.amount)
+        or raw.spentBefore < raw.attemptedBefore or (raw.attemptedBefore == 0 and raw.spentBefore ~= 0)
         or type(exposure) ~= "table" or exposure[resources[feature]] ~= raw.amount then return nil end
     local count = 0
     for _ in pairs(exposure) do count = count + 1 end
@@ -42,7 +44,7 @@ function FamilyContributionUsage.charge(raw, proposal)
     local intent = type(proposal) == "table" and proposal.intent
     if not usage or not resources[feature] or type(intent) ~= "table"
         or intent.kind ~= "familyContribution" or intent.resource ~= resources[feature]
-        or not integer(intent.actorId, 1, 9007199254740991) or intent.actorId ~= tonumber(proposal.account)
+        or not integer(intent.actorId, 1, 9007199254740991)
         or not (type(intent.familyId) == "string" and #intent.familyId > 0 and #intent.familyId <= 160
             or integer(intent.familyId, 1, 9007199254740991))
         or not integer(intent.runBudget, 0, MAX_SPENT) or not integer(intent.maxAttempts, 0, 1000) then

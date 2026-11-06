@@ -19,9 +19,10 @@ local function rowId(value)
     return key(value) or integer(value, 1)
 end
 
-local function matching(a, b)
+local function matching(a, b, newSession)
     for _, field in ipairs({ "session", "account", "place", "release" }) do
-        if not key(a[field]) or a[field] ~= b[field] then return false end
+        if not key(a[field]) or not key(b[field])
+            or (field ~= "session" or newSession ~= true) and a[field] ~= b[field] then return false end
     end
     return true
 end
@@ -129,13 +130,13 @@ function FavorHelpEvidence.capture(proposal, before)
         usageAttemptsBefore = intent.usageAttemptsBefore }, nil
 end
 
-function FavorHelpEvidence.evaluate(proposal, beforeHeader, after,
-    reply, baseline)
+local function evaluate(proposal, beforeHeader, after,
+    reply, baseline, newSession)
     if type(proposal) ~= "table" or type(beforeHeader) ~= "table"
         or type(after) ~= "table" or type(reply) ~= "table"
         or type(baseline) ~= "table"
         or not matching(proposal, beforeHeader)
-        or not matching(proposal, after)
+        or not matching(proposal, after, newSession)
         or not matching(proposal, baseline)
         or proposal.revision ~= baseline.revision
         or beforeHeader.revision ~= baseline.revision then
@@ -144,7 +145,7 @@ function FavorHelpEvidence.evaluate(proposal, beforeHeader, after,
     local board, row, usage = current(after, baseline.rowId)
     if not board then return "pending" end
     local advanced = type(after.revision) == "number"
-        and after.revision > baseline.revision
+        and (newSession == true or after.revision > baseline.revision)
         and row.heistId == baseline.heistId
         and row.ownerId == baseline.ownerId
         and personalCount(row) == baseline.helpsBefore + 1
@@ -155,6 +156,32 @@ function FavorHelpEvidence.evaluate(proposal, beforeHeader, after,
     if reply.ok == false then return advanced and "pending" or "rejected" end
     if reply.ok == true and advanced then return "confirmed" end
     return "pending"
+end
+
+function FavorHelpEvidence.evaluate(proposal, before, after, reply, baseline)
+    return evaluate(proposal, before, after, reply, baseline, false)
+end
+
+function FavorHelpEvidence.recoverSaved(data, after)
+    if type(data) ~= "table" or type(data.proposal) ~= "table" or type(data.before) ~= "table"
+        or type(data.baseline) ~= "table" or type(data.reply) ~= "table" or type(data.reply.ok) ~= "boolean"
+        or data.reply.pending == true or data.reply.code == "rate_limited" or data.reply.code == "busy"
+        or data.reply.code == "presence" or data.reply.code == "no_pending"
+        or type(after) ~= "table" or type(after.native) ~= "table" or after.native.fullSync ~= true
+        or type(data.before.native) ~= "table" or not timestamp(after.native.serverNow)
+        or not timestamp(data.before.native.serverNow) or after.native.serverNow > 9007199254740991
+        or after.native.serverNow < data.before.native.serverNow
+        or not timestamp(data.before.capturedAt) or data.before.capturedAt > 9007199254740991
+        or not timestamp(after.capturedAt) or after.capturedAt > 9007199254740991
+        or not integer(after.revision, 0) or after.revision > 9007199254740991
+        or not key(after.session) or #after.session > 200 or after.session:find("[%c]") then return nil end
+    local captured = FavorHelpEvidence.capture(data.proposal, data.before)
+    if not captured then return nil end
+    for field, value in pairs(captured) do if data.baseline[field] ~= value then return nil end end
+    for field in pairs(data.baseline) do if captured[field] == nil then return nil end end
+    local outcome = evaluate(data.proposal, data.before, after, data.reply, captured,
+        after.session ~= data.proposal.session)
+    return (outcome == "confirmed" or outcome == "rejected") and outcome or nil
 end
 
 return FavorHelpEvidence

@@ -159,11 +159,23 @@ function ResourceReservations.ForProposal(proposal, raw)
         -- protected while its exact identity/effect is still pending, including after a skip.
         if kind=="crewGear" then claims.allItems=true end
     elseif kind == "familyContribution" and intent.resource == "gold_bar" then
-        if not item(claims, "gold_bar", intent.amount, false) then return nil, "Invalid loose Gold claim" end
+        if intent.allowNativeGoldPool ~= nil and type(intent.allowNativeGoldPool) ~= "boolean" then
+            return nil, "Invalid Family Gold payment permission"
+        end
+        if intent.allowNativeGoldPool ~= true then
+            if not item(claims, "gold_bar", intent.amount, false) then return nil, "Invalid loose Gold claim" end
+        elseif proposal.feature ~= "familyGold" or not integer(intent.amount) or intent.amount < 1
+            or proposal.resources.gold_bar ~= intent.amount then return nil, "Invalid native total-Gold claim" end
     elseif kind == "eventShopBuy" then
         if not item(claims, "event_medal", intent.price, true) then return nil, "Invalid earned medal claim" end
     elseif kind == "marketRent" then
-        if not item(claims, "gold_bar", intent.cost, false) then return nil, "Invalid loose rental Gold claim" end
+        -- The native rental accepts combined Gold; its server chooses the pool.
+        -- Preserve total-funds exposure so both origin-specific holders conflict.
+        if proposal.feature ~= "marketRent" or not integer(intent.cost) or intent.cost < 1
+            or proposal.resources.gold_bar ~= intent.cost then return nil, "Invalid total rental Gold claim" end
+        for id in pairs(proposal.resources) do
+            if id ~= "gold_bar" then return nil, "Unexpected rental resource" end
+        end
     end
     local copied = ResourceReservations.CopyClaims(claims)
     return copied, not copied and "Invalid reservation claims" or nil
@@ -317,6 +329,21 @@ function ResourceReservations.new(identity, records, providers)
             local inventoryId = key == "bossTokens" and "boss_token" or key
             local reserved = (held.funds[key] or 0) + (held.items["L:" .. inventoryId] or 0) + (held.items["B:" .. inventoryId] or 0)
             if key == "bossTokens" then reserved = reserved + (held.funds.boss_token or 0) end
+            if key == "gold_bar" and (proposal.feature == "marketRent"
+                or proposal.feature == "familyGold" and proposal.intent.kind == "familyContribution"
+                    and proposal.intent.allowNativeGoldPool == true) then
+                -- Either pool may pay the entire quote. Total solvency alone
+                -- cannot protect an origin-specific claim in the smaller pool.
+                for _, origin in ipairs({"L:", "B:"}) do
+                    local originHeld = held.items[origin .. key] or 0
+                    if originHeld > 0 then
+                        local available = count(origin == "L:" and raw.native.inventory or raw.native.inventoryBound, key)
+                        if available == nil or needed + originHeld > available then
+                            return nil, "Native Gold payment origin is reserved"
+                        end
+                    end
+                end
+            end
             local floor=0
             if (proposal.feature == "familyCash" or proposal.feature == "familyStamina" or proposal.feature == "familyGold")
                 and proposal.intent.kind == "familyContribution" and key == proposal.intent.resource then
@@ -346,6 +373,13 @@ function ResourceReservations.new(identity, records, providers)
             elseif proposal.feature=="crewHire" and key=="cash" then
                 floor=proposal.intent.reserve
                 if not integer(floor) then return nil,"Crew hire reserve unavailable" end
+            elseif proposal.feature=="crewRoll" and key=="cash"
+                and (proposal.intent.kind=="crewReplacementDismiss" or proposal.intent.kind=="crewReplacementHire") then
+                floor=proposal.intent.cashReserve
+                if not integer(floor) then return nil,"Crew replacement reserve unavailable" end
+            elseif proposal.feature=="marketRent" and key=="gold_bar" then
+                floor=proposal.intent.goldReserve
+                if not integer(floor) then return nil,"Market rental reserve unavailable" end
             end
             if reserved>0 or floor>0 then
                 local available=balance(raw.native,key)

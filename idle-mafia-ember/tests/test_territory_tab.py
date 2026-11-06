@@ -41,6 +41,26 @@ class TerritoryTabTests(unittest.TestCase):
         raw["revision"] = 2
         self.assertIsNone(self.reader.read(raw, context)[0])
 
+    def test_capacity_checked_at_uses_native_ordering_marker_not_seconds_clock(self):
+        raw = self.h.snapshot(native={"fullSync": True, "serverNow": 1793949072,
+            "family": {"id": "fam-a"}})
+        query = self.h.load("src/tabs/territory/TerritoryMapQuery.luau").new()
+        request, _ = query.Prepare(query, "jade_harbor", raw)
+        accepted, reason = query.Accept(query, request, lua_table(self.h.lua, {"ok": True,
+            "city": "jade_harbor", "totalDistricts": 1,
+            "territoryCapacity": {"familyId": "fam-a", "held": 15, "maximum": 15,
+                                  "checkedAt": 1793949072032},
+            "districts": [{"id": "d1", "mine": True}]}))
+        self.assertIsNone(reason)
+        attached, reason = self.h.load("src/tabs/territory/ReadAttachment.luau").attach(raw, accepted)
+        self.assertIsNone(reason)
+        view, reason = self.reader.read(attached, attached)
+        self.assertIsNone(reason)
+        self.assertEqual((view.familyCapacity.held, view.familyCapacity.available), (15, 0))
+        attached.native.territoryCapacity = lua_table(self.h.lua, {"familyId": "fam-a", "held": 14,
+            "maximum": 15, "checkedAt": 1793949072032})
+        self.assertIsNone(self.reader.read(attached, attached)[0])
+
     def test_accepted_read_cannot_attach_to_newer_sync(self):
         raw = self.h.snapshot(native={"fullSync": True,
             "family": {"id": "fam-a"}})

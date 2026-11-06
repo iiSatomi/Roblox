@@ -2,8 +2,10 @@
 local Planner = {}
 local function number(v) return type(v) == "number" and v == v and v >= 0 and v <= 9007199254740991 end
 local function integer(v) return number(v) and v % 1 == 0 and v <= 1000000 end
-function Planner.new(selector)
+function Planner.new(selector, feature)
     assert(type(selector) == "table" and type(selector.choose) == "function", "Missing player target policy")
+    feature = feature or "combat"
+    assert(feature == "combat" or feature == "warCombat", "Invalid player permission lane")
     return {propose = function(view, settings, reservations)
         if type(view) ~= "table" or type(settings) ~= "table" or type(reservations) ~= "table"
             or not number(reservations.stamina) or not number(reservations.uncertainStamina)
@@ -22,16 +24,20 @@ function Planner.new(selector)
         end
         local held = {stamina = reservations.stamina + reservations.uncertainStamina,
             health = reservations.health or 0, attackSpent = view.attackSpent, scoutSpent = view.scoutSpent}
-        local selected, why = selector.choose(view, settings, held, "combat")
+        local selected, why = selector.choose(view, settings, held, feature)
         if not selected then return nil, why end
         local scout = selected.kind == "scout"
         local attempted = scout and view.scoutAttempted or view.attackAttempted
         local spent = scout and view.scoutSpent or view.attackSpent
-        local p = {feature = "combat", revision = view.revision, resources = {stamina = selected.exposure},
-            actionKey = "combat:" .. selected.kind .. ":" .. selected.userId .. ":" .. attempted,
+        local p = {feature = feature, revision = view.revision, resources = {stamina = selected.exposure},
+            actionKey = feature .. ":" .. selected.kind .. ":" .. selected.userId .. ":" .. attempted,
             intent = {kind = scout and "playerScout" or "playerAttack", target = selected.userId,
                 targetName = selected.name, targetLevel = selected.level, familyId = selected.familyId,
-                excludedWarFamilyId = view.war and view.war.active == true and view.war.enemyFamilyId or nil,
+                excludedWarFamilyId = feature == "combat" and view.war and view.war.active == true and view.war.enemyFamilyId or nil,
+                warEnemyFamilyId = feature == "warCombat" and view.war.enemyFamilyId or nil,
+                warOwnFamilyId = feature == "warCombat" and view.ownFamilyId or nil,
+                warDay = feature == "warCombat" and math.floor(view.serverNow / 86400) or nil,
+                warStatusServerNow = feature == "warCombat" and view.war.statusServerNow or nil,
                 expectedStaminaCost = selected.cost, maxStaminaExposure = selected.exposure,
                 attackExposure = selected.attackExposure, attackQuote = selected.attackCost, sourceKey = view.sourceKey, serverNow = view.serverNow,
                 attemptedBefore = attempted, spentBefore = spent, maxAttackSpend = settings.maxAttackSpend,

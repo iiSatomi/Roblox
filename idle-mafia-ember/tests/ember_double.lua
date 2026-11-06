@@ -3,8 +3,16 @@ Vector2 = { new = function(x, y) return { X = x, Y = y } end }
 Enum = { KeyCode = { F8 = "F8" } }
 
 return function()
-    local ember = { queue = {}, windows = {}, configured = nil }
-    function ember.Configure(options) ember.configured = options end
+    local ember = { queue = {}, windows = {}, configured = nil,
+        Config = { Storage = { Enabled = true } }, externalReads = 0 }
+    function ember.Configure(options)
+        ember.configured = options
+        if options.Storage ~= nil then
+            ember.Config.Storage.Enabled = options.Storage
+            -- Current Ember reloads custom themes even when Storage is false.
+            ember.externalReads = ember.externalReads + 1
+        end
+    end
     function ember.ThemeNames() return { "Midnight", "Dark", "Slate" } end
     function ember.SetTheme(name) ember.theme = name end
     function ember.Flush(reverse)
@@ -20,7 +28,7 @@ return function()
         for _, old in ipairs(ember.windows) do
             if old.options.Name == options.Name and not old.destroyed then old:Destroy() end
         end
-        local window = { options = options, sections = {}, handles = {}, listeners = {} }
+        local window = { options = options, sections = {}, handles = {}, listeners = {}, Gui = { Parent = "CoreGui" } }
         local function container(label)
             local box = { label = label, groups = {} }
             function box:Description(_) end
@@ -33,6 +41,9 @@ return function()
                 return group
             end
             local function control(kind, opts)
+                if ember.requiredParent and window.Gui.Parent ~= ember.requiredParent then
+                    error("UI control requires the verified PlayerGui parent")
+                end
                 if ember.failLabel == opts.Text then error("construction failed") end
                 local handle = { value = opts.Default, kind = kind, options = opts, visible = true }
                 handle.throwNext = ember.throwSetLabel == opts.Text

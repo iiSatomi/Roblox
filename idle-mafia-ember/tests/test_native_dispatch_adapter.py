@@ -34,7 +34,7 @@ class NativeDispatchAdapterTests(unittest.TestCase):
             self.h.journal, self.h.policy)
         store = self.h.lua.execute("""return { data = {}, strictRecovery = true,
             Read = function(self, key) return self.data[key] end,
-            Write = function(self, key, value) self.data[key] = value end }""")
+            Write = function(self, key, value) self.data[key] = value; return true end }""")
         checkpoint = self.h.load("src/storage/Checkpoint.luau").new(store)
         self.session = self.h.load("src/engine/Session.luau").new(
             self.broker, checkpoint, lua_table(self.h.lua, self.h.session))
@@ -249,6 +249,27 @@ class NativeDispatchAdapterTests(unittest.TestCase):
             self.assertFalse(self.transport.InFlight(self.transport))
         finally:
             self.close()
+
+    def test_authorized_nested_target_matches_by_value_and_refuses_changed_or_cyclic_targets(self):
+        module = self.h.load("src/transport/NativeDispatchAdapter.luau")
+        plan = self.h.lua.execute("""return {describe = function()
+            return {remote = 'TerritoryAction', method = 'InvokeServer', arity = 3,
+                args = {'recallcrew', 100001, {{districtId = 'd1', userId = 123, memberIndex = 2}}}}
+        end}""")
+        for kind, count in (("same", 1), ("changed", 0), ("cyclic", 0)):
+            with self.subTest(kind=kind):
+                transport = module.new(plan, self.executor)
+                self.executor.calls = self.h.lua.table()
+                exact = plan.describe()
+                if kind == "changed":
+                    exact.args[3][1].memberIndex = 3
+                elif kind == "cyclic":
+                    exact.args[3][1].loop = exact.args[3]
+                authorize = self.h.lua.eval("function(value) return function() return value end end")(exact)
+                transport.Send(transport, self.h.proposal(), self.h.lua.eval("function() end"),
+                    self.h.lua.eval("function() return true end"), None, None, authorize)
+                self.executor.Drain(self.executor)
+                self.assertEqual(len(self.executor.calls), count)
 
 
 if __name__ == "__main__":

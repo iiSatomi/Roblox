@@ -140,6 +140,42 @@ class FavorHelpTests(unittest.TestCase):
             after, lua_table(self.h.lua, {"ok": True}), baseline),
             "pending")
 
+    def test_saved_exact_help_recovers_across_session_without_replaying(self):
+        before = self.raw()
+        proposal = self.planner.propose(self.view(before)[0], self.settings(), self.reserve())[0]
+        baseline = self.evidence.capture(proposal, before)[0]
+        data = lua_table(self.h.lua, {"proposal": proposal, "before": before,
+            "baseline": baseline, "reply": {"ok": True}})
+        after = self.raw(revision=0, favors=11, helps=1, attempts=1)
+        after.session = "run-b"
+        self.assertEqual(self.evidence.evaluate(proposal, before, after, data.reply, baseline), "pending")
+        self.assertEqual(self.evidence.recoverSaved(data, after), "confirmed")
+        after.capturedAt = -1
+        after.heistBoardProof.capturedAt = -1
+        after.favorUsageProof.capturedAt = -1
+        self.assertIsNone(self.evidence.recoverSaved(data, after))
+        after.capturedAt = 0
+        after.heistBoardProof.capturedAt = 0
+        after.favorUsageProof.capturedAt = 0
+        after.native.serverNow = 1999999
+        self.assertIsNone(self.evidence.recoverSaved(data, after))
+
+    def test_real_native_catalog_preserves_help_reward_planning_contract(self):
+        raw = self.raw()
+        source = self.h.lua.table(HEISTS=raw.heistCatalog)
+        for row in source.HEISTS.values():
+            row.stake, row.energy, row.crateCount = 10, 2, 1
+        catalog = self.h.load("src/tabs/heists/NativeHeistCatalog.luau").new(
+            source, "a" * 64, "release-a")
+        enriched, reason = catalog.Enrich(catalog, raw)
+        self.assertIsNone(reason)
+        view, reason = self.view(enriched)
+        self.assertIsNone(reason)
+        proposal, reason = self.planner.propose(view, self.settings(), self.reserve())
+        self.assertIsNone(reason)
+        self.assertEqual(proposal.intent.rewardCash,
+            min(raw.heistCatalog[1].helpCash, raw.heistBoardProof.board.helpCashCap))
+
     def test_preflight_rechecks_day_cap_and_reserves(self):
         before = self.raw()
         view, _ = self.view(before)

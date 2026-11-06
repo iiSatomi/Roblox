@@ -15,7 +15,7 @@ class BossShopBuyTests(unittest.TestCase):
         self.evidence = self.h.load("src/features/BossShopBuyEvidence.luau")
         self.store = self.h.lua.execute("""return { data = {}, strictRecovery = true,
             Read = function(self, key) return self.data[key] end,
-            Write = function(self, key, value) self.data[key] = value end }""")
+            Write = function(self, key, value) self.data[key] = value; return true end }""")
         self.module = self.h.load("src/storage/Checkpoint.luau")
         self.ledger = self.module.new(self.store)
         self.ledger.Load(self.ledger, "user-a", "73897506680154", "release-a")

@@ -22,8 +22,13 @@ function Adapter.new(ember, catalog, callbacks)
         degraded = false, lastError = nil,
         allowedFeatures = callbacks.allowedFeatures,
     }, Adapter)
+    -- Configure({ Storage = false }) still reads custom themes in reviewed Ember.
+    -- Disable its public storage configuration before any window/persistence work;
+    -- omit Storage from Configure so it cannot trigger that external theme reload.
+    assert(type(ember.Config) == "table" and type(ember.Config.Storage) == "table",
+        "Missing reviewed Ember storage configuration")
+    ember.Config.Storage.Enabled = false
     ember.Configure({
-        Storage = false,
         Themes = { Default = "Midnight" },
         Effects = { RespectReducedMotion = true, Quality = "Low" },
     })
@@ -43,6 +48,15 @@ function Adapter.new(ember, catalog, callbacks)
     end)
 
     local ok, reason = pcall(function()
+        if callbacks.uiParent ~= nil then
+            local checked, valid = pcall(function()
+                return callbacks.uiParent:IsA("PlayerGui") and callbacks.uiParent.Parent ~= nil
+            end)
+            assert(checked and valid == true, "Verified PlayerGui parent required")
+            -- Reviewed Ember has no Parent option. Its controls must live below
+            -- normal PlayerGui so native callback contexts can access them.
+            self.window.Gui.Parent = callbacks.uiParent
+        end
         local sections = {}
         for _, page in ipairs(catalog.pages) do
             local section = self.window:Section(page.label, ICONS[page.id], { Search = true })
@@ -95,7 +109,8 @@ function Adapter.new(ember, catalog, callbacks)
             local row
             if feature.page == "heists" and callbacks.heistsModule then
                 row = callbacks.heistsModule.BuildUI(
-                    sections.heists, feature, bind)
+                    sections.heists, feature, bind, type(callbacks.heistActionAvailable) == "function"
+                        and callbacks.heistActionAvailable(feature.id) == true)
             elseif feature.page == "jobs" and callbacks.jobsModule then
                 row = callbacks.jobsModule.BuildUI(
                     sections.jobs, feature, bind, function()
@@ -106,7 +121,8 @@ function Adapter.new(ember, catalog, callbacks)
                     sections.operations, feature, bind, self.numeric)
             elseif feature.page == "favors" and callbacks.favorsModule then
                 row = callbacks.favorsModule.BuildUI(
-                    sections.favors, feature, bind, self.numeric)
+                    sections.favors, feature, bind, self.numeric, type(callbacks.heistActionAvailable) == "function"
+                        and callbacks.heistActionAvailable(feature.id) == true)
             elseif feature.page == "combat" and callbacks.combatModule then
                 row = callbacks.combatModule.BuildUI(
                     sections.combat, feature, bind, self.numeric)
@@ -271,7 +287,10 @@ function Adapter:ApplyValues(values)
                     local restored, result = pcall(entry.handle.Set, entry.handle, entry.before, true)
                     if not restored or result == false then self.degraded = true end
                 end
-                self.lastError = "UI refused " .. key .. ": " .. tostring(reason or accepted or before)
+                local failure = reason or accepted
+                if not readOK then failure = before end
+                self.lastError = "UI refused " .. key .. ": " .. tostring(failure)
+                self.applyError = self.lastError
                 if self.degraded then
                     self:Fail(self.lastError .. "; rollback failed, reload required")
                 end
@@ -279,6 +298,8 @@ function Adapter:ApplyValues(values)
             end
         end
     end
+    if self.applyError and self.lastError == self.applyError then self.lastError = nil end
+    self.applyError = nil
     return true, nil
 end
 

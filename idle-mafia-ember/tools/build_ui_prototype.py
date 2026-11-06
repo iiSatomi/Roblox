@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-EMBER_SHA256 = "c6ec2ad2ad732a2ed704d044fd068b685d7e6c2613f60a07c39316666576390a"
+EMBER_SHA256 = "0aebb331911619d0c791de1d0d3e9b2e51ead3fb4472cd038807155ad8bcf412"
 PROTOTYPE_VERSION = "0.1.38"
 MODULES = {
     "Catalog": "src/ui/Catalog.luau",

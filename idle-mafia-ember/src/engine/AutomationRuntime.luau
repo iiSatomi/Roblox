@@ -85,10 +85,10 @@ local function withUsageProofs(raw, checkpoint, reservations, controller, readCo
                 if record.feature == "station" then
                     local data = checkpoint:Recovery(record.actionKey)
                     local intent = data and data.proposal and data.proposal.intent
-                    if type(intent) == "table" and intent.kind == "territoryStation"
+                    if type(intent) == "table" and (intent.kind == "territoryStation" or intent.kind == "territoryRecall")
                         and type(intent.memberKey) == "string" and #intent.memberKey <= 131
                         and intent.memberKey:match("^id:.+") then
-                        proof.pendingStation[intent.memberKey] = true
+                        if intent.kind == "territoryStation" then proof.pendingStation[intent.memberKey] = true end
                     else proof.stationUnknown = true end
                 end
             end
@@ -302,6 +302,9 @@ function AutomationRuntime.new(deps)
             return spec.evidence.evaluate(proposal, before, after, reply, baseline)
         end,
     })
+    if type(m.heistRuntime) == "table" and type(m.heistRuntime.BindAccounting) == "function" then
+        assert(m.heistRuntime:BindAccounting(checkpoint) == true, "Heist accounting owner changed")
+    end
     local session = m.Session.new(broker, checkpoint, deps.identity)
     local saveBefore, resolveAfter, saveReply = broker.policy.beforeSend, broker.policy.afterResolve, broker.policy.recordReply
     local abandonedUnsent = broker.policy.abandonedUnsent
@@ -418,6 +421,14 @@ function Methods:SupportsPrestigeReset()
         and type(self.checkpoint.PrestigeUsage) == "function" and type(source) == "table"
         and type(self.nativePrestigeRead) == "function" and type(self.nativePrestigeCurrent) == "function"
         and source.Read == self.nativePrestigeRead and source.Current == self.nativePrestigeCurrent
+end
+
+function Methods:SupportsHeistAction(feature)
+    local supported = {heists = true, heistCollect = true, favors = true, sabotage = true}
+    local spec = supported[feature] and self.features[feature]
+    return not self.closed and not self.closing and type(spec) == "table"
+        and type(spec.lifecycle) == "table" and type(spec.canDispatch) == "function"
+        and type(spec.recoverSaved) == "function" and type(self.modules.heistRuntime) == "table"
 end
 
 function Methods:SupportsFeatureRecovery(feature) return not self.closed and self.recoveryControls[feature] ~= nil end

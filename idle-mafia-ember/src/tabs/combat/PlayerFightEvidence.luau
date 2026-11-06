@@ -76,7 +76,8 @@ function Evidence.new(receipts)
             end
         end
         for k in pairs(p.resources) do if k ~= "stamina" then return nil, "Unsupported fight charge" end end
-        local proof, targets, usage = before.playerFightProof, before.hitListProof, before.playerFightUsageProof
+        local targets = before[p.feature == "warCombat" and "warRosterProof" or "hitListProof"]
+        local proof, usage = before.playerFightProof, before.playerFightUsageProof
         if type(proof) ~= "table" or not same(proof, before) or proof.sourceKey ~= i.sourceKey
             or proof.revision ~= before.revision or proof.capturedAt ~= before.capturedAt
             or type(targets) ~= "table" or targets.account ~= before.account or targets.capturedAt ~= before.capturedAt
@@ -99,6 +100,19 @@ function Evidence.new(receipts)
             or selected.stamina ~= i.expectedStaminaCost or selected.shielded ~= false
             or type(pools) ~= "table" or not number(pools.stamina, exposure)
             or not number(pools.health, 0) or count == nil then return nil, "Selected player quote changed" end
+        if p.feature == "warCombat" then
+            local war, allowance = targets.war, selected.warStatus
+            local nativeWar = type(before.native.derived) == "table" and before.native.derived.war
+            if type(war) ~= "table" or war.active ~= true or war.canScore ~= true
+                or war.enemyFamilyId ~= i.warEnemyFamilyId or selected.familyId ~= i.warEnemyFamilyId or i.familyId ~= i.warEnemyFamilyId
+                or type(before.native.family) ~= "table" or before.native.family.id ~= i.warOwnFamilyId
+                or i.warOwnFamilyId == i.warEnemyFamilyId or i.warDay ~= math.floor(i.serverNow / 86400)
+                or i.warStatusServerNow ~= war.statusServerNow or type(nativeWar) ~= "table" or nativeWar.state ~= "active"
+                or nativeWar.enemyId ~= nil and nativeWar.enemyId ~= i.warEnemyFamilyId
+                or type(allowance) ~= "table" or allowance.day ~= i.warDay or allowance.canScore ~= true
+                or not integer(allowance.remaining, 1) or not integer(allowance.attacksRemaining, 1)
+                or not integer(allowance.pairRemaining, 1) then return nil, "Exact scoring enemy baseline required" end
+        end
         if i.dailyOnly ~= nil and type(i.dailyOnly) ~= "boolean" or i.dailyOnly == true and count ~= 0 then
             return nil, "Daily-only target was already attacked or the option is invalid"
         end

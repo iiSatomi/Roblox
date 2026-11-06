@@ -17,61 +17,61 @@
       "id": "overview",
       "label": "Overview",
       "description": "Session and next steps",
-      "symbol": "⌂"
+      "symbol": "âŒ‚"
     },
     {
       "id": "player",
       "label": "Player",
       "description": "Your stats, wallet, confirmed mugging income and property portfolio",
-      "symbol": "◉"
+      "symbol": "â—‰"
     },
     {
       "id": "heists",
       "label": "Heists",
       "description": "Personal runs, reward collection and separate sabotage permission",
-      "symbol": "◇"
+      "symbol": "â—‡"
     },
     {
       "id": "jobs",
       "label": "Jobs",
       "description": "Choose a Job goal and let native eligibility guide the work",
-      "symbol": "✓"
+      "symbol": "âœ“"
     },
     {
       "id": "operations",
       "label": "Operations",
       "description": "Start Operations and collect completed runs",
-      "symbol": "◷"
+      "symbol": "â—·"
     },
     {
       "id": "favors",
       "label": "Favors",
       "description": "Help eligible Heists within your energy and daily limits",
-      "symbol": "♧"
+      "symbol": "â™§"
     },
     {
       "id": "combat",
       "label": "Combat",
       "description": "Player fights, city Bosses, Family Takedown and Global Bosses",
-      "symbol": "⚔"
+      "symbol": "âš”"
     },
     {
       "id": "crew",
       "label": "Crew & Gear",
       "description": "Build, equip and look after your Crew",
-      "symbol": "♟"
+      "symbol": "â™Ÿ"
     },
     {
       "id": "inventory",
       "label": "Inventory",
       "description": "Cosmetics, owned chests and player restoratives",
-      "symbol": "□"
+      "symbol": "â–¡"
     },
     {
       "id": "collection",
       "label": "Collection",
       "description": "Deposit safe surplus while protecting useful copies",
-      "symbol": "▦"
+      "symbol": "â–¦"
     },
     {
       "id": "money",
@@ -83,91 +83,91 @@
       "id": "property",
       "label": "Property",
       "description": "Buy eligible properties with a clear goal and spending limits",
-      "symbol": "▥"
+      "symbol": "â–¥"
     },
     {
       "id": "safehouse",
       "label": "Safehouse",
       "description": "Choose the next eligible Safehouse upgrade",
-      "symbol": "⌂"
+      "symbol": "âŒ‚"
     },
     {
       "id": "prestige",
       "label": "Prestige",
       "description": "Review progression requirements and reset limits",
-      "symbol": "↑"
+      "symbol": "â†‘"
     },
     {
       "id": "shop",
       "label": "Shop",
       "description": "Native Shop items, rotation and purchase budget",
-      "symbol": "▣"
+      "symbol": "â–£"
     },
     {
       "id": "blackMarket",
       "label": "Black Market",
       "description": "Research, listing, flipping, rental and earnings",
-      "symbol": "⇄"
+      "symbol": "â‡„"
     },
     {
       "id": "family",
       "label": "Family",
       "description": "Separate Cash, Stamina and Gold contributions",
-      "symbol": "⚑"
+      "symbol": "âš‘"
     },
     {
       "id": "territory",
       "label": "Territory",
       "description": "Holdings, Crew stationing and residency",
-      "symbol": "◎"
+      "symbol": "â—Ž"
     },
     {
       "id": "contracts",
       "label": "Contracts",
       "description": "Choose objectives and claim earned Contract rewards",
-      "symbol": "☑"
+      "symbol": "â˜‘"
     },
     {
       "id": "trophies",
       "label": "Trophies",
       "description": "Choose a Trophy goal and claim earned rewards",
-      "symbol": "☆"
+      "symbol": "â˜†"
     },
     {
       "id": "skills",
       "label": "Skills",
       "description": "Allocate earned points toward your chosen stat",
-      "symbol": "＋"
+      "symbol": "ï¼‹"
     },
     {
       "id": "rewards",
       "label": "Rewards",
       "description": "Earned playtime, group and monthly claims",
-      "symbol": "✧"
+      "symbol": "âœ§"
     },
     {
       "id": "events",
       "label": "Events",
       "description": "Briefcases, effective buffs and Event Shop",
-      "symbol": "✦"
+      "symbol": "âœ¦"
     },
     {
       "id": "profiles",
       "label": "Profiles",
       "description": "Stage, compare and save feature choices",
-      "symbol": "▤"
+      "symbol": "â–¤"
     },
     {
       "id": "settings",
       "label": "Settings",
       "description": "Appearance and connection information",
-      "symbol": "⚙"
+      "symbol": "âš™"
     },
     {
       "id": "activity",
       "label": "Activity",
       "description": "Clear reasons and recent UI changes",
-      "symbol": "≡"
+      "symbol": "â‰¡"
     }
   ],
   "features": [
@@ -1258,7 +1258,7 @@
       "id": "crewHire",
       "page": "crew",
       "label": "Allow contract hires",
-      "description": "Fill empty slots for a selected contract; never dismiss a member. Run limits persist across reloads; review them while paused.",
+      "description": "Fill empty slots only for an incomplete native hire contract. Enable Work on Contracts and its hire borrowing permission, then set hire limits. Never dismiss a member.",
       "policies": [
         "street",
         "professional",
@@ -1431,7 +1431,7 @@
           ]
         }
       ],
-      "limits": "Bound first · separate native 3s player cooldown."
+      "limits": "Bound first Â· separate native 3s player cooldown."
     },
     {
       "id": "bank",
@@ -1705,7 +1705,7 @@
         },
         {
           "id": "excludedRarities",
-          "label": "Excluded rarities 1–9 (comma separated)",
+          "label": "Excluded rarities 1â€“9 (comma separated)",
           "type": "text",
           "value": "",
           "maxLength": 1024,
@@ -1843,7 +1843,7 @@
         },
         {
           "id": "excludedRarities",
-          "label": "Excluded rarities 1–9 (comma separated)",
+          "label": "Excluded rarities 1â€“9 (comma separated)",
           "type": "text",
           "value": "",
           "maxLength": 1024,
@@ -2006,7 +2006,7 @@
         },
         {
           "id": "excludedRarities",
-          "label": "Excluded rarities 1–9 (comma separated)",
+          "label": "Excluded rarities 1â€“9 (comma separated)",
           "type": "text",
           "value": "",
           "maxLength": 1024,
@@ -2288,9 +2288,15 @@
       "id": "familyGold",
       "page": "family",
       "label": "Contribute Family Gold",
-      "description": "Separate permission with a default-zero spending cap.",
+      "description": "Loose-only mode blocks mixed balances. The separate total-Gold option permits native payment from either origin; its reserve protects the combined balance.",
       "policies": [],
       "custom": [
+        {
+          "id": "allowNativeGoldPool",
+          "label": "Allow native payment from total Gold",
+          "type": "boolean",
+          "value": false
+        },
         {
           "id": "amount",
           "label": "Amount per donation",
@@ -2429,7 +2435,7 @@
         },
         {
           "id": "maxAttempts",
-          "label": "Maximum station attempts per run",
+          "label": "Maximum station or recall attempts per run",
           "type": "number",
           "value": 0,
           "min": 0,
@@ -2461,7 +2467,7 @@
       "id": "residency",
       "page": "territory",
       "label": "Choose my residence",
-      "description": "Compare effective bonuses and rent rather than nominal district stats.",
+      "description": "Compare the selected native resident contribution and rent; refuse capped gains and unverified bonus tradeoffs.",
       "policies": [
         "Selected bonus",
         "Income bonus",
@@ -2633,7 +2639,7 @@
       "id": "autoContracts",
       "page": "contracts",
       "label": "Work on Contracts",
-      "description": "Use the same ordinary feature planners and explicit borrowing policy.",
+      "description": "Borrow separately enabled Jobs, Operations or contract hires only for current native contract progress.",
       "policies": [],
       "custom": [
         {
@@ -2651,6 +2657,12 @@
         {
           "id": "borrowCollect",
           "label": "Borrow enabled Operation collection",
+          "type": "boolean",
+          "value": false
+        },
+        {
+          "id": "borrowHires",
+          "label": "Borrow enabled contract hires",
           "type": "boolean",
           "value": false
         }

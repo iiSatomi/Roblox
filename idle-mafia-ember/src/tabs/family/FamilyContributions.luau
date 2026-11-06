@@ -50,6 +50,17 @@ local function assess(spec, view, settings, reservations)
         or before > 9007199254740991 - settings.amount then
         return nil, "Family run spend or attempt cap reached"
     end
+    local available = view[spec.balance]
+    local nativeGoldPool = false
+    if spec.resource == "gold_bar" then
+        if settings.allowNativeGoldPool ~= nil and type(settings.allowNativeGoldPool) ~= "boolean"
+            or not integer(view.boundGold, 0, 1000000000) then
+            return nil, "Explicit Family Gold payment permission required"
+        end
+        nativeGoldPool = settings.allowNativeGoldPool == true
+        if nativeGoldPool then available = available + view.boundGold
+        elseif view.boundGold ~= 0 then return nil, "Mixed-origin Family Gold needs explicit native total-Gold permission" end
+    end
     reservations = type(reservations) == "table" and reservations or {}
     local reserved = reservations[spec.resource]
     local uncertain = reservations[spec.uncertain]
@@ -57,7 +68,7 @@ local function assess(spec, view, settings, reservations)
     if uncertain == nil then uncertain = 0 end
     if not number(reserved, 0, 9007199254740991)
         or not number(uncertain, 0, 9007199254740991)
-        or view[spec.balance] - reserved - uncertain - settings.amount < settings.reserve then
+        or available - reserved - uncertain - settings.amount < settings.reserve then
         return nil, "Family resource reserve or uncertain exposure blocks contribution"
     end
     local intent = { kind = "familyContribution", resource = spec.resource,
@@ -71,8 +82,9 @@ local function assess(spec, view, settings, reservations)
             return nil, "Family donation is below the native minimum"
         end
     elseif spec.resource == "gold_bar" then
-        -- Origin order for mixed loose/bound donations is not established.
-        if view.boundGold ~= 0 then return nil, "Mixed-origin Family Gold custody unverified" end
+        -- The native command has no origin selector. This distinct permission
+        -- accepts either debit pool, without claiming a server priority.
+        intent.allowNativeGoldPool = nativeGoldPool
     else
         local perk = settings.selectedPerk
         local level = type(view.perks) == "table" and view.perks[perk]

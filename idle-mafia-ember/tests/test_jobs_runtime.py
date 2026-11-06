@@ -10,7 +10,7 @@ class JobsRuntimeTests(unittest.TestCase):
         self.storage = self.h.lua.execute("""
             return { data = {}, strictRecovery = true,
                 Read = function(self, key) return self.data[key] end,
-                Write = function(self, key, value) self.data[key] = value end }
+                Write = function(self, key, value) self.data[key] = value; return true end }
         """)
         modules = lua_table(self.h.lua, {
             "Clock": self.h.load("src/engine/Clock.luau"),
