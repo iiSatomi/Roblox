@@ -110,7 +110,7 @@ function MarketSaleCustody.assess(raw, context, id, item,
         and context.collectionProtection
     if not same(raw, context) or type(native) ~= "table"
         or native.fullSync ~= true or not text(id)
-        or id:find("@", 1, true)
+        or not (id:match("^[%w_%-]+$") or id:match("^[%w_%-]+@[1-9]%d?$"))
         or type(item) ~= "table" or item.id ~= id
         or item.tradable ~= true or not text(item.kind)
         or item.kind == "gold"
@@ -135,6 +135,9 @@ function MarketSaleCustody.assess(raw, context, id, item,
         or settings.blockedRarities[tostring(item.rarity)] == true then
         return nil, "Item excluded from Market sale"
     end
+    -- Native exact-key loose custody is independent of Collection's base-family
+    -- checkpoint/withdraw protocol. Do not withdraw an upgraded copy implicitly.
+    local variant = id:find("@", 1, true) ~= nil
     local loose = count(native.inventory, id)
     local bound = count(native.inventoryBound, id)
     local collected = count(native.collection, id)
@@ -161,7 +164,7 @@ function MarketSaleCustody.assess(raw, context, id, item,
     local reserved = math.max(settings.keepLoose, wornCount, protected) + held
     local looseSurplus = math.max(0, loose - reserved)
     local floor, collectionSurplus = 0, 0
-    if settings.fromCollection then
+    if settings.fromCollection and not variant then
         floor = checkpoint(tiers, allCollected)
         if floor == nil then
             return nil, "Collection checkpoints unavailable"
@@ -171,7 +174,10 @@ function MarketSaleCustody.assess(raw, context, id, item,
     end
     local quantity = math.min(settings.maxQuantity, 999,
         looseSurplus + collectionSurplus)
-    if quantity < 1 then return nil, "No unbound Market sale surplus" end
+    if quantity < 1 then
+        return nil, variant and settings.fromCollection and "Upgraded Collection withdrawal is not verified"
+            or "No unbound Market sale surplus"
+    end
     return { session = raw.session, account = raw.account,
         place = raw.place, release = raw.release,
         revision = raw.revision, capturedAt = raw.capturedAt,

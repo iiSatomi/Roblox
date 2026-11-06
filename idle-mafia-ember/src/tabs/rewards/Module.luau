@@ -20,6 +20,8 @@ function RewardsTab.BuildUI(section, feature, bind)
         group:Description({ Text = "The saved 0.26.530 monthly calendar is disabled; current config must enable it." })
     elseif feature.id == "groupBonus" then
         group:Description({ Text = "Only an existing, recently verified Group member is eligible." })
+    elseif feature.id == "playtime" then
+        group:Description({ Text = "For income Cash and an already active XP boost, confirmation means the claim was recorded. The exact Cash award or XP extension is unverified." })
     end
     return { feature = feature, tabOwned = true,
         status = group:Status({ Text = "Activity",

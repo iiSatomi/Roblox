@@ -38,6 +38,28 @@ class NativeHeistLeaseTests(unittest.TestCase):
         self.assertIsNone(self.owner.Inspect(self.owner)[0])
         self.assertEqual(self.port.writes,0)
 
+    def test_inspect_distinguishes_fresh_controller_epoch_without_any_counter_write(self):
+        self.port.counter=0
+        epoch=lua_table(self.h.lua,{'id':'fresh-epoch','counterSeen':0})
+        owner,why=self.module.new(self.port,self.h.clock,self.scope,epoch);self.assertIsNotNone(owner,why)
+        inspected,why=owner.Inspect(owner);self.assertIsNone(why)
+        self.assertEqual(inspected.sequenceScope,'nativeControllerEpoch')
+        self.assertEqual(inspected.initialControllerCounter,0)
+        self.assertTrue(inspected.controllerIdle)
+        self.assertEqual(self.port.writes,0)
+        q=owner.Quote(owner)[0];self.assertEqual(q.sequence,1)
+        p=lua_table(self.h.lua,{**self.h.session,'feature':'heists','actionKey':'fresh:start',
+            'intent':{'kind':'heistStart','heistId':'h_a',**{k:q[k] for k in q.keys()}}})
+        self.assertTrue(owner.Acquire(owner,p,45)[0])
+        inspected=owner.Inspect(owner)[0]
+        self.assertEqual((inspected.controllerCounter,inspected.initialControllerCounter),(1,0))
+        self.assertFalse(inspected.controllerIdle)
+        self.assertTrue(owner.Release(owner,p)[0])
+        restored,why=self.module.new(self.port,self.h.clock,self.scope,epoch);self.assertIsNotNone(restored,why)
+        self.assertEqual(restored.Inspect(restored)[0].initialControllerCounter,0)
+        self.assertEqual(restored.Quote(restored)[0].sequence,2)
+        self.assertEqual(self.port.counter,1)
+
     def test_quote_is_read_only_and_acquire_advances_native_counter_once(self):
         q,why=self.owner.Quote(self.owner);self.assertIsNone(why);self.assertEqual(q.sequence,5);self.assertEqual(self.port.writes,0)
         self.assertTrue(self.owner.Acquire(self.owner,self.p,45)[0]);self.assertEqual(self.port.counter,5)
@@ -75,3 +97,77 @@ class NativeHeistLeaseTests(unittest.TestCase):
         self.assertTrue(self.owner.Acquire(self.owner,self.p,45)[0]);self.port.fail='running'
         self.assertFalse(self.owner.Release(self.owner,self.p)[0]);self.assertIsNotNone(self.epoch.live)
         self.port.fail=None;self.assertTrue(self.owner.Release(self.owner,self.p)[0]);self.assertFalse(self.port.running);self.assertIsNone(self.epoch.live)
+
+
+class NativeHeistBoundEpochTests(unittest.TestCase):
+    """Synthetic reflection boundary; never executes or embeds native game source."""
+    def setUp(self):
+        self.h=Harness();self.module=self.h.load('src/tabs/heists/NativeHeistLease.luau')
+        self.f=self.h.lua.execute("""
+            local function node(name,class)
+                local n={Name=name,ClassName=class,children={}}
+                function n:IsA(k)return self.ClassName==k end
+                function n:FindFirstChild(k)return self.children[k]end
+                function n:Add(c)c.Parent=self;self.children[c.Name]=c;return c end
+                return n
+            end
+            local f={registry={},writes=0,calls=0,guids=0}
+            local player=node('user-a','Player')
+            local scripts=player:Add(node('PlayerScripts','PlayerScripts'))
+            local client=scripts:Add(node('MWClient','LocalScript'))
+            local module=client:Add(node('HeistsTab','ModuleScript'))
+            local stateModule=client:Add(node('State','ModuleScript'));stateModule.Value={data={}}
+            local replicated=node('ReplicatedStorage','ReplicatedStorage')
+            local mw=replicated:Add(node('MW','Folder'));local remotes=mw:Add(node('Remotes','Folder'))
+            local remote=remotes:Add(node('HeistAction','RemoteFunction'))
+            local wrapper={Instance=remote,InvokeServer=function()f.calls=f.calls+1;error('No native worker')end}
+            local context={player=player,State=stateModule.Value,Remotes={HeistAction=wrapper}}
+            local actor=function()end;local helper=function()end
+            local values={[2]=0,[3]=false,[4]=function()end,[5]=helper,[6]=context,[7]=function()end}
+            local players={LocalPlayer=player}
+            local game={PlaceId=73897506680154,PlaceVersion=654,JobId='same-native-job'}
+            function game:GetService(name)
+                if name=='Players'then return players end
+                if name=='ReplicatedStorage'then return replicated end
+                if name=='HttpService'then return {GenerateGUID=function()f.guids=f.guids+1;return 'native-epoch-'..f.guids end}end
+                error(name)
+            end
+            local env={filtergc=function()return {actor}end,getfenv=function()return {script=module}end,
+                -- Digest stub isolates binding identity logic, not source-hash verification.
+                decompile=function(m)assert(m==module);return string.rep('x',69223)end,
+                crypt={hash=function()return '11e1d4138dcf5db66aa9b1f4f69d0298bd3b66f8173e13ee4b81dba8f104ec8a'end},
+                iscclosure=function(fn)return type(fn)=='function'end}
+            function env.getupvalues(fn)
+                if fn==actor then return values end
+                if fn==helper then return {[2]=context}end
+                local result={};for i=1,32 do local name,v=debug.getupvalue(fn,i);if not name then break end;result[i]=v end
+                return result
+            end
+            function env.setupvalue(fn,index,value)
+                if fn==actor then values[index]=value;f.writes=f.writes+1
+                else assert(debug.setupvalue(fn,index,value))end
+            end
+            f.game=game;f.env=env;f.values=values;f.requireModule=function(m)return m.Value end
+            return f
+        """)
+        self.deps=lua_table(self.h.lua,{'game':self.f.game,'env':self.f.env,'registry':self.f.registry,
+            'requireModule':self.f.requireModule,'clock':self.h.clock,'account':'user-a'})
+    def bind(self):return self.module.bind(self.deps)
+    def test_same_controller_rebind_keeps_original_zero_and_next_sequence(self):
+        owner,why=self.bind();self.assertIsNotNone(owner,why)
+        self.assertEqual(owner.Inspect(owner)[0].initialControllerCounter,0)
+        q=owner.Quote(owner)[0]
+        p=lua_table(self.h.lua,{**self.h.session,'feature':'heists','actionKey':'new:one',
+            'intent':{'kind':'heistStart','heistId':'h_a',**dict(q.items())}})
+        self.assertTrue(owner.Acquire(owner,p,45)[0]);self.assertTrue(owner.Release(owner,p)[0]);owner.Close(owner)
+        rebound,why=self.bind();self.assertIsNotNone(rebound,why)
+        self.assertEqual(rebound.Inspect(rebound)[0].initialControllerCounter,0)
+        self.assertEqual(rebound.Quote(rebound)[0].sequence,2)
+        self.assertEqual(self.f["values"][2],1);self.assertEqual(self.f.guids,1);self.assertEqual(self.f.calls,0)
+    def test_retired_same_actor_context_job_cannot_rebind_as_a_fresh_epoch(self):
+        owner,why=self.bind();self.assertIsNotNone(owner,why)
+        self.f["values"][2]=1;self.assertIsNotNone(owner.Inspect(owner)[0])
+        self.f["values"][2]=0;self.assertIsNone(owner.Inspect(owner)[0])
+        rebound,why=self.bind()
+        self.assertIsNone(rebound);self.assertIn('retired',why)
+        self.assertEqual(self.f.guids,1);self.assertEqual(self.f.writes,0);self.assertEqual(self.f.calls,0)

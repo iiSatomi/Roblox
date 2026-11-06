@@ -36,7 +36,8 @@ function MarketCallPlan.describe(proposal)
     end
     if type(proposal) == "table" and (proposal.feature == "marketSell" or proposal.feature=="marketFlip") and type(intent) == "table"
         and intent.kind == "marketList" and type(intent.itemId) == "string"
-        and #intent.itemId > 0 and #intent.itemId <= 120 and intent.itemId:match("^[%w_%-]+$")
+        and #intent.itemId > 0 and #intent.itemId <= 120
+        and (intent.itemId:match("^[%w_%-]+$") or intent.itemId:match("^[%w_%-]+@[1-9]%d?$"))
         and integer(intent.quantity, 1) and intent.quantity <= 999
         and integer(intent.ask, 2) and intent.ask <= 9999999
         and type(intent.sourceKey) == "string" and #intent.sourceKey == 64 and intent.sourceKey:match("^[%x]+$")

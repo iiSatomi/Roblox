@@ -69,11 +69,11 @@ class MarketVariantBrowseTests(unittest.TestCase):
         self.assertIsNotNone(result,reason)
         self.assertTrue(result.paginationComplete)
         self.assertFalse(result.pricingComplete)
-        self.assertEqual((result.totalRows,result.variantCount,result.opportunityCount),(3,1,0))
-        self.assertIn('variant',result.rejected[3].reason.lower())
-        self.assertEqual(result.rejected[3].itemId,'w_baton@6')
+        self.assertEqual((result.totalRows,result.variantCount,result.opportunityCount),(3,1,1))
+        self.assertEqual(result.opportunities[1].itemId,'w_baton')
+        self.assertEqual(result.rejected[2].itemId,'w_baton@6')
 
-    def test_variants_beyond_presentation_limit_still_withhold_all_quotes(self):
+    def test_variants_beyond_presentation_limit_still_report_incomplete_pricing(self):
         f=view_fixture.MarketResearchViewTests();f.setUp()
         f.browse['rows']=[{'id':f'L{i}','item':'w_baton','qty':1,'price':8,'mine':False} for i in range(100)]
         f.browse['rows'].append({'id':'LAST','item':'w_baton@6','qty':1,'price':1,'mine':False})
@@ -89,15 +89,15 @@ class MarketVariantBrowseTests(unittest.TestCase):
                 result=self.accept(reply)
                 self.assertTrue(result[field]);self.assertEqual(result.variantCount,1)
 
-    def test_sale_and_watch_helpers_refuse_even_base_quotes_from_variant_browse(self):
+    def test_sale_and_watch_helpers_isolate_base_quotes_from_variant_browse(self):
         sale=sale_fixture.MarketSaleQuoteTests();sale.setUp();values=sale.inputs()
         values[3].rows[2]=lua_table(sale.h.lua,{'id':'variant','item':'w_baton@6','qty':1,'price':1,'mine':False})
         with self.subTest(helper='sale'):
-            self.assertIsNone(sale.assess(values)[0])
+            self.assertEqual(sale.assess(values)[0].ask,10)
         watch=watch_fixture.MarketWatchOpportunityTests();watch.setUp();values=watch.inputs()
         values[0].rows[3]=lua_table(watch.h.lua,{'id':'variant','item':'w_baton@6','qty':1,'price':1,'mine':False})
         with self.subTest(helper='watch'):
-            self.assertIsNone(watch.watch.assess(*values)[0])
+            self.assertEqual(watch.watch.assess(*values)[0].itemId,'w_baton')
 
 
 class MarketVariantControllerTests(unittest.TestCase):
@@ -116,23 +116,23 @@ class MarketVariantControllerTests(unittest.TestCase):
     def test_shared_read_coordinator_produces_honest_variant_report_without_any_trade(self):
         f=self.f;f.warm();view,reason=f.view()
         self.assertIsNotNone(view,reason)
-        self.assertEqual((view.research.totalRows,view.research.variantCount,view.research.opportunityCount),(3,1,0))
+        self.assertEqual((view.research.totalRows,view.research.variantCount,view.research.opportunityCount),(3,1,1))
         self.assertTrue(view.research.paginationComplete)
         self.assertFalse(view.research.pricingComplete)
         self.assertEqual({call[1] for call in f.executor.calls.values()},{'browse','rap','prices'})
         self.assertEqual({call[3] for call in f.executor.calls.values() if call[1]=='browse'},{'w_baton'})
         self.assertTrue(all('@' not in call[2] for call in f.executor.calls.values() if call[1]=='prices'))
 
-    def test_actual_watch_descriptor_explains_variant_pricing_withheld(self):
+    def test_actual_watch_descriptor_explains_exact_item_research(self):
         f=self.f;f.warm();view,reason=f.view();self.assertIsNotNone(view,reason)
         descriptor=f.owner.Descriptor(f.owner)
         proposal,report=descriptor.planner.propose(view,lua_table(f.h.lua,{'enabled':True}))
         self.assertIsNone(proposal)
         self.assertIn('1 upgraded variant',report)
-        self.assertIn('pricing and trading withheld',report)
+        self.assertIn('exact-item research only',report)
         self.assertEqual(len(f.h.transport.sent),0)
 
-    def test_sale_source_accepts_native_family_reply_but_refuses_any_sale_view(self):
+    def test_sale_source_accepts_native_family_reply_without_base_price_contamination(self):
         f=self.f
         f.native.inventory=lua_table(f.h.lua,{'w_baton':2});f.native.inventoryBound=f.h.lua.table()
         f.reader.ObserveSync(f.reader,f.native)
@@ -152,5 +152,6 @@ class MarketVariantControllerTests(unittest.TestCase):
             self.assertIsNotNone(accepted)
             self.assertTrue(source.commit(accepted))
         view,reason=f.owner.SaleView(f.owner,raw,raw)
-        self.assertIsNone(view);self.assertIn('Variant',reason)
+        self.assertIsNotNone(view,reason);self.assertEqual(view.itemId,'w_baton')
+        self.assertEqual(view.browse.rows[3].item,'w_baton@6')
         self.assertTrue(all(call[1] in ('browse','rap','prices') for call in f.executor.calls.values()))

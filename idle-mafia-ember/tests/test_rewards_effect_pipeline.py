@@ -16,20 +16,25 @@ class RewardsEffectPipelineTests(unittest.TestCase):
         raw = self.fixture.base.raw(revision=revision)
         raw.native.derived.effMaxEnergy = 40
         raw.native.playtime.todaySeconds = 900
-        raw.native.playtime.laddersClaimed = lua_table(self.h.lua, {"2": 2} if claimed else {})
+        raw.native.playtime.laddersClaimed = lua_table(self.h.lua, {"1": 2, "2": 2} if claimed else {"1": 2})
         return self.tab.Enrich(self.tab, raw)[0]
 
-    def test_unknown_income_cash_does_not_starve_supported_refill(self):
+    def test_income_claim_and_refill_are_available_in_native_order(self):
         raw = self.raw()
+        raw.native.playtime.laddersClaimed["1"] = None
         context = self.h.lua.table_from({key: value for key, value in raw.items()})
         context.serverNow = raw.native.serverNow
         view, reason = self.spec.reader.read(raw, context)
         self.assertIsNone(reason)
-        self.assertEqual(len(view.ready), 1)
-        self.assertEqual(view.ready[1].index, 2)
+        self.assertEqual(len(view.ready), 2)
+        self.assertEqual(view.ready[1].index, 1)
         proposal, reason = self.spec.planner.propose(view, lua_table(self.h.lua, {"enabled": True}))
         self.assertIsNone(reason)
-        self.assertEqual(proposal.intent.index, 2)
+        self.assertEqual(proposal.intent.index, 1)
+        raw.native.cash = None
+        view, reason = self.spec.reader.read(raw, context)
+        self.assertIsNone(reason)
+        self.assertEqual(view.ready[1].index, 2)
 
     def start_app(self):
         executor = self.h.lua.execute("""return {calls={},

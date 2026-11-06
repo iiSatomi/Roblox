@@ -349,6 +349,69 @@ class StorageUsageCarryTests(unittest.TestCase):
                 native.valid=True;native.counter=7;native.nativeEpoch='epoch-a';native.Inspect=original
                 self.assertFalse(guard.Check(guard,p,raw)[0])
 
+    def fresh_heist_native(self):
+        native=self.native_source('heist')
+        native.counter=0;native.sequenceScope='nativeControllerEpoch';native.initialControllerCounter=0;native.controllerIdle=True
+        self.h.lua.globals().freshCarryNative=native
+        prior=native.Inspect;self.h.lua.globals().freshCarryPriorInspect=prior
+        native.Inspect=self.h.lua.eval("""function(s)
+            local value=freshCarryPriorInspect(s);if not value then return nil end
+            value.sequenceScope=s.sequenceScope;value.initialControllerCounter=s.initialControllerCounter
+            value.controllerIdle=s.controllerIdle;return value end""")
+        return native
+
+    def test_fresh_controller_epoch_preserves_legacy_receipt_but_uses_current_sequence(self):
+        guard,review,sources=self.legacy_guard('heist');native=self.fresh_heist_native()
+        self.assertTrue(guard.BindNativeSources(guard,lua_table(self.h.lua,{'heist':native}))[0])
+        p=self.native_proposal('heist');p.intent.sequence=1;raw=self.raw()
+        self.assertTrue(guard.Check(guard,p,raw)[0])
+        native.owned=p;native.counter=1;native.controllerIdle=False
+        self.assertTrue(guard.Check(guard,p,raw)[0])
+        native.owned=None
+        self.assertFalse(guard.Check(guard,p,raw)[0])
+        native.controllerIdle=True;p.intent.sequence=2
+        self.assertTrue(guard.Check(guard,p,raw)[0])
+        self.assertEqual(guard.Summary(guard).floors.favorUsage.attempts,1)
+        self.assertIsNotNone(review.blockedFeatures.favors)
+        reopened=self.engine().Adopt(self.engine(),review,sources,self.f.cp)[0]
+        self.assertTrue(reopened.BindCheckpoint(reopened,self.f.cp)[0])
+        self.assertTrue(reopened.BindNativeSources(reopened,lua_table(self.h.lua,{'heist':native}))[0])
+        self.assertTrue(reopened.Check(reopened,p,raw)[0])
+        self.assertEqual(reopened.Summary(reopened).floors.favorUsage.attempts,1)
+
+    def test_below_historical_counter_without_exact_fresh_idle_origin_is_refused(self):
+        for mode in ('scope','origin','idle','missing_idle','missing_origin','sequence_zero','sequence_skip'):
+            with self.subTest(mode=mode):
+                self.setUp();guard,_,_=self.legacy_guard('heist');native=self.fresh_heist_native()
+                p=self.native_proposal('heist');p.intent.sequence=1
+                if mode=='scope':native.sequenceScope='accountLifetime'
+                elif mode=='origin':native.initialControllerCounter=1
+                elif mode=='idle':native.controllerIdle=False
+                elif mode=='missing_idle':native.controllerIdle=None
+                elif mode=='missing_origin':native.initialControllerCounter=None
+                elif mode=='sequence_zero':p.intent.sequence=0
+                else:p.intent.sequence=2
+                self.assertTrue(guard.BindNativeSources(guard,lua_table(self.h.lua,{'heist':native}))[0])
+                self.assertFalse(guard.Check(guard,p,self.raw())[0])
+
+    def test_fresh_epoch_regression_origin_scope_or_methods_retire_stickily(self):
+        for mode in ('regression','origin','epoch','method'):
+            with self.subTest(mode=mode):
+                self.setUp();guard,_,_=self.legacy_guard('heist');native=self.fresh_heist_native()
+                p=self.native_proposal('heist');p.intent.sequence=1;raw=self.raw()
+                self.assertTrue(guard.BindNativeSources(guard,lua_table(self.h.lua,{'heist':native}))[0])
+                self.assertTrue(guard.Check(guard,p,raw)[0])
+                native.counter=1;native.controllerIdle=False;native.owned=p
+                self.assertTrue(guard.Check(guard,p,raw)[0])
+                original=native.Inspect
+                if mode=='regression':native.counter=0
+                elif mode=='origin':native.initialControllerCounter=1
+                elif mode=='epoch':native.nativeEpoch='changed'
+                else:native.Inspect=self.h.lua.eval('function()return nil end')
+                self.assertFalse(guard.Check(guard,p,raw)[0])
+                native.counter=1;native.initialControllerCounter=0;native.nativeEpoch='epoch-a';native.Inspect=original
+                self.assertFalse(guard.Check(guard,p,raw)[0])
+
     def test_real_recall_identity_survives_temporary_modal_without_sending(self):
         guard,_,_=self.legacy_guard('recall')
         port=self.h.lua.execute("""return {counter=0,ready=true,writes=0,

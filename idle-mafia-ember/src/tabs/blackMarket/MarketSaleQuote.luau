@@ -22,7 +22,8 @@ local function identity(custody, listings)
             or custody[field] ~= listings[field] then return false end
     end
     return type(custody.itemId) == "string" and #custody.itemId > 0
-        and not custody.itemId:find("@", 1, true)
+        and #custody.itemId <= 120
+        and (custody.itemId:match("^[%w_%-]+$") or custody.itemId:match("^[%w_%-]+@[1-9]%d?$")) ~= nil
         and integer(custody.quantity, 1, 999)
         and integer(custody.withdraw, 0, custody.quantity)
 end
@@ -59,12 +60,12 @@ local function supply(browse, listings, itemId)
     local depth, cheapest, count = 0, nil, 0
     for index, row in ipairs(rows) do
         if type(row) ~= "table" or type(row.item) ~= "string"
-            or row.item:find("@", 1, true)
+            or #row.item > 120 or not (row.item:match("^[%w_%-]+$") or row.item:match("^[%w_%-]+@[1-9]%d?$"))
             or not integer(row.qty, 1, 1000000000)
             or not integer(row.price, 1, 9999999)
             or type(row.mine) ~= "boolean" then return nil end
         count = index
-        if not row.mine then
+        if not row.mine and row.item == itemId then
             depth = depth + row.qty
             if row.item == itemId then
                 cheapest = math.min(cheapest or row.price, row.price)
@@ -98,9 +99,10 @@ function MarketSaleQuote.assess(custody, rap, history, browse,
         or rap.available ~= true
         or not integer(rap.sales, 0, 1000000000)
         or not integer(rap.quantity, 0, 1000000000)
-        or not finite(rap.average, 2, 1000000000)
+        or rap.average ~= nil and not finite(rap.average, 2, 1000000000)
         or history.itemId ~= custody.itemId
-        or browse.kind ~= "item" or browse.arg ~= custody.itemId
+        or browse.kind ~= "item"
+        or browse.arg ~= (custody.itemId:match("^([%w_%-]+)@[1-9]%d?$") or custody.itemId)
         or browse.more ~= false
         or browse.stale == true or browse.small == true
         or type(terms) ~= "table"
@@ -134,16 +136,20 @@ function MarketSaleQuote.assess(custody, rap, history, browse,
         or rap.quantity < settings.minUnits then
         return nil, "Market item has insufficient recent demand"
     end
+    local average = rap.average
+    if type(average) ~= "number" or not finite(average, 2, 1000000000) then
+        return nil, "Exact-item Market price history unavailable"
+    end
     local median = recentPrices(history)
     local depth, cheapest = supply(browse, listings, custody.itemId)
-    if not median or not depth then
+    if type(median) ~= "number" or not depth then
         return nil, "Complete item prices and supply required"
     end
     local ask = cheapest and cheapest - settings.undercutGold
-        or math.floor(math.min(median, rap.average) * 0.98)
+        or math.floor(math.min(median, average) * 0.98)
     if not integer(ask, terms.minPrice, terms.maxPrice)
-        or ask < math.ceil(rap.average * settings.floorPct / 100)
-        or ask > math.floor(rap.average * 1.1) then
+        or ask < math.ceil(average * settings.floorPct / 100)
+        or ask > math.floor(average * 1.1) then
         return nil, "Conservative Market ask unavailable"
     end
     local fee = math.max(terms.minFee,

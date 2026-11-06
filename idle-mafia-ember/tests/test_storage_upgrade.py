@@ -131,6 +131,132 @@ class StorageUpgradeTests(unittest.TestCase):
         self.store.Write(self.store, key, forged)
         self.assertIsNone(self.engine().Open(self.engine())[0])
 
+    def current_unsent(self):
+        p = self.h.proposal('jobs', 'jobs:unsent'); p.release = self.data_release
+        baseline = lua_table(self.h.lua, {'retained': True})
+        self.assertTrue(self.cp.Save(self.cp, p, self.before, baseline)[0])
+        p.checkpointRequestId = self.cp.requestHighwater
+        self.assertTrue(self.cp.RecordUnsent(self.cp, p, self.before, baseline)[0])
+        return self.cp.UnsentKey(self.cp, p.checkpointRequestId)
+
+    def current_recall(self):
+        import test_territory_recall as recall_fixture
+        helper = recall_fixture.TerritoryRecallTests(methodName='runTest')
+        helper.h = self.h
+        self.h.session['release'] = self.data_release
+        helper.scope = lua_table(self.h.lua, {**self.h.session, 'userId': 101})
+        helper.terms = lua_table(self.h.lua, {'release': self.data_release, 'recallCooldownSeconds': 600})
+        self.h.lua.globals().upgradeRecallIdentity = lua_table(self.h.lua, {
+            'account': self.identity['account'], 'place': self.identity['place'], 'userId': 101,
+            'nativeJob': 'recall-job', 'nativeEpoch': 'recall-epoch', 'nativeSourceKey': 'a' * 64})
+        helper.identitySource = self.h.lua.execute("""local fence={owners={},writing={}};return {
+            DurableFence=function()return fence end,Identity=function()return upgradeRecallIdentity end}""")
+        helper.module = self.h.load('src/tabs/territory/RecallTransactions.luau')
+        helper.storage = self.store
+        helper.tx = helper.restart()
+        helper.settle()
+        self.assertEqual(helper.tx.Reconcile(helper.tx, helper.raw(5, 1700000005, home=True))[0], 'observed')
+        return helper
+
+    def next_upgrade(self):
+        engine = self.engine(dict(self.identity, release='c' * 40))
+        before = dict(self.f.disk)
+        review, reason = engine.Preview(engine, self.data_release)
+        self.assertIsNotNone(review, reason)
+        self.assertEqual(self.f.disk, before, 'Preview must not write even with typed side ledgers')
+        result, reason = engine.Commit(engine, review)
+        self.assertIsNotNone(result, reason)
+        self.assertIsNotNone(engine.Open(engine)[0])
+        return engine
+
+    def test_second_code_upgrade_archives_real_unsent_and_observed_recall_without_rewriting_originals(self):
+        engine, review = self.preview(); self.assertIsNotNone(engine.Commit(engine, review)[0])
+        unsent_key = self.current_unsent()
+        helper = self.current_recall()
+        originals = {key: self.store.Current(self.store, key)[0].payload
+                     for key in (unsent_key, helper.tx.key, self.checkpoint_key)}
+        next_engine = self.next_upgrade()
+        for key, payload in originals.items():
+            self.assertEqual(self.store.Current(self.store, key)[0].payload, payload)
+        recovery = self.cp.Recovery(self.cp, self.proposal.actionKey)[0]
+        self.assertTrue(recovery.reply.ok)
+        self.assertEqual(recovery.proposal.resources.cash, 200)
+        self.assertIsNone(self.evidence.recoverSaved(recovery, self.before))
+        # The next authorized session must still be able to finish the same
+        # producer's observed transaction instead of pinning it as foreign data.
+        self.assertTrue(helper.tx.ClearObserved(helper.tx)[0])
+        self.assertIsNotNone(next_engine.Open(next_engine)[0])
+
+    def test_archived_mutable_ledger_requires_a_later_generation_for_changed_payload(self):
+        for mutation in ('lower_generation', 'same_generation', 'missing'):
+            with self.subTest(mutation=mutation):
+                self.setUp(); engine, review = self.preview()
+                self.assertIsNotNone(engine.Commit(engine, review)[0])
+                helper = self.current_recall()
+                archived_generation = self.store.Current(self.store, helper.tx.key)[0].generation
+                next_engine = self.next_upgrade()
+                self.assertTrue(helper.tx.ClearObserved(helper.tx)[0])
+                self.assertIsNotNone(next_engine.Open(next_engine)[0])
+                self.h.lua.globals().upgradeOriginalCurrent = self.store.Current
+                self.h.lua.globals().upgradeMutableKey = helper.tx.key
+                self.h.lua.globals().upgradeArchivedGeneration = archived_generation
+                self.h.lua.globals().upgradeMutableMutation = mutation
+                self.store.Current = self.h.lua.eval("""function(self,key)
+                    local slot,reason=upgradeOriginalCurrent(self,key)
+                    if key==upgradeMutableKey then
+                        if upgradeMutableMutation=='missing' then return nil end
+                        slot.generation=upgradeArchivedGeneration-(upgradeMutableMutation=='lower_generation' and 1 or 0)
+                    end
+                    return slot,reason
+                end""")
+                before = dict(self.f.disk)
+                self.assertIsNone(next_engine.Open(next_engine)[0])
+                third = self.engine(dict(self.identity, release='d' * 40))
+                self.assertIsNone(third.Preview(third, self.data_release)[0])
+                self.assertEqual(self.f.disk, before)
+
+    def test_numbered_unsent_archive_remains_immutable_on_restart_and_next_code_review(self):
+        engine, review = self.preview(); self.assertIsNotNone(engine.Commit(engine, review)[0])
+        key = self.current_unsent()
+        next_engine = self.next_upgrade()
+        # Rewriting even a valid identical receipt changes its immutable generation.
+        self.assertTrue(self.store.Write(self.store, key, self.store.Read(self.store, key)))
+        before = dict(self.f.disk)
+        self.assertIsNone(next_engine.Open(next_engine)[0])
+        third = self.engine(dict(self.identity, release='d' * 40))
+        self.assertIsNone(third.Preview(third, self.data_release)[0])
+        self.assertEqual(self.f.disk, before)
+
+    def test_changed_typed_side_ledger_after_preview_refuses_owner_adoption(self):
+        engine, review = self.preview(); self.assertIsNotNone(engine.Commit(engine, review)[0])
+        helper = self.current_recall()
+        next_engine = self.engine(dict(self.identity, release='c' * 40))
+        review, reason = next_engine.Preview(next_engine, self.data_release)
+        self.assertIsNotNone(review, reason)
+        self.assertTrue(helper.tx.ClearObserved(helper.tx)[0])
+        owner = self.store.Current(self.store, self.owner_key)[0].payload
+        self.assertIsNone(next_engine.Commit(next_engine, review)[0])
+        self.assertEqual(self.store.Current(self.store, self.owner_key)[0].payload, owner)
+
+    def test_cross_code_snapshot_refuses_malformed_typed_current_keys_without_writes(self):
+        for mutation in ('unsent_scope', 'unsent_version', 'unsent_suffix', 'recall_version'):
+            with self.subTest(mutation=mutation):
+                self.setUp(); engine, review = self.preview()
+                self.assertIsNotNone(engine.Commit(engine, review)[0])
+                key = self.current_unsent()
+                if mutation == 'recall_version':
+                    key = self.current_recall().tx.key
+                value = self.store.Read(self.store, key)
+                if mutation == 'unsent_scope': value.release = 'c' * 40
+                elif mutation == 'unsent_version': value.version = 999
+                elif mutation == 'unsent_suffix': key += ':unreviewed-owner'
+                else: value.version = 999
+                self.assertTrue(self.store.Write(self.store, key, value))
+                before = dict(self.f.disk)
+                next_engine = self.engine(dict(self.identity, release='c' * 40))
+                self.assertIsNone(next_engine.Preview(next_engine, self.data_release)[0])
+                self.assertEqual(self.f.disk, before)
+
     def test_current_owner_retirement_during_certificate_write_blocks_adoption(self):
         alive = {'value': True}
         self.h.lua.globals().upgradeAlive = lambda: alive['value']
@@ -253,6 +379,14 @@ class StorageUpgradeTests(unittest.TestCase):
         self.assertTrue(helper.tx.RecordRuntimeUnsent(helper.tx, proposal.actionKey, proposal.intent.ownerGeneration)[0])
         reopened, reason = self.engine().Open(self.engine()); self.assertIsNotNone(reopened, reason)
         self.assertEqual(helper.restart().BuyUsage(helper.restart()).spent, 8)
+        next_engine = self.next_upgrade()
+        self.assertIsNotNone(next_engine.Open(next_engine)[0])
+        # A genuine producer transition may refund its exact known-unsent buy
+        # after upgrade; the archived initial state remains in the certificate.
+        unsent_review = helper.tx.RuntimeUnsentReview(helper.tx)[0]
+        self.assertTrue(helper.tx.ReleaseRuntimeUnsent(helper.tx, unsent_review)[0])
+        self.assertEqual(helper.tx.BuyUsage(helper.tx).spent, 0)
+        self.assertIsNotNone(next_engine.Open(next_engine)[0])
 
     def test_known_external_store_cannot_be_omitted_from_an_upgrade_or_appear_after_adoption(self):
         for when in ('preview', 'restart'):

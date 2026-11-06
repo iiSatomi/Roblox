@@ -53,7 +53,7 @@ local function visible(browse, listingId, itemId)
     for index, row in ipairs(rows) do
         if type(row) ~= "table" or not id(row.id)
             or type(row.item) ~= "string" or #row.item == 0
-            or #row.item > 120 or row.item:find("@", 1, true)
+            or #row.item > 120 or not (row.item:match("^[%w_%-]+$") or row.item:match("^[%w_%-]+@[1-9]%d?$"))
             or not integer(row.qty, 1, 1000000000)
             or not integer(row.price, 1, 9999999)
             or type(row.mine) ~= "boolean"
@@ -84,14 +84,15 @@ function MarketWatchOpportunity.assess(browse, listingId, rap,
         or not finite(now, 0, 9007199254740991)
         or not fresh(browse, now, 15)
         or not (browse.kind == "all" and browse.arg == nil
-            or browse.kind == "item" and type(item) == "table" and browse.arg == item.id)
+            or browse.kind == "item" and type(item) == "table" and type(item.id) == "string"
+                and browse.arg == (item.id:match("^([%w_%-]+)@[1-9]%d?$") or item.id))
         or browse.more ~= false
         or browse.stale == true or browse.small == true
         or not fresh(rap, now, 120)
         or not fresh(history, now, 120)
         or type(item) ~= "table"
         or type(item.id) ~= "string" or #item.id == 0
-        or #item.id > 120 or item.id:find("@", 1, true) or item.tradable ~= true
+        or #item.id > 120 or not (item.id:match("^[%w_%-]+$") or item.id:match("^[%w_%-]+@[1-9]%d?$")) or item.tradable ~= true
         or item.kind == "gold"
         or not integer(item.rarity, 1, 20)
         or rap.itemId ~= item.id
@@ -99,7 +100,7 @@ function MarketWatchOpportunity.assess(browse, listingId, rap,
         or rap.available ~= true
         or not integer(rap.sales, 0, 1000000000)
         or not integer(rap.quantity, 0, 1000000000)
-        or not finite(rap.average, 2, 1000000000)
+        or rap.average ~= nil and not finite(rap.average, 2, 1000000000)
         or type(terms) ~= "table"
         or type(terms.release) ~= "string"
         or #terms.release == 0
@@ -122,17 +123,21 @@ function MarketWatchOpportunity.assess(browse, listingId, rap,
         or rap.quantity < settings.minUnits then
         return nil, "Market sales below watch threshold"
     end
+    local average = rap.average
+    if type(average) ~= "number" or not finite(average, 2, 1000000000) then
+        return nil, "Exact-item Market price history unavailable"
+    end
     local row, cheapest, supply = visible(browse, listingId,
         item.id)
     local typical = median(history)
-    if not row or not typical then
+    if not row or type(typical) ~= "number" then
         return nil, "Complete Market listing and price evidence required"
     end
     local ask = cheapest and cheapest - settings.undercutGold
-        or math.floor(math.min(typical, rap.average) * 0.98)
+        or math.floor(math.min(typical, average) * 0.98)
     if not integer(ask, terms.minPrice, terms.maxPrice)
-        or ask < math.ceil(rap.average * settings.floorPct / 100)
-        or ask > math.floor(rap.average * 1.1) then
+        or ask < math.ceil(average * settings.floorPct / 100)
+        or ask > math.floor(average * 1.1) then
         return nil, "Conservative resale ask unavailable"
     end
     if settings.requireCoverage

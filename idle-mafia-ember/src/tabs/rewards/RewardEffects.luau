@@ -38,7 +38,7 @@ local function read(spec, raw)
         end
         return result
     end
-    if spec.kind == "cash" then return number(native.cash) and native.cash or nil end
+    if spec.kind == "cash" or spec.kind == "incomeCash" then return number(native.cash) and native.cash or nil end
     if spec.kind == "refill" then
         local pools = native.pools
         local capacity = spec.pool == "energy" and type(native.derived) == "table"
@@ -83,6 +83,38 @@ local function effect(spec, before, after, reply)
     return false
 end
 
+local function disposition(raw)
+    local native = raw.native
+    local claimed = type(native.playtime) == "table" and (native.playtime.laddersClaimed or {})
+    local weekend = raw.weekendBuff
+    if type(claimed) ~= "table" or not number(native.serverNow)
+        or type(weekend) ~= "table" or type(weekend.active) ~= "boolean" or not count(weekend.day) then return nil end
+    local copied = {}
+    for key, tier in pairs(claimed) do
+        local index = type(key) == "string" and tonumber(key)
+        if not count(index) or index < 1 or index > 7 or tostring(index) ~= key
+            or not count(tier) or tier < 1 or tier > 4 then return nil end
+        copied[key] = tier
+    end
+    return {verification = "claim_recorded_award_unverified", claimed = copied,
+        serverNow = native.serverNow, weekend = {active = weekend.active, day = weekend.day}}
+end
+
+local function recorded(baseline, after, status, value)
+    local prior, current = baseline.disposition, disposition(after)
+    if not current or current.serverNow <= prior.serverNow or not same(current.weekend, prior.weekend) then return false end
+    local selected = tostring(baseline.spec.slot)
+    if prior.claimed[selected] ~= nil
+        or current.claimed[selected] ~= (status == "confirmed" and baseline.spec.tier or nil) then return false end
+    current.claimed[selected] = nil
+    if not same(current.claimed, prior.claimed) then return false end
+    if baseline.spec.kind == "incomeCash" then
+        return status == "confirmed" and value >= baseline.value or status == "rejected" and value == baseline.value
+    end
+    return status == "confirmed" and value.ending >= baseline.value.ending
+        or status == "rejected" and value.ending == baseline.value.ending
+end
+
 function RewardEffects.new(source, marker, lane, weekendSource)
     assert(type(source) == "table" and type(source.RewardSpec) == "function"
         and type(marker) == "table" and type(marker.capture) == "function"
@@ -113,10 +145,13 @@ function RewardEffects.new(source, marker, lane, weekendSource)
         if not spec then return nil, reason end
         local value = read(spec, raw)
         if value == nil then return nil, "Reward effect baseline unavailable" end
-        if spec.kind == "xpboost" and value.ending > value.now then
-            return nil, "Active XP boost stacking rule is not established"
+        local proof
+        if spec.kind == "incomeCash" or spec.kind == "xpboost" and value.ending > value.now then
+            if lane ~= "playtime" then return nil, "Active XP boost stacking rule is not established" end
+            proof = disposition(raw)
+            if not proof then return nil, "Complete current claim-disposition proof required" end
         end
-        return {spec = spec, value = value}, nil
+        return {spec = spec, value = value, disposition = proof}, nil
     end
     function result:Supports(raw, slot)
         local captured, reason = captureEffect(raw, slot)
@@ -128,7 +163,15 @@ function RewardEffects.new(source, marker, lane, weekendSource)
         local slot = lane == "playtime" and proposal.intent.index or proposal.intent.nextDay
         local captured, why = captureEffect(before, slot)
         if not captured then return nil, why end
-        return {marker = baseline, spec = captured.spec, value = captured.value}, nil
+        if captured.disposition then
+            local intent = proposal.intent
+            if type(proposal.resources) ~= "table" or next(proposal.resources) ~= nil
+                or intent.rewardKind ~= captured.spec.rewardKind
+                or proposal.actionKey ~= "playtime:" .. intent.day .. ":" .. #intent.catalogKey .. ":" .. intent.catalogKey .. ":" .. intent.index then
+                return nil, "Exact owned zero-cost ladder claim required"
+            end
+        end
+        return {marker = baseline, spec = captured.spec, value = captured.value, disposition = captured.disposition}, nil
     end
     function result.evaluate(proposal, beforeHeader, after, reply, baseline)
         if type(baseline) ~= "table" or type(baseline.spec) ~= "table"
@@ -141,6 +184,7 @@ function RewardEffects.new(source, marker, lane, weekendSource)
         if not spec or not same(spec, baseline.spec) then return "pending" end
         local value = read(spec, after)
         if value == nil then return "pending" end
+        if baseline.disposition then return recorded(baseline, after, status, value) and status or "pending" end
         if status == "rejected" then return same(value, baseline.value) and "rejected" or "pending" end
         if lane == "playtime" and after.native.playtime.laddersClaimed[tostring(spec.slot)] ~= spec.tier then return "pending" end
         return effect(spec, baseline.value, value, reply) and "confirmed" or "pending"
@@ -160,6 +204,7 @@ function RewardEffects.new(source, marker, lane, weekendSource)
         if not spec or not same(spec, baseline.spec) then return nil end
         local value = read(spec, after)
         if value == nil then return nil end
+        if baseline.disposition then return recorded(baseline, after, status, value) and status or nil end
         if status == "rejected" then return same(value, baseline.value) and "rejected" or nil end
         if lane == "playtime" and after.native.playtime.laddersClaimed[tostring(spec.slot)] ~= spec.tier then return nil end
         return effect(spec, baseline.value, value, data.reply) and "confirmed" or nil

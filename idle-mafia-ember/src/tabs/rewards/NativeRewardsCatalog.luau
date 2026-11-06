@@ -202,6 +202,8 @@ function Methods:RewardSpec(snapshot, lane, slot)
         end
     elseif row.kind == "cash" and integer(row.flat, 1) then
         spec.kind, spec.amount = "cash", row.flat
+    elseif lane == "playtime" and row.kind == "cash" and integer(row.minutes, 1) then
+        spec.kind, spec.minutes = "incomeCash", row.minutes
     elseif row.kind == "energy" or row.kind == "stamina" then
         spec.kind, spec.pool = "refill", row.kind
     elseif row.kind == "xpboost" and integer(row.minutes, 1) then

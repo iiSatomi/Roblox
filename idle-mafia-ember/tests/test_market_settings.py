@@ -191,7 +191,8 @@ class MarketSettingsTests(unittest.TestCase):
     def test_csv_validation_is_opt_in_and_legacy_profiles_default_new_keys(self):
         self.assertTrue(self.model.Set(self.model, "marketSell.custom.excludedItems", "w_a, w_b")[0])
         self.assertFalse(self.model.Set(self.model, "shop.custom.itemId", "w_a,w_b")[0])
-        for value in ("a,,b", "a,", ",a", "a@2", "x" * 121):
+        self.assertTrue(self.model.Set(self.model, "marketSell.custom.excludedItems", "a@2")[0])
+        for value in ("a,,b", "a,", ",a", "a@0", "a@01", "a@100", "a@2@3", "x" * 121):
             self.assertFalse(self.model.Set(self.model, "marketSell.custom.excludedItems", value)[0])
         fresh = self.settings.new(self.catalog)
         profile = lua_table(self.h.lua, {"schema": 1, "values": {

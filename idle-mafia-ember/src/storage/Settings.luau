@@ -45,13 +45,16 @@ local function accepts(spec, value)
                     if not found or seen[token] then return false end
                     seen[token] = true
                 end
+                local valid = token:match("^[%w_%-]+$") or spec.marketItem
+                    and token:match("^[%w_%-]+@[1-9]%d?$")
                 if count > 64 or #token > 120 or spec.familyIds and token == "0"
-                    or not token:match("^[%w_%-]+$") then return false end
+                    or not valid then return false end
             end
             return count > 0
         end
         return value == "" and spec.allowEmpty == true
             or value:match("^[%w_%-]+$") ~= nil
+            or spec.marketItem == true and value:match("^[%w_%-]+@[1-9]%d?$") ~= nil
     end
     return false
 end
@@ -82,6 +85,8 @@ function Settings.new(catalog, runByDefault)
                 options = field.options, min = field.min, max = field.max,
                 integer = field.integer, maxLength = field.maxLength,
                 csv = field.csv, allowEmpty = field.allowEmpty,
+                marketItem = (feature.id == "marketWatch" or feature.id == "marketSell" or feature.id == "marketFlip")
+                    and (field.id == "selectedItemId" or field.id == "excludedItems"),
             })
         end
         for _, field in ipairs(feature.memoryRules or {}) do

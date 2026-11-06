@@ -273,7 +273,9 @@ function Carry.new(deps)
                 end
                 local signature={account=first.account,place=first.place,nativeJob=first.nativeJob,
                     nativeEpoch=first.nativeEpoch,nativeSourceKey=first.nativeSourceKey,
-                    userId=kind=="recall" and first.userId or nil}
+                    userId=kind=="recall" and first.userId or nil,
+                    sequenceScope=kind=="heist" and first.sequenceScope or nil,
+                    initialControllerCounter=kind=="heist" and first.initialControllerCounter or nil}
                 if source.signature and not same(signature,source.signature)
                     or source.counter~=nil and counter<source.counter then source.retired=true;return false end
                 source.signature,source.counter=signature,counter
@@ -282,8 +284,15 @@ function Carry.new(deps)
                 if type(summary.affectedIntents)~="table" or summary.affectedIntents[i.kind]~=true
                     or intrinsicBlocks[p.feature] and not (p.feature=="station" and i.kind=="territoryRecall") then return false end
                 if kind=="heist" then
-                    if not integer(summary.sequenceFloor) or not integer(i.sequence) or i.sequence<=summary.sequenceFloor
-                        or counter<summary.sequenceFloor then return false end
+                    if not integer(summary.sequenceFloor) or not integer(i.sequence) or i.sequence<1 then return false end
+                    -- HeistsTab initializes its local sequence at zero for each
+                    -- controller. A confirmed historical receipt owns no active
+                    -- request; its number is not a lifetime native counter floor.
+                    local freshEpoch=first.sequenceScope=="nativeControllerEpoch"
+                        and first.initialControllerCounter==0 and type(first.controllerIdle)=="boolean"
+                    if freshEpoch then
+                        if not owned and first.controllerIdle~=true then return false end
+                    elseif i.sequence<=summary.sequenceFloor or counter<summary.sequenceFloor then return false end
                     return counter==(owned and i.sequence or i.sequence-1)
                 end
                 local original=summary.originalScope

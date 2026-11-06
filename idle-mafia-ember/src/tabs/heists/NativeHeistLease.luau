@@ -49,9 +49,14 @@ function NativeHeistLease.new(port, clock, scope, epoch)
         or type(clock) ~= "table" or type(clock.Now) ~= "function"
         or type(scope) ~= "table" or not text(scope.account) or not text(scope.place)
         or not text(scope.jobId) or type(scope.sourceKey) ~= "string" or #scope.sourceKey ~= 64
-        or type(epoch) ~= "table" or not text(epoch.id) or not integer(epoch.counterSeen, 0) then
+        or type(epoch) ~= "table" or not text(epoch.id) or not integer(epoch.counterSeen, 0)
+        or epoch.retired == true
+        or epoch.initialControllerCounter ~= nil and (not integer(epoch.initialControllerCounter, 0)
+            or epoch.initialControllerCounter > epoch.counterSeen) then
         return nil, "Missing native Heist lease capabilities"
     end
+    -- This is a captured controller origin, not a durable account usage floor.
+    if epoch.initialControllerCounter == nil then epoch.initialControllerCounter = epoch.counterSeen end
     return setmetatable({port = port, clock = clock, scope = scope, epoch = epoch, closed = false}, Methods), nil
 end
 
@@ -67,7 +72,9 @@ function Methods:Inspect()
     if not state then return nil, reason end
     return {account = self.scope.account, place = self.scope.place,
         controllerCounter = state.counter, nativeJob = self.scope.jobId,
-        nativeEpoch = self.epoch.id, nativeSourceKey = self.scope.sourceKey}, nil
+        nativeEpoch = self.epoch.id, nativeSourceKey = self.scope.sourceKey,
+        sequenceScope = "nativeControllerEpoch", initialControllerCounter = self.epoch.initialControllerCounter,
+        controllerIdle = state.pending == nil and state.running == false and state.inflight == nil and self.epoch.live == nil}, nil
 end
 
 function Methods:Observe()
@@ -275,8 +282,10 @@ function NativeHeistLease.bind(deps)
         local previous = rawget(deps.registry, REGISTRY)
         local epoch
         if type(previous) == "table" and previous.actor == actor and previous.context == context
-            and previous.module == module and previous.jobId == jobId and previous.account == player.Name
-            and not previous.retired then epoch = previous end
+            and previous.module == module and previous.jobId == jobId and previous.account == player.Name then
+            if previous.retired then return nil, "Native Heist counter epoch retired" end
+            epoch = previous
+        end
         if not epoch then
             epoch = {id = game:GetService("HttpService"):GenerateGUID(false), counterSeen = values[2],
                 actor = actor, context = context, module = module, jobId = jobId, account = player.Name}

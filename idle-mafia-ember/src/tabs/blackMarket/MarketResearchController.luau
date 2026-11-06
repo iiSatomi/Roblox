@@ -1,6 +1,10 @@
 -- Read-only research state. All network admission belongs to ReadCoordinator.
 local MarketResearchController = {}
 local headers = {"session", "account", "place", "release", "revision", "capturedAt"}
+-- Native MarketTab searches the base family; research and custody keep exact IDs.
+local function browseId(id)
+    return id:match("^([%w_%-]+)@[1-9]%d?$") or id
+end
 function MarketResearchController.new(deps)
     assert(type(deps.clock) == "table" and type(deps.identity) == "table"
         and type(deps.gameData) == "table" and type(deps.gameData.ITEMS_BY_ID) == "table",
@@ -13,10 +17,41 @@ function MarketResearchController.new(deps)
         identity[key] = deps.identity[key]
     end
     assert(identity.release == deps.release, "Market research release mismatch")
-    for id, row in pairs(deps.gameData.ITEMS_BY_ID) do
-        if type(id) == "string" and type(row) == "table" then
-            items[id] = {id = id, kind = row.kind, rarity = row.rarity, tradable = row.tradable == true}
+    local itemSource = deps.gameData.ITEMS_BY_ID
+    local itemMeta = getmetatable(itemSource)
+    local itemIndex = type(itemMeta) == "table" and itemMeta.__index
+    local retiredItems = false
+    local function itemFor(id)
+        if retiredItems then return nil end
+        local currentMeta = getmetatable(itemSource)
+        if deps.gameData.ITEMS_BY_ID ~= itemSource or currentMeta ~= itemMeta
+            or type(currentMeta) == "table" and currentMeta.__index ~= itemIndex then
+            retiredItems = true; return nil
         end
+        if type(id) ~= "string" or #id == 0 or #id > 120 then return nil end
+        local base, level = id:match("^([%w_%-]+)@([1-9]%d?)$")
+        if not base and not id:match("^[%w_%-]+$") then return nil end
+        -- Use native GameData's exact-ID resolver, including its cap and stats.
+        -- A failed native lookup supplies no metadata and never falls back to base.
+        local ok, row = pcall(function() return itemSource[id] end)
+        local afterMeta = getmetatable(itemSource)
+        if deps.gameData.ITEMS_BY_ID ~= itemSource or afterMeta ~= itemMeta
+            or type(afterMeta) == "table" and afterMeta.__index ~= itemIndex then
+            retiredItems = true; return nil
+        end
+        if not ok or type(row) ~= "table" or row.id ~= id then return nil end
+        if base then
+            local upgrade = deps.config.UPGRADE
+            if (row.kind ~= "weapon" and row.kind ~= "armor" and row.kind ~= "vehicle")
+                or row.baseId ~= base or row.upgradeLevel ~= tonumber(level)
+                or type(upgrade) ~= "table" or type(upgrade.maxLevel) ~= "number"
+                or upgrade.maxLevel ~= upgrade.maxLevel or upgrade.maxLevel % 1 ~= 0
+                or upgrade.maxLevel < 1 or upgrade.maxLevel > 99
+                or tonumber(level) > upgrade.maxLevel then return nil end
+        end
+        local result = {id = id, kind = row.kind, rarity = row.rarity, tradable = row.tradable == true}
+        items[id] = result
+        return result
     end
     local saleOwner, collectionCatalog
     if type(deps.NativeCollectionCatalog)=="table" and type(deps.config.COLLECTION)=="table" then
@@ -99,12 +134,13 @@ function MarketResearchController.new(deps)
         local active=saleOwner and saleOwner:Active()
         if researchFeature=="marketFlip" then
             if active and active.sourceKey==deps.fingerprint then
-                if active.kind=="buy" and active.stage=="observed" then return active.baseline.itemId end
-                if active.kind=="list" and active.stage=="prepared" and active.origin and active.origin.kind=="buy" then return active.itemId end
+                if active.kind=="buy" and active.stage=="observed" and itemFor(active.baseline.itemId) then return active.baseline.itemId end
+                if active.kind=="list" and active.stage=="prepared" and active.origin and active.origin.kind=="buy" and itemFor(active.itemId) then return active.itemId end
             end
             return nil
         end
-        if active and active.kind=="withdraw" and active.stage=="observed" and active.sourceKey==deps.fingerprint then return active.baseline.itemId end
+        if active and active.kind=="withdraw" and active.stage=="observed" and active.sourceKey==deps.fingerprint
+            and itemFor(active.baseline.itemId) then return active.baseline.itemId end
         local ids, candidates = {}, {}
         for id in pairs(inventory) do candidates[id]=true end
         if options.fromCollection and type(native.collection)=="table" then
@@ -113,7 +149,7 @@ function MarketResearchController.new(deps)
         for id in pairs(candidates) do
             local amount=inventory[id] or 0
             local collected=type(native.collection)=="table" and native.collection[id] or 0
-            local item = items[id]
+            local item = itemFor(id)
             local boundAmount = bound[id] or 0
             if item and item.tradable and type(amount) == "number"
                 and amount == amount and amount % 1 == 0 and amount >= 0
@@ -144,7 +180,7 @@ function MarketResearchController.new(deps)
         local result, seen = {}, {}
         if not state.options or not state.browse or clock:Now() - state.browse.capturedAt > 120 then return result end
         for _, row in ipairs(state.browse.rows) do
-            local item = items[row.item]
+            local item = itemFor(row.item)
             if item and deps.MarketSettings.allows(state.options, item) and not seen[item.id] then
                 seen[item.id] = true
                 result[#result + 1] = item.id
@@ -152,7 +188,7 @@ function MarketResearchController.new(deps)
             end
         end
         for id in pairs(state.ownedItems) do
-            local item = items[id]
+            local item = itemFor(id)
             if #result < 100 and not seen[id] and item and deps.MarketSettings.allows(state.options, item) then
                 seen[id], result[#result + 1] = true, id
             end
@@ -174,7 +210,7 @@ function MarketResearchController.new(deps)
     end
     local function researchScope(options)
         local selection = options and options.selection
-        if selection and selection.scope == "Selected item" then return "item", selection.selectedItemId end
+        if selection and selection.scope == "Selected item" then return "item", browseId(selection.selectedItemId) end
         return "all", nil
     end
     local function currentResearchScope(value)
@@ -262,7 +298,7 @@ function MarketResearchController.new(deps)
                     local query, request
                     if kind == "browse" then
                         if state.saleBrowse and clock:Now() - state.saleBrowse.capturedAt < 15 then return nil, "Item browse cached" end
-                        if not state.saleNextPage then state.saleNextPage = salePages:Begin("item", id) end
+                        if not state.saleNextPage then state.saleNextPage = salePages:Begin("item", browseId(id)) end
                         request = saleBrowse:Prepare(state.saleNextPage)
                         query = saleBrowse
                     elseif kind == "rap" then
@@ -314,14 +350,11 @@ function MarketResearchController.new(deps)
         local browseResult, rapResult, priceResult = state.saleBrowse,
             saleRap:Get(id), salePrices:Get(id)
         if type(browseResult) ~= "table" or browseResult.kind ~= "item"
-            or browseResult.arg ~= id or browseResult.more ~= false
+            or browseResult.arg ~= browseId(id) or browseResult.more ~= false
             or browseResult.stale == true or browseResult.small == true
             or clock:Now() - browseResult.capturedAt > 15
             or not rapResult or not priceResult then
             return nil, "Waiting for complete current item browse, RAP and history"
-        end
-        for _, row in ipairs(browseResult.rows) do
-            if row.item:find("@", 1, true) then return nil, "Variant-inclusive Market browse cannot authorize a sale" end
         end
         return {readOnly = true, raw = raw, context = context, itemId = id, browse = browseResult,
             rap = rapResult, history = priceResult, session = raw.session,
@@ -342,7 +375,7 @@ function MarketResearchController.new(deps)
         local projected
         projected, reason = deps.MarketSettings.projectSalePreview(options)
         if not projected then return nil, reason end
-        local item = items[current.itemId]
+        local item = itemFor(current.itemId)
         if not deps.MarketSettings.allows(projected, item) then return nil, "Item excluded from sale preview" end
         if type(deps.MarketSaleCustody) ~= "table" or type(deps.MarketSaleQuote) ~= "table" then
             return nil, "Market sale preview modules unavailable"
@@ -361,7 +394,7 @@ function MarketResearchController.new(deps)
             reserved[current.itemId]=held-active.plannedQuantity;proof.reserved=reserved
             for key,value in pairs(context) do adjusted[key]=value end
             adjusted.collectionProtection=proof;context=adjusted
-        elseif projected.custody.fromCollection then
+        elseif projected.custody.fromCollection and not current.itemId:find("@", 1, true) then
             if not collectionCatalog then return nil,"Native Collection tiers unavailable" end
             local enriched=collectionCatalog:Enrich(raw)
             if not enriched then return nil,"Current Collection tiers unavailable" end
@@ -613,7 +646,7 @@ function MarketResearchController.new(deps)
         local candidates={}
         for index,row in ipairs(state.browse.rows) do
             if index>100 then break end
-            local item=items[row.item]
+            local item=itemFor(row.item)
             if item and deps.MarketSettings.allows(projected,item)
                 and (projected.selection.scope~="Selected item" or row.item==projected.selection.selectedItemId) then
                 local terms=catalog:SaleTerms(raw,item.rarity)
@@ -677,11 +710,19 @@ function MarketResearchController.new(deps)
                     .. tostring(view.researchedItems) .. "/" .. tostring(view.selectedItems) .. " items"
                 if (research.variantCount or 0) > 0 then
                     report = report .. "; " .. tostring(research.variantCount)
-                        .. " upgraded variant(s); pricing and trading withheld"
+                        .. " upgraded variant(s); exact-item research only"
                 end
                 if research.opportunities[1] then
                     local first = research.opportunities[1]
                     report = report .. "; " .. first.itemId .. " estimated margin " .. tostring(first.margin) .. " Gold"
+                else
+                    for _, refused in ipairs(research.rejected) do
+                        local selection = state.options.selection
+                        if selection.scope ~= "Selected item" or refused.itemId == selection.selectedItemId then
+                            report = report .. "; " .. refused.reason
+                            break
+                        end
+                    end
                 end
                 if view.aging then report = report .. "; " .. tostring(#view.aging) .. " owned listings to review" end
                 if research.truncated then report = report .. "; bounded partial coverage" end

@@ -81,14 +81,14 @@ class RewardEffectsTests(unittest.TestCase):
         after.native.pools.energy = 50
         self.assertEqual(self.outcome(2, before, after), "pending")
 
-    def test_fresh_xp_boost_uses_grant_time_window_and_active_stacking_is_blocked(self):
+    def test_fresh_xp_boost_uses_exact_grant_window_and_active_claim_is_available(self):
         before, after = self.raw(), self.raw(2, 5)
         after.native.xpBoostEnd = NOW + 1802
         self.assertEqual(self.outcome(5, before, after), "confirmed")
         after.native.xpBoostEnd = NOW + 3600
         self.assertEqual(self.outcome(5, before, after), "pending")
         before.native.xpBoostEnd = NOW + 60
-        self.assertFalse(self.playtime.Supports(self.playtime, before, 5)[0])
+        self.assertTrue(self.playtime.Supports(self.playtime, before, 5)[0])
 
     def test_mystery_reply_must_name_an_eligible_source_item_and_real_acquisition(self):
         before, after = self.raw(), self.raw(2, 6)
@@ -97,11 +97,15 @@ class RewardEffectsTests(unittest.TestCase):
         self.assertEqual(self.outcome(6, before, after, {"ok": True, "mystery": "crate_loot"}), "confirmed")
         self.assertEqual(self.outcome(6, before, after, {"ok": True, "mystery": "crate_rare"}), "pending")
 
-    def test_flat_cash_has_exact_effect_and_income_based_amount_is_unsupported(self):
+    def test_flat_cash_has_exact_effect_and_income_claim_has_no_invented_amount(self):
         before, after = self.raw(), self.raw(2, 1)
         after.native.cash = 11000
         self.assertEqual(self.outcome(1, before, after), "confirmed")
-        self.assertFalse(self.playtime.Supports(self.playtime, self.raw(level=30), 1)[0])
+        income = self.raw(level=30)
+        self.assertTrue(self.playtime.Supports(self.playtime, income, 1)[0])
+        spec = self.source.RewardSpec(self.source, income, "playtime", 1)[0]
+        self.assertEqual(spec.kind, "incomeCash")
+        self.assertIsNone(spec.amount)
 
     def test_exact_large_wallet_addition_confirms_and_one_cash_mismatch_stays_pending(self):
         before, after = self.raw(), self.raw(2, 1)

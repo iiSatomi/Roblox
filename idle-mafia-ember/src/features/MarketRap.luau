@@ -84,7 +84,7 @@ function Methods:Accept(request, reply)
         if not request.expected[id] or type(row) ~= "table"
             or not integer(row.quantity, 0, 1000000000)
             or not integer(row.sales, 0, 1000000000)
-            or not average(row.average)
+            or not (average(row.average) or row.average == nil and row.quantity == 0 and row.sales == 0)
             or type(row.available) ~= "boolean" then
             return nil, "Invalid Market RAP values"
         end

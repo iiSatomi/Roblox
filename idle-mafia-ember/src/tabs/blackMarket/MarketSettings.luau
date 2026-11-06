@@ -8,7 +8,7 @@ end
 
 local function itemId(value)
     return type(value) == "string" and #value > 0 and #value <= 120
-        and value:match("^[%w_%-]+$") ~= nil
+        and (value:match("^[%w_%-]+$") ~= nil or value:match("^[%w_%-]+@[1-9]%d?$") ~= nil)
 end
 
 -- Saved Config.MARKET.groupOfKind plus GameData misc kinds. RARITY_NAMES

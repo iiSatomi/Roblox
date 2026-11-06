@@ -251,6 +251,7 @@ function Methods:Snapshot(storageRelease,requestedCarry)
     local canonical=self.store:Read(checkpointKey(self.identity,storageRelease))
     if not canonical then error("Canonical checkpoint required",0) end
     local cp=self:Checkpoint(canonical,storageRelease)
+    if previousCertificate then self:RetainedSources(previousCertificate,storageRelease,cp) end
     local review={version=1,account=self.identity.account,place=self.identity.place,codeRelease=self.identity.release,
         storageRelease=storageRelease,owner={generation=owner.generation,sha256=self:Hash(owner.payload)},
         inventory={},legacy=self:Legacy(),requestHighwater=cp.requestHighwater,preserveOriginalEvidence=true}
@@ -270,7 +271,7 @@ function Methods:Snapshot(storageRelease,requestedCarry)
             if key==checkpointKey(self.identity,storageRelease) and not same(current.value,canonical) then
                 error("Canonical checkpoint changed during review",0)
             end
-            if key~=self.ownerKey then
+            if key~=self.ownerKey and not self:CurrentScope(key,current.value,storageRelease,cp.requestHighwater) then
                 local scope=keyScope(key)
                 if not scope then error("Unsupported storage owner requires typed review",0) end
                 if scope.account==self.identity.account and scope.place==self.identity.place then
@@ -363,6 +364,7 @@ end
 -- New rows created by the authorized code still belong to the same data lineage.
 -- Their own producers validate full state on construction; this boundary refuses
 -- foreign/unknown keys instead of treating a new directory entry as a fresh scope.
+-- The second result marks only mutable main ledgers, never append-only receipts.
 function Methods:CurrentScope(key,data,storageRelease,highwater)
     if type(data)~="table" then return false end
     if key:match("^idle%-mafia%-ember:adapter%-unsent:v1:") then
@@ -380,7 +382,7 @@ function Methods:CurrentScope(key,data,storageRelease,highwater)
         if type(scope)~="table" or scope.account~=self.identity.account or scope.place~=self.identity.place
             or scope.release~=storageRelease or data.schema~=1 or not integer(data.generation,1) then return false end
         local expected="idle-mafia-ember:crew-replacement:v1:"..scope.account..":"..scope.place..":"..scope.release
-        return key==expected or key==expected..":adapter-unsent:"..string.format("%.0f",data.generation)
+        return key==expected or key==expected..":adapter-unsent:"..string.format("%.0f",data.generation),key==expected
     end
     local scope=keyScope(key)
     if not scope or not dataFamilies[scope.family] or scope.account~=self.identity.account
@@ -396,26 +398,46 @@ function Methods:CurrentScope(key,data,storageRelease,highwater)
             and type(tx)=="table" and tx.preparedGeneration==generation and tx.account==scope.account
             and tx.place==scope.place and tx.release==scope.release
     end
-    if scope.family=="checkpoint" then return self:Checkpoint(data,storageRelease)~=nil end
+    if scope.family=="checkpoint" then return self:Checkpoint(data,storageRelease)~=nil,true end
     if scope.family=="market-rent" then
         if data.version~=1 or not integer(data.generation,0) then return false end
         for _,field in ipairs({"listingAttempts","withdrawAttempts","flipListingAttempts","buyAttempts","buySpent"}) do
             if not integer(data[field],0) then return false end
         end
         return data.transaction==nil or type(data.transaction)=="table" and data.transaction.account==scope.account
-            and data.transaction.place==scope.place and data.transaction.release==scope.release
+            and data.transaction.place==scope.place and data.transaction.release==scope.release,true
     end
     if scope.family=="territory-recall" then
         return data.version==2 and integer(data.userId,1) and integer(data.generation,0)
-            and integer(data.attempted,0) and integer(data.lastRequestId,0)
+            and integer(data.attempted,0) and integer(data.lastRequestId,0),true
     end
     if data.version~=1 or data.account~=scope.account or data.place~=scope.place or data.release~=scope.release then return false end
     if scope.family=="payouts" then
-        return integer(data.claims,0) and integer(data.gold,0) and integer(data.lastRequestId,0) and type(data.recent)=="table"
+        return integer(data.claims,0) and integer(data.gold,0) and integer(data.lastRequestId,0) and type(data.recent)=="table",true
     end
     return scope.family=="player-fights" and integer(data.fights,0) and integer(data.wins,0)
         and integer(data.cash,0) and integer(data.stamina,0) and integer(data.lastRequestId,0)
-        and type(data.recent)=="table" and type(data.highValue)=="table"
+        and type(data.recent)=="table" and type(data.highValue)=="table",true
+end
+-- Mutable canonical ledgers may advance under their existing producer guards.
+-- Foreign sources and numbered known-unsent/rejection receipts stay immutable.
+function Methods:RetainedSources(certificate,storageRelease,cp)
+    local inventory={}
+    if cp.requestHighwater<certificate.review.requestHighwater then error("Request highwater regressed",0) end
+    for _,row in ipairs(certificate.review.inventory) do
+        inventory[row.key]=true
+        if row.key~=self.ownerKey and row.key~=checkpointKey(self.identity,storageRelease) then
+            local current=self.store:Current(row.key)
+            if not current then error("Retained source unavailable",0) end
+            if not integer(current.generation,row.generation) or current.generation==row.generation
+                and self:Hash(current.payload)~=row.sha256 then error("Retained source generation regressed or changed",0) end
+            local valid,mutable=self:CurrentScope(row.key,current.value,storageRelease,cp.requestHighwater)
+            if not (valid and mutable) and (current.generation~=row.generation or self:Hash(current.payload)~=row.sha256) then
+                error("Retained foreign or immutable source changed",0)
+            end
+        end
+    end
+    return inventory
 end
 function Methods:Open()
     local ok,result=pcall(function()
@@ -426,17 +448,7 @@ function Methods:Open()
         local certificate,chain=self:Certificate(owner)
         if not same(certificate.review.legacy,self:Legacy()) then error("Legacy source changed after upgrade",0) end
         local cp=self:Checkpoint(self.store:Read(checkpointKey(self.identity,owner.storageRelease)),owner.storageRelease)
-        if cp.requestHighwater<certificate.review.requestHighwater then error("Request highwater regressed",0) end
-        local inventory={}
-        for _,row in ipairs(certificate.review.inventory) do
-            inventory[row.key]=true
-            if row.key~=self.ownerKey and row.key~=checkpointKey(self.identity,owner.storageRelease) then
-                local current=self.store:Current(row.key)
-                if not current or current.generation~=row.generation or self:Hash(current.payload)~=row.sha256 then
-                    error("Retained foreign source changed",0)
-                end
-            end
-        end
+        local inventory=self:RetainedSources(certificate,owner.storageRelease,cp)
         local keys,why=self.store:ListKeys();if not keys then error(why or "Storage discovery failed",0) end
         for _,key in ipairs(keys) do
             if not inventory[key] and not chain[key] then
